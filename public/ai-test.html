@@ -1,0 +1,70 @@
+<!-- AI Test -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Service Test</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; }
+        .loading { background-color: #d1ecf1; border: 1px solid #bee5eb; }
+        #response { white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>🤖 AI Service Test</h1>
+    
+    <div class="test-result success">
+        <h3>✅ Fixed: Missing getFallbackChatWisdom Method</h3>
+        <p>Added the missing method that was causing the "Call to undefined method" error.</p>
+    </div>
+    
+    <button onclick="testAI()">Test AI Service</button>
+    
+    <div id="testResult" class="test-result loading" style="display: none;">
+        <h3>Testing AI...</h3>
+        <div id="response"></div>
+    </div>
+
+    <script>
+        async function testAI() {
+            const resultDiv = document.getElementById('testResult');
+            const responseDiv = document.getElementById('response');
+            
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'test-result loading';
+            responseDiv.textContent = 'Testing AI service...';
+            
+            try {
+                const response = await fetch('/admin/farmos/succession-planning/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        question: 'What is the best time to harvest carrots?',
+                        crop_type: 'carrot'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.className = 'test-result success';
+                    responseDiv.textContent = `✅ AI Working!\n\nResponse: ${data.answer || data.wisdom}\nSource: ${data.source || 'AI'}\nTimestamp: ${data.timestamp}`;
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'test-result error';
+                responseDiv.textContent = `❌ AI Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

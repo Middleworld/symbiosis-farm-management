@@ -1,0 +1,93 @@
+{
+    "timestamp": "2025-12-04T09:00:03.176777Z",
+    "data": {
+        "total_subscriptions": 19,
+        "with_scheduling": 14,
+        "broken_count": 5,
+        "broken_subscriptions": [
+            {
+                "id": 225027,
+                "created": "2024-09-26 21:34:54",
+                "customer": "Sarah Macgregor",
+                "amount": 66,
+                "billing_period": "month",
+                "billing_interval": 1,
+                "missed_payments": 14,
+                "estimated_loss": 924
+            },
+            {
+                "id": 227581,
+                "created": "2025-05-17 10:43:49",
+                "customer": "Hannah Barrett",
+                "amount": 87,
+                "billing_period": "month",
+                "billing_interval": 1,
+                "missed_payments": 6,
+                "estimated_loss": 522
+            },
+            {
+                "id": 227637,
+                "created": "2025-06-02 12:00:04",
+                "customer": "Pauline Moore",
+                "amount": 40,
+                "billing_period": "month",
+                "billing_interval": 1,
+                "missed_payments": 6,
+                "estimated_loss": 240
+            },
+            {
+                "id": 227652,
+                "created": "2025-06-03 20:51:37",
+                "customer": "Tara Kemp",
+                "amount": 40,
+                "billing_period": "month",
+                "billing_interval": 1,
+                "missed_payments": 6,
+                "estimated_loss": 240
+            },
+            {
+                "id": 227726,
+                "created": "2025-06-14 17:37:59",
+                "customer": "Dawn Karanga",
+                "amount": 42,
+                "billing_period": "month",
+                "billing_interval": 1,
+                "missed_payments": 5,
+                "estimated_loss": 210
+            }
+        ],
+        "estimated_loss": 2136,
+        "affected_customers": 5,
+        "audit_date": "2025-12-04 09:00:03"
+    },
+    "analysis": {
+        "success": false,
+        "error": "API request failed: 404"
+    },
+    "recommendations": [
+        {
+            "priority": "CRITICAL",
+            "action": "Fix broken subscription scheduling",
+            "description": "Create renewal actions for 5 subscriptions",
+            "impact": "Recover \u00a32,136.00 in lost revenue"
+        },
+        {
+            "priority": "HIGH",
+            "action": "Contact affected customers",
+            "description": "Inform 5 customers about billing issues",
+            "impact": "Maintain customer trust and recover payments"
+        },
+        {
+            "priority": "MEDIUM",
+            "action": "Implement monitoring system",
+            "description": "Set up daily subscription audits with AI analysis",
+            "impact": "Prevent future revenue loss"
+        },
+        {
+            "priority": "LOW",
+            "action": "Review WooCommerce Subscriptions plugin",
+            "description": "Check for updates and configuration issues",
+            "impact": "Improve system reliability"
+        }
+    ]
+}

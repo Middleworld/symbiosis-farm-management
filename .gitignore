@@ -1,0 +1,131 @@
+# Laravel
+/node_modules
+/public/hot
+/public/storage
+/storage/*.key
+/vendor
+.env
+.env.backup
+.env.production
+.env.ai
+config.env
+ai_service/config.env
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+_ide_helper.php
+_ide_helper_models.php
+_ide_helper_laravel_globals.php
+_ide_helper_global_functions.php
+.phpstorm.meta.php
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+storage/logs/*
+
+# Cache
+bootstrap/cache/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+
+# Backup files (large binary files that don't need version control)
+storage/backups/*
+
+# Temporary files
+*.tmp
+*.temp
+
+# Deployment
+deploy.php
+.deployment
+.deployphp
+
+# Database
+*.sqlite
+*.sqlite3
+
+# Sensitive config files (NEVER commit these)
+config/database.php.local
+config/mail.php.local
+*.key
+*.pem
+*.crt
+*.csr
+*.cnf
+
+# Open Banking Certificates (CRITICAL - NEVER COMMIT)
+storage/certificates/
+storage/certificates/**/*
+
+# Local development
+docker-compose.override.yml
+.vagrant/
+.env.local
+.env.dev
+.env.staging
+.env.testing
+
+# Backup files
+*.bak
+*.backup
+*.old
+ai_service/venv/
+
+# CONVERSATION DATA SECURITY - NEVER COMMIT USER DATA
+# All conversation exports, logs, and sensitive user data
+conversations_export/
+storage/app/conversations/
+storage/logs/conversations/
+exports/conversations/
+*.conversation
+conversation_*.txt
+conversation_*.json
+training_data_*.txt
+user_data_*.sql
+sensitive_exports/
+
+# Database dumps and exports (contain sensitive user data)
+*.sql
+*.dump
+database_dumps/
+
+# Development and testing files
+dev-testing/
+db_backups/
+
+# OAuth2 keys and certificates
+oauth2_private.key
+oauth2_public.key
+*.p12
+*.pfx
+
+# Additional sensitive environment files
+.env.conversation
+.env.secure
+.env.production.local
+
+/storage/app/secure/
+
+# Large FAO data files
+ingest/all_extracted/
+ingest/extracted/
+ingest/archive*.zip

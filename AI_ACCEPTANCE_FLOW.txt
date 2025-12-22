@@ -1,0 +1,248 @@
+╔════════════════════════════════════════════════════════════════════════╗
+║         AI RECOMMENDATION ACCEPTANCE - COMPLETE WORKFLOW               ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ STEP 1: User Creates Succession Plan                                   │
+└─────────────────────────────────────────────────────────────────────────┘
+   User Input:
+   • Crop: Brussels Sprouts
+   • Beds: 5 beds
+   • Successions: 5 plantings
+   
+   Generated Plan:
+   ┌───────────────────────────────────────────────────────┐
+   │ Succession 1 → Bed 1 → Mar 15 → May 15               │
+   │ Succession 2 → Bed 2 → Apr 1  → Jun 1                │
+   │ Succession 3 → Bed 3 → Apr 10 → Jun 10 ⚠️ TOO CLOSE  │
+   │ Succession 4 → Bed 4 → May 1  → Jul 1                │
+   │ Succession 5 → Bed 5 → Jun 1  → Aug 1                │
+   └───────────────────────────────────────────────────────┘
+
+                              ↓
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ STEP 2: User Asks AI to Analyze Plan                                   │
+└─────────────────────────────────────────────────────────────────────────┘
+   User clicks: [Ask AI About Plan]
+   
+   Backend Process:
+   1. VectorSearchService.semanticSearch()
+      Query: "companion plants and intercropping for Brussels Sprouts"
+      
+   2. PostgreSQL pgvector search
+      SELECT *, 1 - (embedding <=> '[0.034,0.341,...]'::vector) as similarity
+      FROM companion_planting_knowledge
+      ORDER BY embedding <=> query_vector
+      LIMIT 5
+      
+   3. Results Retrieved (Top 5):
+      80.9% → Brussels Sprouts + Nasturtium (trap crop)
+      80.3% → Brussels Sprouts + Thyme (pest deterrent)
+      78.8% → Rotation: Brussels Sprouts → Legumes
+      77.0% → Rotation: AVOID Brussels Sprouts → Brassicas
+      74.4% → Rotation: Brussels Sprouts → Potatoes
+      
+   4. AI Prompt Built:
+      System: "You are analyzing a succession plan. Use this knowledge..."
+      Context: [5 knowledge entries formatted]
+      User: "Analyze this plan: [plan details]"
+      
+   5. Phi3:mini generates response
+
+                              ↓
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ STEP 3: AI Response Displayed                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+   ┌─────────────────────────────────────────────────────────────────┐
+   │ 🤖 AI Advisor                                                   │
+   ├─────────────────────────────────────────────────────────────────┤
+   │ Your succession plan is well-structured! However, I notice:    │
+   │                                                                 │
+   │ • Succession 3 (Apr 10) is very close to Succession 2 (Apr 1) │
+   │   Only 9 days gap - this creates harvest overlap risk         │
+   │   RECOMMENDATION: Remove succession 3                          │
+   │                                                                 │
+   │ • Good timing otherwise with 3-4 week intervals               │
+   │                                                                 │
+   │ • Consider planting nasturtium along bed edges as a trap      │
+   │   crop for aphids (from our companion knowledge base)         │
+   │                                                                 │
+   │ ────────────────────────────────────────────────────────────  │
+   │ [✓ Accept Recommendations] [✏️ Request Modifications]         │
+   └─────────────────────────────────────────────────────────────────┘
+   
+   JavaScript stores: lastAIResponse = full text above
+
+                              ↓
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ STEP 4: User Clicks "Accept Recommendations"                           │
+└─────────────────────────────────────────────────────────────────────────┘
+   Function: acceptAIRecommendations()
+   
+   1. Parse AI response with regex:
+      parseAIRecommendations(lastAIResponse)
+      
+      Patterns matched:
+      ✓ "Remove succession 3" → REMOVE action detected
+      ✓ "planting nasturtium" → ADD_COMPANION detected
+      
+   2. Parsed recommendations:
+      [
+        {action: "remove", successionNumber: 3, reason: "..."},
+        {action: "add_companion", companion: "nasturtium", reason: "..."}
+      ]
+      
+   3. Build confirmation modal with detected changes
+
+                              ↓
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ STEP 5: Confirmation Modal Shown                                       │
+└─────────────────────────────────────────────────────────────────────────┘
+   ┌───────────────────────────────────────────────────────────────┐
+   │ ✓ Accept AI Recommendations                                   │
+   ├───────────────────────────────────────────────────────────────┤
+   │ Ready to apply AI recommendations?                            │
+   │                                                               │
+   │ ⚠️ Detected Changes:                                          │
+   │   • Remove succession 3                                       │
+   │   • Add companion: nasturtium                                 │
+   │                                                               │
+   │ The AI has analyzed your plan using:                         │
+   │   • 39 companion planting relationships                       │
+   │   • 22 crop rotation patterns                                 │
+   │   • 15 UK planting calendar entries                           │
+   │                                                               │
+   │ ℹ️ Changes will be applied to your current plan              │
+   │                                                               │
+   │ [Cancel] [Accept & Apply Changes] ← User clicks this        │
+   └───────────────────────────────────────────────────────────────┘
+
+                              ↓
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ STEP 6: Changes Applied to Plan                                        │
+└─────────────────────────────────────────────────────────────────────────┘
+   Function: confirmAcceptRecommendations()
+   
+   BEFORE:
+   currentSuccessionPlan.plantings = [
+     {succession_number: 1, bed: "Bed 1", seeding_date: "2025-03-15", ...},
+     {succession_number: 2, bed: "Bed 2", seeding_date: "2025-04-01", ...},
+     {succession_number: 3, bed: "Bed 3", seeding_date: "2025-04-10", ...}, ← REMOVE
+     {succession_number: 4, bed: "Bed 4", seeding_date: "2025-05-01", ...},
+     {succession_number: 5, bed: "Bed 5", seeding_date: "2025-06-01", ...}
+   ]
+   currentSuccessionPlan.total_successions = 5
+   
+   Processing:
+   1. Filter out succession_number === 3
+      ✂️ Removed succession 3
+      
+   2. Renumber remaining successions
+      forEach((p, index) => p.succession_number = index + 1)
+      
+   3. Update total count
+      total_successions = plantings.length = 4
+      
+   4. Mark as approved
+      ai_approved = true
+      ai_approved_at = "2025-10-07T14:35:22.000Z"
+      ai_changes_applied = 1
+      ai_change_log = ["Removed succession 3", "AI suggested companion: nasturtium"]
+      
+   AFTER:
+   currentSuccessionPlan.plantings = [
+     {succession_number: 1, bed: "Bed 1", seeding_date: "2025-03-15", ...},
+     {succession_number: 2, bed: "Bed 2", seeding_date: "2025-04-01", ...},
+     {succession_number: 3, bed: "Bed 4", seeding_date: "2025-05-01", ...}, ← Was #4
+     {succession_number: 4, bed: "Bed 5", seeding_date: "2025-06-01", ...}  ← Was #5
+   ]
+   currentSuccessionPlan.total_successions = 4
+   currentSuccessionPlan.ai_approved = true
+
+                              ↓
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ STEP 7: Plan Table Redrawn                                             │
+└─────────────────────────────────────────────────────────────────────────┘
+   Function: displaySuccessionPlan(currentSuccessionPlan)
+   
+   Updated Table (highlighted green for 2 seconds):
+   ┌────────────────────────────────────────────────────────────────────┐
+   │ Succession  Bed      Seeding      Transplant    Harvest    Actions│
+   ├────────────────────────────────────────────────────────────────────┤
+   │ 1          Bed 1     Mar 15       Apr 1         May 15     [...]  │
+   │ 2          Bed 2     Apr 1        Apr 15        Jun 1      [...]  │
+   │ 3          Bed 4     May 1        May 15        Jul 1      [...]  │ ← Renumbered
+   │ 4          Bed 5     Jun 1        Jun 15        Aug 1      [...]  │ ← Renumbered
+   └────────────────────────────────────────────────────────────────────┘
+   
+   [Table flashes green to indicate update]
+
+                              ↓
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ STEP 8: Success Feedback Shown                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+   Below AI response:
+   ┌─────────────────────────────────────────────────────────────────┐
+   │ ✅ Recommendations Applied!                                     │
+   │ 1 change(s) applied to your succession plan:                   │
+   │   • Removed succession 3                                       │
+   │   • AI suggested companion: nasturtium                         │
+   │                                                                 │
+   │ You can now proceed to submit plantings to FarmOS or make     │
+   │ further adjustments.                                           │
+   └─────────────────────────────────────────────────────────────────┘
+   
+   Toast notification: "1 change(s) applied successfully! Plan updated."
+   
+   Console log:
+   ✅ AI Recommendations applied to plan: {plantings: Array(4), ...}
+   📝 Change log: ["Removed succession 3", "AI suggested companion: nasturtium"]
+
+                              ↓
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ STEP 9: User Can Now Submit to FarmOS                                  │
+└─────────────────────────────────────────────────────────────────────────┘
+   Updated plan with 4 successions ready for submission
+   
+   Each succession now has:
+   • ai_approved = true (inherited from plan)
+   • Correct succession numbers (1-4, not 1-5)
+   • Original dates and bed assignments preserved
+   
+   User clicks: [Submit All to FarmOS]
+   → Creates 4 planting logs in FarmOS
+   → Success! ✅
+
+╔════════════════════════════════════════════════════════════════════════╗
+║                         END OF WORKFLOW                                ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+KEY FEATURES:
+✓ Intelligent parsing of AI recommendations
+✓ Automatic removal and renumbering of successions
+✓ Clear confirmation before applying changes
+✓ Visual feedback (modal, table highlight, success message)
+✓ Full audit trail (change log, timestamps)
+✓ Plan integrity maintained (dates, beds preserved)
+✓ Can handle multiple recommendations in one response
+✓ Gracefully handles no-change scenarios
+
+SUPPORTED ACTIONS:
+1. ✂️ Remove succession → Filters array, renumbers, updates total
+2. 📏 Adjust spacing → Flags for manual review
+3. ⏰ Adjust timing → Flags for manual review  
+4. 🌿 Add companion → Logs suggestion for user
+
+SAFETY:
+• User must confirm changes (modal prevents accidental application)
+• Original plan preserved until confirmation
+• Changes logged for traceability
+• Can be undone by regenerating plan

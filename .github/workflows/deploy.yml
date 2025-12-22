@@ -1,0 +1,96 @@
+name: Symbiosis Deployment
+
+on:
+  push:
+    branches: [ demo, master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+      version:
+        description: 'Update version (leave empty for latest)'
+        required: false
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'
+        extensions: pdo, pdo_mysql, mbstring, openssl, tokenizer, xml, ctype, json, bcmath
+
+    - name: Install Composer dependencies
+      run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+    - name: Copy environment file
+      run: cp .env.ci .env
+
+    - name: Generate application key
+      run: php artisan key:generate
+
+    - name: Run tests
+      run: php artisan test
+      if: github.event.inputs.environment != 'production' || github.ref == 'refs/heads/master'
+
+    - name: Deploy to staging
+      if: github.ref == 'refs/heads/demo' || github.event.inputs.environment == 'staging'
+      run: |
+        echo "Deploying to staging environment"
+        # In a real setup, this would SSH to your staging server
+        # ssh user@staging-server "cd /opt/sites/admin.soilsync.shop && git pull origin demo && php artisan migrate && php artisan optimize"
+
+    - name: Deploy to production
+      if: github.ref == 'refs/heads/master' || github.event.inputs.environment == 'production'
+      run: |
+        echo "Deploying to production environment"
+        # In a real setup, this would SSH to your production server
+        # ssh user@production-server "cd /opt/sites/admin.middleworldfarms.org && git pull origin master && php artisan migrate && php artisan optimize"
+
+    - name: Log deployment
+      run: |
+        # Log the deployment using the update tracking system
+        if [ -n "${{ github.event.inputs.version }}" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        else
+          VERSION="auto-$(date +%Y%m%d-%H%M%S)"
+        fi
+
+        php artisan tinker --execute="
+        App\Services\UpdateTrackingService::logCodeChange(
+          '$VERSION',
+          'Automated Deployment via GitHub Actions',
+          'Deployed via CI/CD pipeline to ${{ github.event.inputs.environment || github.ref_name }}',
+          [],
+          null,
+          '${{ github.event.inputs.environment || github.ref_name }}'
+        );
+        "
+
+    - name: Notify on success
+      if: success()
+      run: |
+        echo "Deployment completed successfully"
+        # Add Slack notification or other alerts here
+
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "Deployment failed"
+        # Add failure notifications here

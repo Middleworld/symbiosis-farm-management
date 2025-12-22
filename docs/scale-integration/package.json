@@ -1,0 +1,30 @@
+{
+  "name": "pos-scale-websocket-service",
+  "version": "1.0.0",
+  "description": "WebSocket service for reading USB/Serial scales for POS systems",
+  "main": "scale-websocket-service.js",
+  "scripts": {
+    "start": "node scale-websocket-service.js",
+    "dev": "nodemon scale-websocket-service.js"
+  },
+  "keywords": [
+    "scale",
+    "pos",
+    "websocket",
+    "serial",
+    "retail",
+    "weighing"
+  ],
+  "author": "MiddleWorld Farms",
+  "license": "MIT",
+  "dependencies": {
+    "serialport": "^12.0.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

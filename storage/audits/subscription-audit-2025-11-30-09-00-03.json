@@ -1,0 +1,53 @@
+{
+    "timestamp": "2025-11-30T09:00:03.008155Z",
+    "data": {
+        "total_subscriptions": 19,
+        "with_scheduling": 18,
+        "broken_count": 1,
+        "broken_subscriptions": [
+            {
+                "id": 225027,
+                "created": "2024-09-26 21:34:54",
+                "customer": "Sarah Macgregor",
+                "amount": 66,
+                "billing_period": "month",
+                "billing_interval": 1,
+                "missed_payments": 14,
+                "estimated_loss": 924
+            }
+        ],
+        "estimated_loss": 924,
+        "affected_customers": 1,
+        "audit_date": "2025-11-30 09:00:02"
+    },
+    "analysis": {
+        "success": false,
+        "error": "API request failed: 404"
+    },
+    "recommendations": [
+        {
+            "priority": "CRITICAL",
+            "action": "Fix broken subscription scheduling",
+            "description": "Create renewal actions for 1 subscriptions",
+            "impact": "Recover \u00a3924.00 in lost revenue"
+        },
+        {
+            "priority": "HIGH",
+            "action": "Contact affected customers",
+            "description": "Inform 1 customers about billing issues",
+            "impact": "Maintain customer trust and recover payments"
+        },
+        {
+            "priority": "MEDIUM",
+            "action": "Implement monitoring system",
+            "description": "Set up daily subscription audits with AI analysis",
+            "impact": "Prevent future revenue loss"
+        },
+        {
+            "priority": "LOW",
+            "action": "Review WooCommerce Subscriptions plugin",
+            "description": "Check for updates and configuration issues",
+            "impact": "Improve system reliability"
+        }
+    ]
+}
