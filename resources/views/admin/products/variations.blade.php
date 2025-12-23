@@ -272,15 +272,25 @@ $(document).ready(function() {
 async function loadProductAttributes() {
     try {
         showLoading('attributes-section', 'Loading attributes...');
-        const response = await window.mwfApi.getProductAttributes(currentProductId);
+        
+        // Load both product-specific and global attributes
+        const [productResponse, globalResponse] = await Promise.all([
+            window.mwfApi.getProductAttributes(currentProductId),
+            fetch('{{ route("admin.product-attributes.api.list") }}').then(r => r.json())
+        ]);
 
-        if (response.success) {
-            productAttributes = response.attributes;
+        if (productResponse.success && globalResponse.success) {
+            // Merge product and global attributes, prioritizing product-specific ones
+            const productAttrNames = productResponse.attributes.map(a => a.name);
+            const globalAttrs = globalResponse.attributes.filter(a => !productAttrNames.includes(a.name));
+            
+            productAttributes = [...productResponse.attributes, ...globalAttrs];
             renderAttributes();
         } else {
-            throw new Error(response.error || 'Failed to load attributes');
+            throw new Error(productResponse.error || globalResponse.error || 'Failed to load attributes');
         }
     } catch (error) {
+        console.error('Error loading attributes:', error);
         showError('attributes-section', error.message);
     }
 }
@@ -424,9 +434,12 @@ function renderVariationAttributes(selectedAttributes = {}) {
     productAttributes.forEach(attr => {
         if (!attr.variation) return; // Only show attributes used for variations
 
+        const isGlobal = attr.type === 'taxonomy';
+        const badge = isGlobal ? '<span class="badge badge-info ml-2">Global</span>' : '<span class="badge badge-secondary ml-2">Custom</span>';
+        
         html += `<div class="form-group">`;
-        html += `<label>${attr.label}</label>`;
-        html += `<select class="form-control" name="attributes[${attr.name}]">`;
+        html += `<label>${attr.label}${badge}</label>`;
+        html += `<select class="form-control" name="attributes[${attr.name}]" required>`;
         html += `<option value="">Select ${attr.label}</option>`;
 
         attr.options.forEach(option => {
@@ -438,6 +451,10 @@ function renderVariationAttributes(selectedAttributes = {}) {
 
         html += `</select></div>`;
     });
+
+    if (html === '') {
+        html = '<div class="alert alert-info">No variation attributes defined for this product. <a href="{{ route("admin.product-attributes.index") }}" target="_blank">Manage global attributes</a> or add custom attributes to the product.</div>';
+    }
 
     $('#attributes-container').html(html);
 }

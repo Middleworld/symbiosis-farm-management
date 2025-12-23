@@ -29,6 +29,33 @@ class ProductAttributeController extends Controller
     }
 
     /**
+     * API endpoint to get all attributes with their options
+     */
+    public function apiList()
+    {
+        $attributes = ProductAttribute::where('is_variation', true)
+            ->orderBy('name')
+            ->get()
+            ->map(function ($attr) {
+                return [
+                    'id' => $attr->id,
+                    'name' => $attr->slug ?: strtolower(str_replace(' ', '-', $attr->name)),
+                    'label' => $attr->name,
+                    'slug' => $attr->slug,
+                    'type' => $attr->is_taxonomy ? 'taxonomy' : 'custom',
+                    'variation' => $attr->is_variation,
+                    'visible' => $attr->is_visible,
+                    'options' => json_decode($attr->options, true) ?: []
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'attributes' => $attributes
+        ]);
+    }
+
+    /**
      * Show the form for creating a new resource.
      */
     public function create()

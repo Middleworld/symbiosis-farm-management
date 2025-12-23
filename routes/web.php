@@ -466,6 +466,7 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
     // Product Attributes Management routes
     Route::prefix('product-attributes')->name('admin.product-attributes.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\ProductAttributeController::class, 'index'])->name('index');
+        Route::get('/api/list', [App\Http\Controllers\Admin\ProductAttributeController::class, 'apiList'])->name('api.list');
         Route::get('/create', [App\Http\Controllers\Admin\ProductAttributeController::class, 'create'])->name('create');
         Route::post('/', [App\Http\Controllers\Admin\ProductAttributeController::class, 'store'])->name('store');
         Route::get('/{attribute}', [App\Http\Controllers\Admin\ProductAttributeController::class, 'show'])->name('show');

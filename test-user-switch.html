@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test User Switching</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; background: #0073aa; color: white; border: none; border-radius: 3px; }
+        button:hover { background: #005177; }
+        .result { margin-top: 20px; padding: 15px; background: #f5f5f5; border-left: 4px solid #0073aa; }
+        .success { border-left-color: #46b450; }
+        .error { border-left-color: #dc3232; }
+        code { background: #f0f0f0; padding: 2px 6px; border-radius: 2px; }
+    </style>
+</head>
+<body>
+    <h1>🔄 Test User Switching</h1>
+    
+    <p>This page tests the user switching functionality from the Laravel admin to WordPress/WooCommerce My Account.</p>
+    
+    <h2>Test with Customer ID 2 (Francis Molly)</h2>
+    <button onclick="testSwitch(2, 'Francis Molly')">Switch to Customer ID 2</button>
+    
+    <h2>Test with Customer ID 8 (Sharon Johnson)</h2>
+    <button onclick="testSwitch(8, 'Sharon Johnson')">Switch to Customer ID 8</button>
+    
+    <div id="result"></div>
+    
+    <script>
+        function testSwitch(userId, userName) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="result">⏳ Generating switch URL for ' + userName + '...</div>';
+            
+            fetch('/admin/customers/switch/' + userId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken()
+                },
+                body: JSON.stringify({
+                    redirect_to: '/my-account/'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resultDiv.innerHTML = '<div class="result success">' +
+                        '<h3>✅ Switch URL Generated!</h3>' +
+                        '<p><strong>User:</strong> ' + userName + ' (ID: ' + userId + ')</p>' +
+                        '<p><strong>URL:</strong> <code>' + data.switch_url + '</code></p>' +
+                        '<p><strong>Opening in new tab...</strong></p>' +
+                        '<p>👉 Check the new tab - you should be logged in as ' + userName + ' and see their My Account page.</p>' +
+                        '</div>';
+                    
+                    // Open in new tab
+                    window.open(data.switch_url, '_blank');
+                } else {
+                    resultDiv.innerHTML = '<div class="result error">' +
+                        '<h3>❌ Error</h3>' +
+                        '<p>' + (data.error || 'Unknown error occurred') + '</p>' +
+                        '</div>';
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = '<div class="result error">' +
+                    '<h3>❌ Error</h3>' +
+                    '<p>' + error.message + '</p>' +
+                    '</div>';
+            });
+        }
+        
+        function getCsrfToken() {
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            return meta ? meta.getAttribute('content') : '';
+        }
+    </script>
+</body>
+</html>
