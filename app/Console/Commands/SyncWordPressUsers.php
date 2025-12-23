@@ -71,16 +71,19 @@ class SyncWordPressUsers extends Command
                     
                     $userId = DB::connection('wordpress')->getPdo()->lastInsertId();
                     
+                    // Get the WordPress table prefix from config (e.g., 'wp_', 'demo_wp_', 'D6sPMX_')
+                    $prefix = config('database.connections.wordpress.prefix', 'wp_');
+                    
                     // Add customer role
                     DB::connection('wordpress')->table('usermeta')->insert([
                         'user_id' => $userId,
-                        'meta_key' => 'wp_capabilities',
+                        'meta_key' => $prefix . 'capabilities',
                         'meta_value' => serialize(['customer' => true]),
                     ]);
                     
                     DB::connection('wordpress')->table('usermeta')->insert([
                         'user_id' => $userId,
-                        'meta_key' => 'wp_user_level',
+                        'meta_key' => $prefix . 'user_level',
                         'meta_value' => '0',
                     ]);
                     
