@@ -5,11 +5,18 @@ use App\Http\Controllers\Controller;
 use App\Models\WordPressUser;
 use App\Models\WooCommerceOrder;
 use App\Services\CustomerSMSService;
+use App\Services\WpApiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class CustomerManagementController extends Controller
 {
+    protected $wpApi;
+
+    public function __construct(WpApiService $wpApi)
+    {
+        $this->wpApi = $wpApi;
+    }
     public function index(Request $request)
     {
         $page = max(1, intval($request->input('page', 1)));
@@ -177,10 +184,64 @@ class CustomerManagementController extends Controller
         ]);
     }
     
-    public function switchToUser($userId)
+    public function switchToUser(Request $request, $userId)
     {
-        $wpUrl = env('WOOCOMMERCE_URL');
-        return redirect($wpUrl . 'wp-admin/user-edit.php?user_id=' . $userId);
+        try {
+            // Validate user ID
+            if (!$userId || !is_numeric($userId)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Invalid user ID provided'
+                ], 400);
+            }
+
+            // Check if WordPress user exists
+            $wpUser = WordPressUser::find($userId);
+            if (!$wpUser) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'WordPress user not found'
+                ], 404);
+            }
+
+            $redirectTo = $request->get('redirect_to', '/my-account/');
+            
+            $switchUrl = $this->wpApi->generateUserSwitchUrl(
+                $userId, 
+                $redirectTo,
+                'laravel_admin_panel'
+            );
+
+            if (!$switchUrl) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Failed to generate switch URL - WordPress API connection failed'
+                ], 400);
+            }
+
+            \Log::info("Customer page user switch successful", [
+                'user_id' => $userId,
+                'user_email' => $wpUser->user_email,
+                'redirect_to' => $redirectTo
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'switch_url' => $switchUrl,
+                'message' => 'Switch URL generated successfully'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Customer page user switch failed", [
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Server error: ' . $e->getMessage()
+            ], 500);
+        }
     }
     
     public function details($userId)
