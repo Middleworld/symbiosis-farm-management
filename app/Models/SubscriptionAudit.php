@@ -30,7 +30,7 @@ class SubscriptionAudit extends Model
      */
     public function subscription(): BelongsTo
     {
-        return $this->belongsTo(VegboxSubscription::class, 'subscription_id');
+        return $this->belongsTo(CsaSubscription::class, 'subscription_id');
     }
 
     /**
@@ -43,9 +43,10 @@ class SubscriptionAudit extends Model
 
     /**
      * Log a subscription audit event
+     * Accepts either VegboxSubscription or CsaSubscription
      */
     public static function log(
-        VegboxSubscription $subscription,
+        VegboxSubscription|CsaSubscription $subscription,
         string $action,
         ?string $description = null,
         ?array $oldValues = null,

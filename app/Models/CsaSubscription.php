@@ -260,11 +260,113 @@ class CsaSubscription extends Model
     }
 
     /**
+     * Accessor for next_billing_at (alias for next_billing_date for view compatibility)
+     */
+    public function getNextBillingAtAttribute()
+    {
+        return $this->next_billing_date;
+    }
+
+    /**
+     * Check if subscription is in grace period (has failed payments)
+     */
+    public function isInGracePeriod(): bool
+    {
+        return $this->grace_period_ends_at && $this->grace_period_ends_at->isFuture();
+    }
+
+    /**
+     * Get the subscription plan name
+     */
+    public function getNameAttribute(): string
+    {
+        return $this->box_size ?? 'Vegbox Subscription';
+    }
+
+    /**
+     * Scope to get cancelled subscriptions
+     */
+    public function scopeCancelled($query)
+    {
+        return $query->where('status', 'cancelled');
+    }
+
+    /**
+     * Alias for canceled_at to match view expectations
+     */
+    public function getCanceledAtAttribute()
+    {
+        return $this->status === 'cancelled' ? $this->updated_at : null;
+    }
+
+    /**
+     * Alias for ends_at to match view expectations
+     */
+    public function getEndsAtAttribute()
+    {
+        return $this->season_end_date;
+    }
+
+    /**
      * Get a human-readable fulfillment label with emoji.
      */
     public function getFulfillmentLabelAttribute(): string
     {
         return $this->fulfillment_type === 'Delivery' ? '🚚 Delivery' : '📦 Collection';
+    }
+
+    /**
+     * Accessor for starts_at (alias for season_start_date for view compatibility)
+     */
+    public function getStartsAtAttribute()
+    {
+        return $this->season_start_date;
+    }
+
+    /**
+     * Accessor for billing_period (derived from delivery_frequency)
+     */
+    public function getBillingPeriodAttribute(): string
+    {
+        return $this->delivery_frequency === 'Fortnightly' ? '2 weeks' : 'week';
+    }
+
+    /**
+     * Accessor for billing_frequency
+     */
+    public function getBillingFrequencyAttribute(): int
+    {
+        return 1;
+    }
+
+    /**
+     * Accessor for a "plan" object for view compatibility
+     * Returns an anonymous object with expected properties
+     */
+    public function getPlanAttribute()
+    {
+        return (object) [
+            'name' => $this->box_size ?? 'Vegbox Subscription',
+            'box_size' => $this->box_size,
+            'box_size_display' => $this->box_size,
+            'delivery_frequency' => $this->delivery_frequency,
+            'delivery_frequency_display' => $this->delivery_frequency,
+            'contents_description' => null,
+            'price' => $this->price,
+        ];
+    }
+
+    /**
+     * Accessor for a "subscriber" object for view compatibility
+     * Returns an anonymous object with expected properties
+     */
+    public function getSubscriberAttribute()
+    {
+        return (object) [
+            'name' => $this->customer_name,
+            'email' => $this->customer_email,
+            'id' => $this->customer_id,
+        ];
     }
 
     /**
@@ -285,5 +387,48 @@ class CsaSubscription extends Model
         }
 
         return null;
+    }
+
+    /**
+     * Accessor for subscriber_id (alias for customer_id for VegboxPaymentService compatibility)
+     * Only returns value for native subscriptions (NOT imported from WooCommerce)
+     */
+    public function getSubscriberIdAttribute()
+    {
+        // If imported from WooCommerce, don't return subscriber_id
+        // (these are handled differently - payment already processed in WooCommerce)
+        return $this->woo_subscription_id ? null : $this->customer_id;
+    }
+
+    /**
+     * Accessor for wordpress_user_id (for VegboxPaymentService compatibility)
+     * Returns customer_id if this is a WooCommerce subscription (has woo_subscription_id)
+     */
+    public function getWordpressUserIdAttribute()
+    {
+        // If we have a woo_subscription_id, this is a WooCommerce import
+        // Return the customer_id as the WordPress user ID
+        return $this->woo_subscription_id ? $this->customer_id : null;
+    }
+
+    /**
+     * Record a failed payment attempt
+     */
+    public function recordFailedPayment(string $error): void
+    {
+        $this->failed_payment_count = ($this->failed_payment_count ?? 0) + 1;
+        $this->status_notes = $error;
+        $this->save();
+    }
+
+    /**
+     * Reset retry tracking after successful payment
+     */
+    public function resetRetryTracking(): void
+    {
+        $this->failed_payment_count = 0;
+        $this->status_notes = null;
+        $this->grace_period_ends_at = null;
+        $this->save();
     }
 }

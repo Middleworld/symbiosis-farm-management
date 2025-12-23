@@ -344,6 +344,136 @@
                                 </div>
                             </div>
                         </div>
+
+                        {{-- Farm Season Settings --}}
+                        <div class="row g-3 mb-4">
+                            <div class="col-12">
+                                <div class="card border-success">
+                                    <div class="card-header bg-success text-white">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-seedling"></i> Farm Season Settings
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle"></i> <strong>Season Configuration:</strong> Define your growing season dates, delivery days, and any seasonal closures. These settings affect billing calculations and delivery scheduling.
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="farm_name" class="form-label"><strong>Farm Name</strong></label>
+                                                <input type="text" class="form-control" id="farm_name" name="farm_name" 
+                                                       value="{{ $settings['farm_name'] ?? 'Middle World Farms' }}" 
+                                                       placeholder="e.g., Middle World Farms">
+                                                <div class="form-text">
+                                                    <i class="fas fa-home"></i> Display name for the farm/CSA operation
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="col-md-6 mb-3">
+                                                <label for="season_weeks" class="form-label"><strong>Season Length (Weeks)</strong></label>
+                                                <input type="number" class="form-control" id="season_weeks" name="season_weeks" 
+                                                       value="{{ $settings['season_weeks'] ?? 33 }}" 
+                                                       min="1" max="52" placeholder="33">
+                                                <div class="form-text">
+                                                    <i class="fas fa-calendar-alt"></i> Total number of delivery weeks in the season
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="season_start_date" class="form-label"><strong>Season Start Date</strong></label>
+                                                <input type="date" class="form-control" id="season_start_date" name="season_start_date" 
+                                                       value="{{ $settings['season_start_date'] ?? '' }}">
+                                                <div class="form-text">
+                                                    <i class="fas fa-play"></i> First delivery date of the season
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="col-md-6 mb-3">
+                                                <label for="season_end_date" class="form-label"><strong>Season End Date</strong></label>
+                                                <input type="date" class="form-control" id="season_end_date" name="season_end_date" 
+                                                       value="{{ $settings['season_end_date'] ?? '' }}">
+                                                <div class="form-text">
+                                                    <i class="fas fa-stop"></i> Last delivery date of the season
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="delivery_days" class="form-label"><strong>Delivery Days</strong></label>
+                                                <select class="form-select" id="delivery_days" name="delivery_days[]" multiple>
+                                                    @php
+                                                        $selectedDays = $settings['delivery_days'] ?? ['Thursday'];
+                                                        if (is_string($selectedDays)) {
+                                                            $selectedDays = json_decode($selectedDays, true) ?? ['Thursday'];
+                                                        }
+                                                    @endphp
+                                                    <option value="Monday" {{ in_array('Monday', $selectedDays) ? 'selected' : '' }}>Monday</option>
+                                                    <option value="Tuesday" {{ in_array('Tuesday', $selectedDays) ? 'selected' : '' }}>Tuesday</option>
+                                                    <option value="Wednesday" {{ in_array('Wednesday', $selectedDays) ? 'selected' : '' }}>Wednesday</option>
+                                                    <option value="Thursday" {{ in_array('Thursday', $selectedDays) ? 'selected' : '' }}>Thursday</option>
+                                                    <option value="Friday" {{ in_array('Friday', $selectedDays) ? 'selected' : '' }}>Friday</option>
+                                                    <option value="Saturday" {{ in_array('Saturday', $selectedDays) ? 'selected' : '' }}>Saturday</option>
+                                                    <option value="Sunday" {{ in_array('Sunday', $selectedDays) ? 'selected' : '' }}>Sunday</option>
+                                                </select>
+                                                <div class="form-text">
+                                                    <i class="fas fa-truck"></i> Days of the week when deliveries occur (Ctrl+click to select multiple)
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="col-md-6 mb-3">
+                                                <label for="fortnightly_week_a_start" class="form-label"><strong>Week A Start Date</strong></label>
+                                                <input type="date" class="form-control" id="fortnightly_week_a_start" name="fortnightly_week_a_start" 
+                                                       value="{{ $settings['fortnightly_week_a_start'] ?? '' }}">
+                                                <div class="form-text">
+                                                    <i class="fas fa-calendar-week"></i> Reference date for fortnightly "Week A" subscriptions
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <hr class="my-4">
+                                        <h6 class="text-muted mb-3"><i class="fas fa-pause-circle"></i> Seasonal Closure (Optional)</h6>
+                                        <p class="text-muted small">Configure a mid-season break (e.g., Christmas closure). Billing will be paused during this period.</p>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-4 mb-3">
+                                                <label for="closure_start_date" class="form-label"><strong>Closure Start</strong></label>
+                                                <input type="date" class="form-control" id="closure_start_date" name="closure_start_date" 
+                                                       value="{{ $settings['closure_start_date'] ?? '' }}">
+                                                <div class="form-text">
+                                                    <i class="fas fa-door-closed"></i> First day of closure period
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="col-md-4 mb-3">
+                                                <label for="closure_end_date" class="form-label"><strong>Closure End</strong></label>
+                                                <input type="date" class="form-control" id="closure_end_date" name="closure_end_date" 
+                                                       value="{{ $settings['closure_end_date'] ?? '' }}">
+                                                <div class="form-text">
+                                                    <i class="fas fa-door-open"></i> Last day of closure period
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="col-md-4 mb-3">
+                                                <label for="resume_billing_date" class="form-label"><strong>Resume Billing Date</strong></label>
+                                                <input type="date" class="form-control" id="resume_billing_date" name="resume_billing_date" 
+                                                       value="{{ $settings['resume_billing_date'] ?? '' }}">
+                                                <div class="form-text">
+                                                    <i class="fas fa-redo"></i> When billing resumes after closure
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="alert alert-success mt-3">
+                                            <i class="fas fa-sync-alt"></i> <strong>FarmOS Integration:</strong> When you save these season settings, they will be automatically synced to farmOS. The system will <strong>update the existing</strong> "Season Configuration" plan (or create one if it doesn't exist yet), so you won't get duplicates.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         
                         <div class="row g-3">
                                 {{-- Delivery & Collection Settings --}}

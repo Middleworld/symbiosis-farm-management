@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\UserPaymentMethod;
 use App\Models\VegboxSubscription;
+use App\Models\CsaSubscription;
 use App\Notifications\LowBalanceWarning;
 use App\Notifications\SubscriptionPaymentFailed;
 use App\Notifications\SubscriptionRenewed;
@@ -33,26 +34,16 @@ class VegboxPaymentService
 
     /**
      * Process subscription renewal payment
+     * Accepts either VegboxSubscription or CsaSubscription
      */
-    public function processSubscriptionRenewal(VegboxSubscription $subscription): array
+    public function processSubscriptionRenewal(VegboxSubscription|CsaSubscription $subscription): array
     {
         try {
             $amount = (float) $subscription->price;
             
             // Handle both Laravel subscribers and WordPress users
-            if ($subscription->subscriber_id) {
-                // Laravel subscriber - process normally
-                $customerId = $subscription->subscriber_id;
-                $user = User::find($customerId);
-
-                if (!$user) {
-                    return [
-                        'success' => false,
-                        'error' => 'User not found',
-                        'code' => 'USER_NOT_FOUND',
-                    ];
-                }
-            } elseif ($subscription->wordpress_user_id) {
+            // Check wordpress_user_id FIRST for CsaSubscription (imported from WooCommerce)
+            if ($subscription->wordpress_user_id) {
                 // WordPress/WooCommerce subscription - just update next billing date
                 // (Payment already processed in WooCommerce, this is just record keeping)
                 Log::info('Processing WordPress subscription renewal record update', [
@@ -68,6 +59,18 @@ class VegboxPaymentService
                     'channel' => 'woocommerce',
                     'message' => 'WordPress subscription renewal recorded (payment processed in WooCommerce)'
                 ];
+            } elseif ($subscription->subscriber_id) {
+                // Laravel subscriber - process normally
+                $customerId = $subscription->subscriber_id;
+                $user = User::find($customerId);
+
+                if (!$user) {
+                    return [
+                        'success' => false,
+                        'error' => 'User not found',
+                        'code' => 'USER_NOT_FOUND',
+                    ];
+                }
             } else {
                 return [
                     'success' => false,

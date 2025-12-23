@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\VegboxSubscription;
+use App\Models\CsaSubscription;
 use App\Models\VegboxPlan;
 use App\Models\SubscriptionAudit;
 use App\Services\VegboxPaymentService;
@@ -28,7 +28,7 @@ class VegboxSubscriptionController extends Controller
      */
     public function index(Request $request)
     {
-        $query = VegboxSubscription::with(['subscriber', 'plan']);
+        $query = CsaSubscription::query();
 
         // Filter by status
         if ($request->has('status')) {
@@ -37,10 +37,10 @@ class VegboxSubscriptionController extends Controller
                     $query->active();
                     break;
                 case 'cancelled':
-                    $query->whereNotNull('canceled_at');
+                    $query->cancelled();
                     break;
                 case 'expired':
-                    $query->whereNotNull('ends_at')->where('ends_at', '<', now());
+                    $query->where('status', 'expired');
                     break;
             }
         }
@@ -48,9 +48,9 @@ class VegboxSubscriptionController extends Controller
         // Search by customer email or name
         if ($request->has('search') && $request->search) {
             $search = $request->search;
-            $query->whereHas('subscriber', function ($q) use ($search) {
-                $q->where('email', 'like', "%{$search}%")
-                  ->orWhere('name', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('customer_email', 'like', "%{$search}%")
+                  ->orWhere('customer_name', 'like', "%{$search}%");
             });
         }
 
@@ -60,13 +60,13 @@ class VegboxSubscriptionController extends Controller
         $windowEnd = $windowStart->copy()->addDays(7)->endOfDay();
 
         // Statistics - cached for 5 minutes
-        $stats = Cache::remember('vegbox_subscription_stats', 300, function () use ($windowStart, $windowEnd) {
+        $stats = Cache::remember('csa_subscription_stats', 300, function () use ($windowStart, $windowEnd) {
             return [
-                'total_active' => VegboxSubscription::query()->active()->count(),
-                'total_cancelled' => VegboxSubscription::whereNotNull('canceled_at')->count(),
-                'upcoming_renewals' => VegboxSubscription::query()->active()
-                    ->whereNotNull('next_billing_at')
-                    ->whereBetween('next_billing_at', [$windowStart, $windowEnd])
+                'total_active' => CsaSubscription::active()->count(),
+                'total_cancelled' => CsaSubscription::cancelled()->count(),
+                'upcoming_renewals' => CsaSubscription::active()
+                    ->whereNotNull('next_billing_date')
+                    ->whereBetween('next_billing_date', [$windowStart, $windowEnd])
                     ->count(),
                 'failed_last_24h' => $this->getFailedPaymentsCount(24),
             ];
@@ -84,11 +84,10 @@ class VegboxSubscriptionController extends Controller
         $windowStart = Carbon::now();
         $windowEnd = $windowStart->copy()->addDays($days)->endOfDay();
 
-        $renewals = VegboxSubscription::with(['subscriber', 'plan'])
-            ->active()
-            ->whereNotNull('next_billing_at')
-            ->whereBetween('next_billing_at', [$windowStart, $windowEnd])
-            ->orderBy('next_billing_at')
+        $renewals = CsaSubscription::active()
+            ->whereNotNull('next_billing_date')
+            ->whereBetween('next_billing_date', [$windowStart, $windowEnd])
+            ->orderBy('next_billing_date')
             ->paginate(20);
 
         return view('admin.vegbox-subscriptions.upcoming-renewals', compact('renewals', 'days'));
@@ -102,11 +101,10 @@ class VegboxSubscriptionController extends Controller
         $hours = $request->get('hours', 48);
 
         // Get subscriptions with failed payment count > 0 (matches sidebar badge query)
-        $subscriptions = VegboxSubscription::with(['subscriber', 'plan'])
-            ->where('failed_payment_count', '>', 0)
-            ->whereNull('canceled_at')
+        $subscriptions = CsaSubscription::where('failed_payment_count', '>', 0)
+            ->where('status', '!=', 'cancelled')
             ->orderBy('failed_payment_count', 'desc')
-            ->orderBy('last_payment_attempt_at', 'desc')
+            ->orderBy('last_payment_date', 'desc')
             ->paginate(20);
 
         return view('admin.vegbox-subscriptions.failed-payments', compact('subscriptions', 'hours'));
@@ -117,7 +115,7 @@ class VegboxSubscriptionController extends Controller
      */
     public function show($id)
     {
-        $subscription = VegboxSubscription::with(['subscriber', 'plan', 'deliverySchedules'])
+        $subscription = CsaSubscription::with(['deliveries'])
             ->findOrFail($id);
 
         // Get payment history from logs
@@ -125,14 +123,14 @@ class VegboxSubscriptionController extends Controller
 
         // Check customer balance (only for subscriptions with Laravel subscribers)
         $balanceInfo = null;
-        if ($subscription->subscriber_id) {
-            $balanceInfo = $this->paymentService->checkCustomerBalance($subscription->subscriber_id);
+        if ($subscription->customer_id) {
+            $balanceInfo = $this->paymentService->checkCustomerBalance($subscription->customer_id);
         }
 
         // Get customer payment methods (only for subscriptions with Laravel subscribers)
         $paymentMethodsInfo = null;
-        if ($subscription->subscriber_id) {
-            $paymentMethodsInfo = $this->paymentService->getPaymentMethods($subscription->subscriber_id);
+        if ($subscription->customer_id) {
+            $paymentMethodsInfo = $this->paymentService->getPaymentMethods($subscription->customer_id);
         }
 
         return view('admin.vegbox-subscriptions.show', compact('subscription', 'paymentHistory', 'balanceInfo', 'paymentMethodsInfo'));
@@ -143,7 +141,7 @@ class VegboxSubscriptionController extends Controller
      */
     public function manualRenewal($id)
     {
-        $subscription = VegboxSubscription::findOrFail($id);
+        $subscription = CsaSubscription::findOrFail($id);
 
         try {
             $result = $this->paymentService->processSubscriptionRenewal($subscription);
@@ -218,7 +216,7 @@ class VegboxSubscriptionController extends Controller
      */
     public function cancel($id)
     {
-        $subscription = VegboxSubscription::findOrFail($id);
+        $subscription = CsaSubscription::findOrFail($id);
 
         $subscription->update([
             'canceled_at' => now(),
@@ -253,7 +251,7 @@ class VegboxSubscriptionController extends Controller
      */
     public function reactivate($id)
     {
-        $subscription = VegboxSubscription::findOrFail($id);
+        $subscription = CsaSubscription::findOrFail($id);
 
         $subscription->update([
             'canceled_at' => null,
@@ -289,7 +287,7 @@ class VegboxSubscriptionController extends Controller
             'change_immediately' => 'boolean',
         ]);
 
-        $subscription = VegboxSubscription::with(['plan', 'subscriber'])->findOrFail($id);
+        $subscription = CsaSubscription::findOrFail($id);
         $newPlan = VegboxPlan::findOrFail($request->new_plan_id);
         $oldPlan = $subscription->plan;
         $oldPrice = $subscription->price;
@@ -410,7 +408,7 @@ class VegboxSubscriptionController extends Controller
     /**
      * Get payment history from Laravel logs and WooCommerce (for imported subscriptions)
      */
-    protected function getPaymentHistory(VegboxSubscription $subscription)
+    protected function getPaymentHistory(CsaSubscription $subscription)
     {
         $history = [];
 
@@ -518,12 +516,8 @@ class VegboxSubscriptionController extends Controller
     {
         $cutoff = now()->subHours($hours);
         
-        return VegboxSubscription::query()
-            ->where(function($query) {
-                $query->where('failed_payment_count', '>', 0)
-                      ->orWhereNotNull('last_payment_error');
-            })
-            ->where('last_payment_attempt_at', '>=', $cutoff)
+        return CsaSubscription::where('failed_payment_count', '>', 0)
+            ->where('last_payment_date', '>=', $cutoff)
             ->count();
     }
 }

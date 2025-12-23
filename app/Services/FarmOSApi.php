@@ -596,6 +596,116 @@ class FarmOSApi
     }
 
     /**
+     * Get crop plans from farmOS
+     * 
+     * @param array $filters Optional filters (e.g., ['name' => 'Season Configuration'])
+     * @return array
+     */
+    public function getCropPlans($filters = [])
+    {
+        try {
+            $this->authenticate();
+            $headers = $this->getAuthHeaders();
+            
+            $query = [];
+            
+            // Add name filter if provided
+            if (isset($filters['name'])) {
+                $query['filter[name][operator]'] = 'CONTAINS';
+                $query['filter[name][value]'] = $filters['name'];
+            }
+            
+            // Add status filter if provided
+            if (isset($filters['status'])) {
+                $query['filter[status]'] = $filters['status'];
+            }
+            
+            $response = $this->client->get('/api/plan/crop', [
+                'headers' => $headers,
+                'query' => $query
+            ]);
+
+            $data = json_decode($response->getBody(), true);
+            return $data['data'] ?? [];
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch crop plans: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Update an existing crop plan in farmOS
+     * 
+     * @param string $planId The UUID of the plan to update
+     * @param array $planData Updated plan data
+     * @return array
+     */
+    public function updateCropPlan($planId, $planData)
+    {
+        try {
+            $this->authenticate();
+            $headers = $this->getAuthHeaders();
+            
+            $data = [
+                'data' => [
+                    'type' => 'plan--crop',
+                    'id' => $planId,
+                    'attributes' => []
+                ]
+            ];
+            
+            // Add attributes if provided
+            if (isset($planData['name'])) {
+                $data['data']['attributes']['name'] = $planData['name'];
+            }
+            
+            if (isset($planData['notes'])) {
+                $data['data']['attributes']['notes'] = [
+                    'value' => $planData['notes'],
+                    'format' => 'default'
+                ];
+            }
+            
+            if (isset($planData['status'])) {
+                $data['data']['attributes']['status'] = $planData['status'];
+            }
+            
+            $response = $this->client->patch("/api/plan/crop/{$planId}", [
+                'headers' => $headers,
+                'json' => $data,
+                'http_errors' => false
+            ]);
+
+            $statusCode = $response->getStatusCode();
+            $result = json_decode($response->getBody(), true);
+
+            if ($statusCode >= 200 && $statusCode < 300) {
+                Log::info('Updated farmOS crop plan', [
+                    'plan_id' => $planId,
+                    'status' => $statusCode
+                ]);
+                
+                // Clear cache when plan is updated
+                $this->clearPlantingChartCache();
+                
+                return $result;
+            } else {
+                Log::error('Failed to update farmOS crop plan', [
+                    'plan_id' => $planId,
+                    'status' => $statusCode,
+                    'response' => $result
+                ]);
+                throw new \Exception('Failed to update plan: HTTP ' . $statusCode);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to update farmOS crop plan: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
      * Get harvest logs from farmOS
      */
     public function getHarvestLogs($since = null)

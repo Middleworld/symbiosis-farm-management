@@ -143,6 +143,17 @@ class SettingsController extends Controller
             'company_number' => 'nullable|string|max:20',
             'tax_year_end' => 'nullable|string|in:31-03,30-09,31-12',
             'vat_registered' => 'nullable|boolean',
+            // Farm Season Settings
+            'farm_name' => 'nullable|string|max:255',
+            'season_start_date' => 'nullable|date',
+            'season_end_date' => 'nullable|date|after_or_equal:season_start_date',
+            'season_weeks' => 'nullable|integer|min:1|max:52',
+            'delivery_days' => 'nullable|array',
+            'delivery_days.*' => 'nullable|string|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
+            'fortnightly_week_a_start' => 'nullable|date',
+            'closure_start_date' => 'nullable|date',
+            'closure_end_date' => 'nullable|date|after_or_equal:closure_start_date',
+            'resume_billing_date' => 'nullable|date|after_or_equal:closure_end_date',
             // Existing validations...
             'auto_print_mode' => 'nullable|boolean',
             'print_company_logo' => 'nullable|boolean',
@@ -242,6 +253,53 @@ class SettingsController extends Controller
         
         // Store settings in database with defaults
         $settingsData = [
+            // Farm Season Settings
+            'farm_name' => [
+                'value' => $request->farm_name ?? 'Middle World Farms',
+                'type' => 'string',
+                'description' => 'Name of the farm/CSA operation'
+            ],
+            'season_start_date' => [
+                'value' => $request->season_start_date,
+                'type' => 'date',
+                'description' => 'Start date of the growing/delivery season'
+            ],
+            'season_end_date' => [
+                'value' => $request->season_end_date,
+                'type' => 'date',
+                'description' => 'End date of the growing/delivery season'
+            ],
+            'season_weeks' => [
+                'value' => (int) ($request->season_weeks ?? 33),
+                'type' => 'integer',
+                'description' => 'Number of weeks in the season'
+            ],
+            'delivery_days' => [
+                'value' => json_encode($request->delivery_days ?? ['Thursday']),
+                'type' => 'json',
+                'description' => 'Days of the week for deliveries'
+            ],
+            'fortnightly_week_a_start' => [
+                'value' => $request->fortnightly_week_a_start,
+                'type' => 'date',
+                'description' => 'Reference start date for Week A (fortnightly schedule)'
+            ],
+            'closure_start_date' => [
+                'value' => $request->closure_start_date,
+                'type' => 'date',
+                'description' => 'Start of seasonal closure period'
+            ],
+            'closure_end_date' => [
+                'value' => $request->closure_end_date,
+                'type' => 'date',
+                'description' => 'End of seasonal closure period'
+            ],
+            'resume_billing_date' => [
+                'value' => $request->resume_billing_date,
+                'type' => 'date',
+                'description' => 'Date to resume billing after closure'
+            ],
+            // Printing Settings
             'packing_slips_per_page' => [
                 'value' => (int) ($request->packing_slips_per_page ?? 2),
                 'type' => 'integer',
@@ -469,6 +527,11 @@ class SettingsController extends Controller
         
         Setting::setMultiple($settingsData);
         
+        // Sync season settings to farmOS if configured
+        if ($request->filled('season_start_date') || $request->filled('season_end_date') || $request->filled('season_weeks')) {
+            $this->syncSeasonToFarmOS($request);
+        }
+        
         return redirect()->route('admin.settings')->with('success', 'Settings and API keys updated successfully!');
     }
     
@@ -503,6 +566,18 @@ class SettingsController extends Controller
     private function getDefaultSettings()
     {
         return [
+            // Farm/Season Settings
+            'farm_name' => 'Middle World Farms',
+            'season_start_date' => '2025-04-01',     // Season start date
+            'season_end_date' => '2025-11-30',       // Season end date
+            'season_weeks' => 33,                     // Number of weeks in season
+            'closure_start_date' => null,            // Optional closure period start
+            'closure_end_date' => null,              // Optional closure period end
+            'resume_billing_date' => null,           // Date to resume billing after closure
+            'delivery_days' => ['Thursday'],         // Default delivery days
+            'fortnightly_week_a_start' => null,      // Start date for Week A (fortnightly)
+            
+            // Printing Settings
             'packing_slips_per_page' => 1,           // 1-6 slips per page
             'auto_print_mode' => true,               // Skip preview, direct to printer
             'print_company_logo' => true,            // Include farm logo on slips
@@ -549,6 +624,54 @@ class SettingsController extends Controller
     private function getDefaultSettingsWithTypes()
     {
         return [
+            // Farm/Season Settings
+            'farm_name' => [
+                'value' => 'Middle World Farms',
+                'type' => 'string',
+                'description' => 'Name of the farm/CSA operation'
+            ],
+            'season_start_date' => [
+                'value' => '2025-04-01',
+                'type' => 'date',
+                'description' => 'Start date of the growing/delivery season'
+            ],
+            'season_end_date' => [
+                'value' => '2025-11-30',
+                'type' => 'date',
+                'description' => 'End date of the growing/delivery season'
+            ],
+            'season_weeks' => [
+                'value' => 33,
+                'type' => 'integer',
+                'description' => 'Number of weeks in the season'
+            ],
+            'closure_start_date' => [
+                'value' => null,
+                'type' => 'date',
+                'description' => 'Start of seasonal closure period (optional)'
+            ],
+            'closure_end_date' => [
+                'value' => null,
+                'type' => 'date',
+                'description' => 'End of seasonal closure period (optional)'
+            ],
+            'resume_billing_date' => [
+                'value' => null,
+                'type' => 'date',
+                'description' => 'Date to resume billing after closure'
+            ],
+            'delivery_days' => [
+                'value' => ['Thursday'],
+                'type' => 'array',
+                'description' => 'Days of the week for deliveries'
+            ],
+            'fortnightly_week_a_start' => [
+                'value' => null,
+                'type' => 'date',
+                'description' => 'Start date for Week A (fortnightly schedule)'
+            ],
+            
+            // Printing Settings
             'packing_slips_per_page' => [
                 'value' => 1,
                 'type' => 'integer',
@@ -2153,6 +2276,106 @@ class SettingsController extends Controller
                 'success' => false,
                 'message' => 'Failed to delete dataset: ' . $e->getMessage(),
             ], 500);
+        }
+    }
+
+    /**
+     * Sync season settings to farmOS
+     * Creates or updates a "Season Plan" in farmOS with the configured dates
+     * 
+     * @param \Illuminate\Http\Request $request
+     * @return void
+     */
+    private function syncSeasonToFarmOS($request)
+    {
+        try {
+            $farmosApi = app(\App\Services\FarmOSApi::class);
+            
+            $farmName = $request->farm_name ?? 'Middle World Farms';
+            $seasonStart = $request->season_start_date;
+            $seasonEnd = $request->season_end_date;
+            $seasonWeeks = $request->season_weeks ?? 33;
+            
+            // Build the plan name and notes
+            $planName = $farmName . ' - Season Configuration Plan';
+            
+            $notes = "**Growing Season Configuration**\n\n";
+            $notes .= "- **Start Date:** " . ($seasonStart ? \Carbon\Carbon::parse($seasonStart)->format('F j, Y') : 'Not set') . "\n";
+            $notes .= "- **End Date:** " . ($seasonEnd ? \Carbon\Carbon::parse($seasonEnd)->format('F j, Y') : 'Not set') . "\n";
+            $notes .= "- **Season Length:** {$seasonWeeks} weeks\n\n";
+            
+            if ($request->filled('delivery_days')) {
+                $deliveryDays = is_array($request->delivery_days) ? implode(', ', $request->delivery_days) : $request->delivery_days;
+                $notes .= "- **Delivery Days:** {$deliveryDays}\n";
+            }
+            
+            if ($request->filled('closure_start_date') && $request->filled('closure_end_date')) {
+                $closureStart = \Carbon\Carbon::parse($request->closure_start_date)->format('F j, Y');
+                $closureEnd = \Carbon\Carbon::parse($request->closure_end_date)->format('F j, Y');
+                $notes .= "\n**Seasonal Closure:**\n";
+                $notes .= "- **Closure Period:** {$closureStart} - {$closureEnd}\n";
+                
+                if ($request->filled('resume_billing_date')) {
+                    $resumeDate = \Carbon\Carbon::parse($request->resume_billing_date)->format('F j, Y');
+                    $notes .= "- **Resume Billing:** {$resumeDate}\n";
+                }
+            }
+            
+            $notes .= "\n*Last updated: " . now()->format('F j, Y \a\t g:i A') . "*";
+            $notes .= "\n*Synced from admin settings panel.*";
+            
+            // Check if a Season Configuration plan already exists
+            $existingPlans = $farmosApi->getCropPlans(['name' => 'Season Configuration']);
+            
+            if (!empty($existingPlans)) {
+                // Update the existing plan
+                $existingPlan = $existingPlans[0];
+                $planId = $existingPlan['id'];
+                
+                $updateData = [
+                    'name' => $planName,
+                    'notes' => $notes,
+                    'status' => 'active'
+                ];
+                
+                $farmosApi->updateCropPlan($planId, $updateData);
+                
+                Log::info('Season settings updated in farmOS', [
+                    'farm_name' => $farmName,
+                    'season_start' => $seasonStart,
+                    'season_end' => $seasonEnd,
+                    'season_weeks' => $seasonWeeks,
+                    'plan_id' => $planId,
+                    'action' => 'updated'
+                ]);
+                
+            } else {
+                // Create a new plan
+                $planData = [
+                    'crop' => ['name' => $farmName],
+                    'type' => 'Season Configuration',
+                    'notes' => $notes,
+                    'status' => 'active'
+                ];
+                
+                $result = $farmosApi->createCropPlan($planData);
+                
+                Log::info('Season settings synced to farmOS', [
+                    'farm_name' => $farmName,
+                    'season_start' => $seasonStart,
+                    'season_end' => $seasonEnd,
+                    'season_weeks' => $seasonWeeks,
+                    'plan_id' => $result['data']['id'] ?? 'unknown',
+                    'action' => 'created'
+                ]);
+            }
+            
+        } catch (\Exception $e) {
+            // Log the error but don't fail the settings save
+            Log::warning('Failed to sync season settings to farmOS: ' . $e->getMessage(), [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
         }
     }
 }
