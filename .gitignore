@@ -129,3 +129,7 @@ oauth2_public.key
 ingest/all_extracted/
 ingest/extracted/
 ingest/archive*.zip
+
+# Application secrets and UUIDs
+*.uuid.json
+*-*-*-*-*.json
