@@ -492,9 +492,12 @@ class WooCommerceApiService
             $wooProduct['regular_price'] = (string) $productData['price'];
             $wooProduct['manage_stock'] = true;
             $wooProduct['stock_quantity'] = $productData['stock_quantity'] ?? 0;
+            // Explicitly set stock status - instock if quantity > 0, otherwise outofstock
+            $wooProduct['stock_status'] = ($productData['stock_quantity'] ?? 0) > 0 ? 'instock' : 'outofstock';
         } else {
             // Variable products manage stock at variation level
             $wooProduct['manage_stock'] = false;
+            $wooProduct['stock_status'] = 'instock'; // Variable products typically show as in stock
         }
 
         // Add categories if available
