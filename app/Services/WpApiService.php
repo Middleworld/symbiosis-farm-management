@@ -235,25 +235,33 @@ class WpApiService
 
     /**
      * Generate user switch URL via MWF integration plugin
+     * Uses AJAX endpoint with admin key authentication
      */
     public function generateUserSwitchUrl($userId, $redirectTo = '/my-account/', $adminContext = 'laravel_admin')
     {
         try {
-            $response = Http::withHeaders([
-                'X-WC-API-Key' => $this->integrationKey
-            ])->post("{$this->apiUrl}/wp-json/mwf/v1/users/switch", [
+            // Generate admin key matching WordPress plugin logic
+            $secret = 'mwf_admin_switch_2025_secret_key';
+            $adminKey = hash('sha256', $userId . $redirectTo . $secret);
+            
+            // Call the AJAX endpoint to generate the switch URL
+            $response = Http::asForm()->get("{$this->apiUrl}/wp-admin/admin-ajax.php", [
+                'action' => 'mwf_generate_plugin_switch_url',
                 'user_id' => $userId,
                 'redirect_to' => $redirectTo,
-                'admin_context' => $adminContext,
-                'clear_session' => true,  // Force session cleanup
-                'auto_logout' => true     // Automatically logout previous user first
+                'admin_key' => $adminKey
             ]);
 
             $data = $response->json();
             
+            Log::info('User switch response', [
+                'user_id' => $userId,
+                'response' => $data
+            ]);
+            
             // Check if the response has the expected structure
-            if (isset($data['success']) && $data['success'] && isset($data['preview_url'])) {
-                return $data['preview_url'];
+            if (isset($data['success']) && $data['success'] && isset($data['data']['switch_url'])) {
+                return $data['data']['switch_url'];
             }
             
             Log::warning('User switch returned unexpected format', [

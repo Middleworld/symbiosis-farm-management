@@ -1,22 +1,134 @@
 # MWF Integration Plugin
 
-This document outlines the custom REST API endpoints that should be implemented in the MWF-integration WordPress plugin to provide enhanced WooCommerce integration capabilities.
+This document outlines the MWF-integration WordPress plugin that provides enhanced WooCommerce integration capabilities for the Laravel admin system.
 
 ## Overview
 
-The MWF Integration plugin extends WooCommerce's REST API with custom endpoints that provide:
+The MWF Integration plugin provides:
 
+- **User Switching**: Secure admin impersonation for customer support
+- **WordPress User Sync**: Automatic WordPress account creation for subscriptions
 - Enhanced product editing capabilities
 - Advanced WooCommerce admin features
 - Seamless integration with the Middle World Farms admin interface
 - Bulk operations and automation tools
 
+## Required WordPress Plugins
+
+### 1. MWF Integration Suite (`mwf-integration`)
+Location: `wp-content/plugins/mwf-integration/`
+
+**Features:**
+- User switching via AJAX endpoints
+- Email validation
+- WooCommerce enhancements
+
+**Files:**
+- `mwf-integration.php` - Main plugin file
+- `includes/class-mwf-user-switching.php` - AJAX-based user switching
+- `includes/class-mwf-email-validation.php`
+- `includes/class-mwf-woocommerce-integration.php`
+
+### 2. MWF Custom Subscriptions (`mwf-subscriptions`)
+Location: `wp-content/plugins/mwf-subscriptions/`
+
+**Purpose:** Replaces WooCommerce Subscriptions plugin with Laravel-backed subscription management
+
+**Configuration** (in `wp-config.php`):
+```php
+// Laravel Admin API URL
+define('MWF_API_URL', 'https://admin.yourdomain.com/api/subscriptions');
+define('MWF_API_KEY', 'your_api_key_here');
+```
+
 ## Installation
 
-1. Create a new WordPress plugin file: `wp-content/plugins/mwf-integration/mwf-integration.php`
-2. Copy the sample code from `docs/mwf-integration-plugin-sample.php`
-3. Activate the plugin in WordPress admin
-4. Configure the API key in Settings > MWF Integration
+### WordPress Plugin Installation
+
+1. Copy plugins to WordPress:
+```bash
+cp -r wordpress-plugins/mwf-integration /path/to/wordpress/wp-content/plugins/
+cp -r wordpress-plugins/mwf-subscriptions /path/to/wordpress/wp-content/plugins/
+```
+
+2. Activate via WP-CLI or WordPress admin:
+```bash
+wp plugin activate mwf-integration mwf-subscriptions
+```
+
+3. Configure in `wp-config.php`:
+```php
+// Laravel API Integration
+define('MWF_API_URL', 'https://admin.yourdomain.com/api/subscriptions');
+define('MWF_API_KEY', 'your_secure_api_key_here');
+```
+
+### Laravel Configuration
+
+In `.env`:
+```bash
+# WordPress Database Connection (Read-Only)
+WORDPRESS_DB_HOST=127.0.0.1
+WORDPRESS_DB_DATABASE=wordpress_db
+WORDPRESS_DB_USERNAME=wordpress_user
+WORDPRESS_DB_PASSWORD=secure_password
+WORDPRESS_DB_PREFIX=wp_
+
+# WooCommerce Site
+WOOCOMMERCE_URL=https://your-woocommerce-site.com/
+
+# MWF Integration API Key (must match WordPress)
+MWF_INTEGRATION_API_KEY=your_secure_api_key_here
+```
+
+### Initial Data Setup
+
+After installation:
+
+```bash
+# Import existing subscriptions from WooCommerce
+php artisan vegbox:import-woo-subscriptions --dry-run
+php artisan vegbox:import-woo-subscriptions
+
+# Create WordPress users for imported subscriptions (required for user switching)
+php artisan subscriptions:sync-wp-users --dry-run
+php artisan subscriptions:sync-wp-users
+```
+
+## User Switching
+
+### How It Works
+
+User switching allows admins to view subscriptions from the customer's perspective:
+
+1. Admin clicks "Switch User" in Laravel delivery schedule
+2. Laravel queries WordPress database for user by email
+3. Laravel calls AJAX endpoint: `wp-admin/admin-ajax.php?action=mwf_generate_plugin_switch_url`
+4. WordPress generates auto-login token (5-minute expiry)
+5. Laravel redirects admin to WooCommerce My Account as the customer
+
+### Configuration
+
+**Security:** Uses shared secret key for authentication
+- WordPress: `mwf_admin_switch_2025_secret_key` (in `class-mwf-user-switching.php`)
+- Laravel: Matches in `WpApiService::generateUserSwitchUrl()`
+
+**For production:** Change this secret in both locations before deployment.
+
+### Troubleshooting
+
+**Error: "No WordPress user found for email"**
+- **Cause:** Imported subscriptions don't have WordPress accounts
+- **Fix:** Run `php artisan subscriptions:sync-wp-users`
+
+**Error: "Failed to switch user"**
+- Verify MWF Integration plugin is activated
+- Check `MWF_API_KEY` matches in Laravel `.env` and WordPress `wp-config.php`
+- Review WordPress error logs: `wp-content/debug.log`
+
+**Error: "Invalid admin key"**
+- Secret key mismatch between Laravel and WordPress
+- Verify secret in both `WpApiService.php` and `class-mwf-user-switching.php`
 
 ## API Endpoints
 
