@@ -261,7 +261,16 @@ class WpApiService
             
             // Check if the response has the expected structure
             if (isset($data['success']) && $data['success'] && isset($data['data']['switch_url'])) {
-                return $data['data']['switch_url'];
+                $switchUrl = $data['data']['switch_url'];
+                
+                // Append redirect_to parameter if not already included
+                // This ensures user lands on the correct page after auto-login
+                if ($redirectTo && $redirectTo !== '/' && strpos($switchUrl, 'redirect_to=') === false) {
+                    $separator = strpos($switchUrl, '?') !== false ? '&' : '?';
+                    $switchUrl .= $separator . 'redirect_to=' . urlencode($redirectTo);
+                }
+                
+                return $switchUrl;
             }
             
             Log::warning('User switch returned unexpected format', [

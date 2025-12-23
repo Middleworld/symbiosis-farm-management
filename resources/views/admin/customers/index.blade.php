@@ -341,7 +341,10 @@ function switchToUser(userId, userName) {
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            }
+            },
+            body: JSON.stringify({
+                redirect_to: '/my-account/'
+            })
         })
         .then(response => response.json())
         .then(data => {

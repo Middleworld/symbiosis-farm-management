@@ -204,12 +204,14 @@ class CustomerManagementController extends Controller
                 ], 404);
             }
 
-            $redirectTo = $request->get('redirect_to', '/my-account/');
+            // Get redirect destination from request, default to My Account page
+            $redirectTo = $request->input('redirect_to', '/my-account/');
             
+            // Generate WordPress auto-login URL that redirects to My Account
             $switchUrl = $this->wpApi->generateUserSwitchUrl(
                 $userId, 
                 $redirectTo,
-                'laravel_admin_panel'
+                'customer_management_panel'
             );
 
             if (!$switchUrl) {
