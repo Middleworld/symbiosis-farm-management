@@ -1,0 +1,543 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\VegboxSubscription;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
+use Carbon\Carbon;
+
+class VegboxPaymentService
+{
+    protected $mwfApiBaseUrl;
+    protected $mwfApiKey;
+
+    public function __construct()
+    {
+        $this->mwfApiBaseUrl = env('MWF_API_BASE_URL', 'https://middleworldfarms.org/wp-json/mwf/v1');
+        $this->mwfApiKey = env('MWF_API_KEY', 'Ffsh8yhsuZEGySvLrP0DihCDDwhPwk4h');
+    }
+
+    /**
+     * Process subscription renewal payment
+     */
+    public function processSubscriptionRenewal(VegboxSubscription $subscription): array
+    {
+        try {
+            $amount = $subscription->price;
+            $customerId = $subscription->subscriber_id;
+
+            Log::info('Processing vegbox subscription renewal', [
+                'subscription_id' => $subscription->id,
+                'customer_id' => $customerId,
+                'amount' => $amount,
+                'plan' => $subscription->plan ? $subscription->plan->name : 'Unknown'
+            ]);
+
+            // Check customer balance first
+            $balanceCheck = $this->checkCustomerBalance($customerId);
+            if (!$balanceCheck['success']) {
+                return [
+                    'success' => false,
+                    'error' => 'Unable to check customer balance',
+                    'code' => 'BALANCE_CHECK_FAILED'
+                ];
+            }
+
+            if ($balanceCheck['balance'] < $amount) {
+                Log::warning('Insufficient funds for subscription renewal', [
+                    'subscription_id' => $subscription->id,
+                    'customer_id' => $customerId,
+                    'required' => $amount,
+                    'available' => $balanceCheck['balance']
+                ]);
+
+                return [
+                    'success' => false,
+                    'error' => 'Insufficient funds',
+                    'code' => 'INSUFFICIENT_FUNDS',
+                    'required' => $amount,
+                    'available' => $balanceCheck['balance']
+                ];
+            }
+
+            // Attempt to charge the customer
+            $chargeResult = $this->chargeCustomerFunds($customerId, $amount, $subscription);
+
+            if ($chargeResult['success']) {
+                Log::info('Subscription renewal payment successful', [
+                    'subscription_id' => $subscription->id,
+                    'customer_id' => $customerId,
+                    'amount' => $amount,
+                    'transaction_id' => isset($chargeResult['transaction_id']) ? $chargeResult['transaction_id'] : null
+                ]);
+
+                return [
+                    'success' => true,
+                    'transaction_id' => $chargeResult['transaction_id'],
+                    'amount' => $amount,
+                    'new_balance' => isset($chargeResult['new_balance']) ? $chargeResult['new_balance'] : null
+                ];
+            } else {
+                Log::error('Subscription renewal payment failed', [
+                    'subscription_id' => $subscription->id,
+                    'customer_id' => $customerId,
+                    'amount' => $amount,
+                    'error' => isset($chargeResult['error']) ? $chargeResult['error'] : 'Unknown error'
+                ]);
+
+                return [
+                    'success' => false,
+                    'error' => isset($chargeResult['error']) ? $chargeResult['error'] : 'Payment failed',
+                    'code' => 'PAYMENT_FAILED'
+                ];
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Exception during subscription renewal payment', [
+                'subscription_id' => $subscription->id,
+                'customer_id' => $customerId,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Payment processing error: ' . $e->getMessage(),
+                'code' => 'EXCEPTION'
+            ];
+        }
+    }
+
+    /**
+     * Check customer store credit balance
+     */
+    public function checkCustomerBalance(int $customerId): array
+    {
+        try {
+            // Get user email for MWF API
+            $user = \App\Models\User::find($customerId);
+            if (!$user) {
+                return [
+                    'success' => false,
+                    'error' => 'User not found'
+                ];
+            }
+
+            // Try MWF API first - POST with action=check
+            $response = Http::withHeaders([
+                'X-WC-API-Key' => $this->mwfApiKey,
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])->post("{$this->mwfApiBaseUrl}/funds", [
+                'action' => 'check',
+                'email' => $user->email,
+                'amount' => 0 // Just checking balance
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                if (isset($data['success']) && $data['success']) {
+                    return [
+                        'success' => true,
+                        'balance' => (float) (isset($data['current_balance']) ? $data['current_balance'] : 0)
+                    ];
+                }
+            }
+
+            // Fallback to direct WordPress database query
+            $wpUserId = $this->getWooCommerceUserId($user->email);
+            if ($wpUserId) {
+                $balance = DB::connection('wordpress')
+                    ->table('D6sPMX_usermeta')
+                    ->where('user_id', $wpUserId)
+                    ->where('meta_key', 'account_funds')
+                    ->value('meta_value');
+
+                return [
+                    'success' => true,
+                    'balance' => (float) (isset($balance) ? $balance : 0)
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => 'Failed to retrieve customer balance'
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error checking customer balance', [
+                'customer_id' => $customerId,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Charge customer funds for subscription
+     */
+    protected function chargeCustomerFunds(int $customerId, float $amount, VegboxSubscription $subscription): array
+    {
+        try {
+            // Get user email for MWF API
+            $user = \App\Models\User::find($customerId);
+            if (!$user) {
+                return [
+                    'success' => false,
+                    'error' => 'User not found'
+                ];
+            }
+
+            // Try MWF API first - POST with action=deduct
+            $chargeData = [
+                'action' => 'deduct',
+                'email' => $user->email,
+                'amount' => $amount,
+                'order_id' => "vegbox_sub_{$subscription->id}",
+                'description' => "Vegbox Subscription Renewal - " . (isset($subscription->plan->name) ? $subscription->plan->name : 'Plan')
+            ];
+
+            $response = Http::withHeaders([
+                'X-WC-API-Key' => $this->mwfApiKey,
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])->post("{$this->mwfApiBaseUrl}/funds", $chargeData);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                if (isset($data['success']) && $data['success']) {
+                    return [
+                        'success' => true,
+                        'transaction_id' => isset($data['transaction_id']) ? $data['transaction_id'] : null,
+                        'new_balance' => isset($data['new_balance']) ? (float) $data['new_balance'] : null
+                    ];
+                } else {
+                    return [
+                        'success' => false,
+                        'error' => isset($data['message']) ? $data['message'] : 'Payment failed'
+                    ];
+                }
+            }
+
+            // Fallback to direct database manipulation (use with caution)
+            $wpUserId = $this->getWooCommerceUserId($user->email);
+            if ($wpUserId) {
+                $currentBalance = DB::connection('wordpress')
+                    ->table('D6sPMX_usermeta')
+                    ->where('user_id', $wpUserId)
+                    ->where('meta_key', 'account_funds')
+                    ->value('meta_value');
+
+                $currentBalance = (float) (isset($currentBalance) ? $currentBalance : 0);
+                
+                if ($currentBalance < $amount) {
+                    return [
+                        'success' => false,
+                        'error' => 'Insufficient funds'
+                    ];
+                }
+
+                $newBalance = $currentBalance - $amount;
+
+                // Update balance
+                DB::connection('wordpress')
+                    ->table('D6sPMX_usermeta')
+                    ->where('user_id', $wpUserId)
+                    ->where('meta_key', 'account_funds')
+                    ->update(['meta_value' => $newBalance]);
+
+                // Record transaction
+                $transactionId = 'deduct-' . time() . '-' . rand(1000, 9999);
+                $transactionData = serialize([
+                    'transaction_id' => $transactionId,
+                    'type' => 'deduct',
+                    'amount' => $amount,
+                    'order_id' => "vegbox_sub_{$subscription->id}",
+                    'description' => "Vegbox Subscription Renewal - " . (isset($subscription->plan->name) ? $subscription->plan->name : 'Plan'),
+                    'date' => now()->format('Y-m-d H:i:s')
+                ]);
+
+                DB::connection('wordpress')
+                    ->table('D6sPMX_usermeta')
+                    ->insert([
+                        'user_id' => $wpUserId,
+                        'meta_key' => 'woo_funds_transaction',
+                        'meta_value' => $transactionData
+                    ]);
+
+                return [
+                    'success' => true,
+                    'transaction_id' => $transactionId,
+                    'new_balance' => $newBalance
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => 'Unable to process payment'
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error charging customer funds', [
+                'customer_id' => $customerId,
+                'amount' => $amount,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Get WooCommerce user ID from email
+     */
+    protected function getWooCommerceUserId(string $email): ?int
+    {
+        $userId = DB::connection('wordpress')
+            ->table('D6sPMX_users')
+            ->where('user_email', $email)
+            ->value('ID');
+
+        return isset($userId) ? (int) $userId : null;
+    }
+
+    /**
+     * Process refund for subscription cancellation
+     */
+    public function processRefund(VegboxSubscription $subscription, float $amount, string $reason = 'Subscription cancellation'): array
+    {
+     */
+    protected function createWooCommerceOrder(int $customerId, float $amount, VegboxSubscription $subscription): array
+    {
+        try {
+            $wcBase = config('services.woocommerce.url') ?? env('WOOCOMMERCE_URL');
+            $ck = config('services.woocommerce.consumer_key') ?? env('WOOCOMMERCE_CONSUMER_KEY');
+            $cs = config('services.woocommerce.consumer_secret') ?? env('WOOCOMMERCE_CONSUMER_SECRET');
+
+            if (!$wcBase || !$ck || !$cs) {
+                return [
+                    'success' => false,
+                    'error' => 'WooCommerce credentials not configured'
+                ];
+            }
+
+            // Get customer details
+            $customerUrl = rtrim($wcBase, '/') . "/wp-json/wc/v3/customers/{$customerId}";
+            $customerResponse = Http::get($customerUrl, [
+                'consumer_key' => $ck,
+                'consumer_secret' => $cs,
+            ]);
+
+            if (!$customerResponse->successful()) {
+                return [
+                    'success' => false,
+                    'error' => 'Could not retrieve customer details'
+                ];
+            }
+
+            $customer = $customerResponse->json();
+
+            // Create order data
+            $orderData = [
+                'customer_id' => $customerId,
+                'billing' => $customer['billing'] ?? [],
+                'shipping' => $customer['shipping'] ?? $customer['billing'] ?? [],
+                'line_items' => [
+                    [
+                        'name' => "Vegbox Subscription Renewal - " . ($subscription->plan ? $subscription->plan->name : 'Plan'),
+                        'quantity' => 1,
+                        'price' => $amount,
+                        'total' => $amount,
+                        'meta_data' => [
+                            [
+                                'key' => '_subscription_id',
+                                'value' => $subscription->id
+                            ],
+                            [
+                                'key' => '_plan_id',
+                                'value' => $subscription->plan_id
+                            ]
+                        ]
+                    ]
+                ],
+                'fee_lines' => [], // No fees for subscription renewals
+                'shipping_lines' => [], // No shipping for subscription renewals
+                'meta_data' => [
+                    [
+                        'key' => '_vegbox_subscription_renewal',
+                        'value' => '1'
+                    ],
+                    [
+                        'key' => '_subscription_id',
+                        'value' => $subscription->id
+                    ],
+                    [
+                        'key' => '_payment_method',
+                        'value' => 'store_credit'
+                    ]
+                ],
+                'set_paid' => true, // Mark as paid since we're using store credit
+                'status' => 'completed'
+            ];
+
+            $orderUrl = rtrim($wcBase, '/') . '/wp-json/wc/v3/orders';
+            $orderResponse = Http::withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post($orderUrl, $orderData, [
+                'consumer_key' => $ck,
+                'consumer_secret' => $cs,
+            ]);
+
+            if ($orderResponse->successful()) {
+                $order = $orderResponse->json();
+                return [
+                    'success' => true,
+                    'transaction_id' => 'wc_' . $order['id'],
+                    'order_id' => $order['id']
+                ];
+            }
+
+            Log::error('Failed to create WooCommerce order for subscription', [
+                'customer_id' => $customerId,
+                'amount' => $amount,
+                'subscription_id' => $subscription->id,
+                'response_status' => $orderResponse->status(),
+                'response_body' => $orderResponse->body()
+            ]);
+
+            return [
+                'success' => false,
+                'error' => 'Failed to create order: ' . $orderResponse->body()
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Exception creating WooCommerce order', [
+                'customer_id' => $customerId,
+                'amount' => $amount,
+                'subscription_id' => $subscription->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Refund a subscription payment
+     */
+    public function refundSubscriptionPayment(string $transactionId, float $amount, string $reason = 'Subscription cancelled'): array
+    {
+        try {
+            Log::info('Processing subscription payment refund', [
+                'transaction_id' => $transactionId,
+                'amount' => $amount,
+                'reason' => $reason
+            ]);
+
+            // Try MWF API first
+            $refundData = [
+                'transaction_id' => $transactionId,
+                'amount' => $amount,
+                'reason' => $reason
+            ];
+
+            $response = Http::withHeaders([
+                'X-WC-API-Key' => $this->mwfApiKey,
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])->post("{$this->mwfApiBaseUrl}/funds/refund", $refundData);
+
+            if ($response->successful()) {
+                $result = $response->json();
+                Log::info('Subscription refund successful', [
+                    'transaction_id' => $transactionId,
+                    'refund_id' => 'wc_refund_' . $refund['id']
+                ]);
+
+                return [
+                    'success' => true,
+                    'refund_id' => isset($result['refund_id']) ? $result['refund_id'] : null
+                ];
+            }
+
+            // Fallback: Create a WooCommerce refund order
+            return $this->createWooCommerceRefund($transactionId, $amount, $reason);
+
+        } catch (\Exception $e) {
+            Log::error('Exception during subscription refund', [
+                'transaction_id' => $transactionId,
+                'amount' => $amount,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Create WooCommerce refund (fallback)
+     */
+    protected function createWooCommerceRefund(string $transactionId, float $amount, string $reason): array
+    {
+        try {
+            // Extract order ID from transaction ID (format: wc_{order_id})
+            if (preg_match('/^wc_(\d+)$/', $transactionId, $matches)) {
+                $orderId = $matches[1];
+
+                $wcBase = config('services.woocommerce.url') ?? env('WOOCOMMERCE_URL');
+                $ck = config('services.woocommerce.consumer_key') ?? env('WOOCOMMERCE_CONSUMER_KEY');
+                $cs = config('services.woocommerce.consumer_secret') ?? env('WOOCOMMERCE_CONSUMER_SECRET');
+
+                $refundUrl = rtrim($wcBase, '/') . "/wp-json/wc/v3/orders/{$orderId}/refunds";
+                $refundResponse = Http::withHeaders([
+                    'Content-Type' => 'application/json',
+                ])->post($refundUrl, [
+                    'amount' => $amount,
+                    'reason' => $reason
+                ], [
+                    'consumer_key' => $ck,
+                    'consumer_secret' => $cs,
+                ]);
+
+                if ($refundResponse->successful()) {
+                    $refund = $refundResponse->json();
+                    return [
+                        'success' => true,
+                        'refund_id' => 'wc_refund_' . $refund['id']
+                    ];
+                }
+            }
+
+            return [
+                'success' => false,
+                'error' => 'Could not process refund for transaction: ' . $transactionId
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Exception creating WooCommerce refund', [
+                'transaction_id' => $transactionId,
+                'error' => $e->getMessage()
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+}

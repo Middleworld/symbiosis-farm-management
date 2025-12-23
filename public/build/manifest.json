@@ -1,0 +1,22 @@
+{
+  "resources/css/app.css": {
+    "file": "assets/app-CU5RxYz_.css",
+    "src": "resources/css/app.css",
+    "isEntry": true
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-JnYCmR4I.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true,
+    "imports": [
+      "resources/js/mwf-api.js"
+    ]
+  },
+  "resources/js/mwf-api.js": {
+    "file": "assets/mwf-api-s_0_H7zE.js",
+    "name": "mwf-api",
+    "src": "resources/js/mwf-api.js",
+    "isEntry": true
+  }
+}
