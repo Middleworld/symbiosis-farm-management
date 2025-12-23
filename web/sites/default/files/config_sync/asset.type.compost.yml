@@ -1,0 +1,14 @@
+uuid: f51b49db-3c26-46d8-9fb6-22c735fa548b
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_compost
+_core:
+  default_config_hash: knDzKkKuqC3Zxi8t8DFUMUYew807qnfTlJJom7is1fM
+id: compost
+label: Compost
+description: ''
+workflow: asset_default
+new_revision: true

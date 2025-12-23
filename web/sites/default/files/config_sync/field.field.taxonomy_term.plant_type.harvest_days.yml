@@ -1,0 +1,28 @@
+uuid: 0772d10d-c46e-4130-b3b5-cfdb0b04cd00
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.harvest_days
+    - taxonomy.vocabulary.plant_type
+  enforced:
+    module:
+      - farm_plant_type
+_core:
+  default_config_hash: 7Jh5QyL2-XP-jLy0tcRMWsVSLSYwQbQ4nOtYOoqEkik
+id: taxonomy_term.plant_type.harvest_days
+field_name: harvest_days
+entity_type: taxonomy_term
+bundle: plant_type
+label: 'Days of harvest'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: 1
+  max: null
+  prefix: ''
+  suffix: ' day| days'
+field_type: integer

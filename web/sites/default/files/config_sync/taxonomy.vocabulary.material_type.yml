@@ -1,0 +1,14 @@
+uuid: 1d691057-bca1-495c-8608-70d25700be73
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_material_type
+_core:
+  default_config_hash: vmMEFl3CIgJYKCHBp-lR7Q5i0NUU_jPFOJUbr2lnzLI
+name: 'Material type'
+vid: material_type
+description: 'A list of material types.'
+weight: 0
+new_revision: false

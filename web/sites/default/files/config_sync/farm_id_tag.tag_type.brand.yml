@@ -1,0 +1,14 @@
+uuid: 609f95f5-082e-4766-8991-466763089de7
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_animal
+      - farm_id_tag
+_core:
+  default_config_hash: 14v3A5im4rHsTM79GT2AmEOWhb4c4LKx5p8nns0KAME
+id: brand
+label: Brand
+bundles:
+  - animal

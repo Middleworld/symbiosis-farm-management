@@ -1,0 +1,16 @@
+uuid: ad78ef85-f460-4011-8833-617479570dc7
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_ui_location
+_core:
+  default_config_hash: GEWwqik97BnSXRPYXRC8fAt9jCwUOUtjtHSVz440wHg
+id: locations
+label: Locations
+description: 'The farmOS locations map.'
+behaviors:
+  - locations
+  - satellite_layers
+options: {  }

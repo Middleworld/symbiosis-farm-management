@@ -1,0 +1,25 @@
+uuid: 99ea3685-a2bf-40c6-afaa-e3d80f3ccce7
+langcode: en
+status: true
+dependencies:
+  module:
+    - farm_role
+  enforced:
+    module:
+      - farm_role_roles
+third_party_settings:
+  farm_role:
+    access:
+      config: false
+      entity:
+        'view all': true
+        'create all': false
+        'update all': false
+        'delete all': false
+_core:
+  default_config_hash: e8xwle1pplBMdhSR3AgjY1-eRMNKeK6_1vk8h8mTgXA
+id: farm_viewer
+label: Viewer
+weight: 1
+is_admin: false
+permissions: {  }

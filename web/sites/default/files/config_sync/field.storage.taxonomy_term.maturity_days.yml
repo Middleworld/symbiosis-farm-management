@@ -1,0 +1,25 @@
+uuid: 1762084f-dbd1-463a-aa2d-c283338916c6
+langcode: en
+status: true
+dependencies:
+  module:
+    - taxonomy
+  enforced:
+    module:
+      - farm_plant_type
+_core:
+  default_config_hash: NYIhhmKB7QF9VImyKNPbAaltf-b9x8WHmsnjSLQ8wbI
+id: taxonomy_term.maturity_days
+field_name: maturity_days
+entity_type: taxonomy_term
+type: integer
+settings:
+  unsigned: true
+  size: normal
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

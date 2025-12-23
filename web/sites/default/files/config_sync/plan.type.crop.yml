@@ -1,0 +1,14 @@
+uuid: 2a9384a5-8da3-40ef-a4f7-508e21a4f374
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_crop_plan
+_core:
+  default_config_hash: fpfR6pWNNewFg-s6AtzVmt9KOQ4fitCdCYCUzocxcfk
+id: crop
+label: Crop
+description: ''
+workflow: plan_default
+new_revision: true

@@ -1,0 +1,14 @@
+uuid: 83c2ec61-b1fb-40bd-bb0c-40ea4f30d2cb
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_animal
+      - farm_id_tag
+_core:
+  default_config_hash: MrPkXMYOW8d-A1bgvYAziH4p6eVpR3JczE83WrVq4m8
+id: leg_band
+label: 'Leg band'
+bundles:
+  - animal

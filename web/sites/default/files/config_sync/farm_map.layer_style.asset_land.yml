@@ -1,0 +1,14 @@
+uuid: 18c01a76-a7c9-443a-918b-c4da9ed24afa
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_land
+_core:
+  default_config_hash: qmuyHtXS57OIkb7oAQpNAANc5TGuIOyNA8KfcNsxsQo
+id: asset_land
+color: green
+conditions:
+  asset_type:
+    - land

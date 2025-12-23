@@ -1,0 +1,14 @@
+uuid: 46f69cba-0cb5-4e96-a014-707634121fc0
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_ui_map
+_core:
+  default_config_hash: KaWrcG4usVfungLhgS7PWE55T4scVarZpnRs2qj29ys
+id: locations
+label: 'Location asset layers'
+description: 'Displays location asset geometries in layers by asset type.'
+library: ''
+settings: {  }

@@ -1,0 +1,14 @@
+name: Fraction test
+description: 'Support module for fraction testing.'
+type: module
+package: Testing
+core_version_requirement: ^10.1 || ^11
+dependencies:
+  - drupal:node
+  - drupal:user
+  - fraction:fraction
+
+# Information added by Drupal.org packaging script on 2025-01-09
+version: '3.0.1'
+project: 'fraction'
+datestamp: 1736454361

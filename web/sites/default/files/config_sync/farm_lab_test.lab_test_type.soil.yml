@@ -1,0 +1,11 @@
+uuid: 5b3e6726-970e-4dca-b46e-3d6193ff27ee
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_lab_test
+_core:
+  default_config_hash: pRMZvRz8FdR56nCuxCG_CpIbQ6-10JEAOZRgsI_lFU8
+id: soil
+label: 'Soil test'

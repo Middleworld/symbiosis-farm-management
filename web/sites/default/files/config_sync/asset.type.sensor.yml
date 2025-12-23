@@ -1,0 +1,14 @@
+uuid: 06699ecf-6389-43d9-b6fc-55c6ebcc5339
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_sensor
+_core:
+  default_config_hash: L5IOANhSEQRDdW_ZLtSGoozPQWQWesNNV5ukbsblzhc
+id: sensor
+label: Sensor
+description: ''
+workflow: asset_default
+new_revision: true

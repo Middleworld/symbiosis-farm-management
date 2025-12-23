@@ -1,0 +1,15 @@
+#!/bin/bash
+# Safe Drush wrapper - always runs as the correct user
+# Usage: ./drush-safe [drush commands]
+
+# Detect the web directory owner
+WEB_USER=$(stat -c '%U' web/sites/default)
+
+if [ "$EUID" -eq 0 ]; then
+    # Running as root, switch to web user
+    echo "Running as $WEB_USER (detected from web/sites/default ownership)"
+    sudo -u "$WEB_USER" vendor/bin/drush "$@"
+else
+    # Already running as non-root user
+    vendor/bin/drush "$@"
+fi

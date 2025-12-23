@@ -1,0 +1,17 @@
+uuid: c118e098-42f0-436e-8c4c-52a38034bd71
+langcode: en
+status: true
+dependencies:
+  module:
+    - farm_log
+  enforced:
+    module:
+      - farm_birth
+_core:
+  default_config_hash: eaqpGllItEB_CGKbhb4bIAQSiOpsCXhzxS5hsZYAKXo
+id: birth
+label: Birth
+description: ''
+name_pattern: 'Birth log [log:id]'
+workflow: farm_log_workflow
+new_revision: true

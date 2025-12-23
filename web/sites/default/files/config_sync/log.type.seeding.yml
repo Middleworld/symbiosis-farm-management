@@ -1,0 +1,21 @@
+uuid: f078e526-540e-4766-9b35-8337a9c6dc3b
+langcode: en
+status: true
+dependencies:
+  module:
+    - farm_location
+    - farm_log
+  enforced:
+    module:
+      - farm_seeding
+third_party_settings:
+  farm_location:
+    is_movement: true
+_core:
+  default_config_hash: E4RNZ47KuVTZBYsE7aoN3jdeRZT3k9-uHje4UVZJ9xA
+id: seeding
+label: Seeding
+description: ''
+name_pattern: 'Seeding log [log:id]'
+workflow: farm_log_workflow
+new_revision: true

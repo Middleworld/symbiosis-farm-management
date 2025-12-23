@@ -1,0 +1,14 @@
+uuid: 3fd036c3-bece-4a6d-89c5-cb91f0824494
+langcode: en
+status: true
+dependencies:
+  config:
+    - user.role.farm_account_admin
+  module:
+    - user
+id: user_add_role_action.farm_account_admin
+label: 'Add the Account Admin role to the selected user(s)'
+type: user
+plugin: user_add_role_action
+configuration:
+  rid: farm_account_admin

@@ -1,0 +1,16 @@
+uuid: 1875f4ab-29ca-4331-b575-097bc26e041b
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_structure_types
+_core:
+  default_config_hash: 2kXtzZL5BKnYVgpJyOW6zWwtBrIgKf2Q0JJTFmyPSgc
+id: structure_type_greenhouse
+color: green
+conditions:
+  asset_type:
+    - structure
+  structure_type:
+    - greenhouse

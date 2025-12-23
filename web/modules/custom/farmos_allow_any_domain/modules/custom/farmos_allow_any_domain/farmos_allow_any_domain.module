@@ -1,0 +1,32 @@
+<?php
+
+/**
+ * @file
+ * Allows user registration with any email domain.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_form_alter().
+ */
+function farmos_allow_any_domain_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  if ($form_id === 'user_register_form') {
+    // Remove any email domain validation
+    if (isset($form['account']['mail']['#element_validate'])) {
+      foreach ($form['account']['mail']['#element_validate'] as $key => $validator) {
+        if (is_array($validator) && isset($validator[1]) && $validator[1] === '_user_validate_mail_domain') {
+          unset($form['account']['mail']['#element_validate'][$key]);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_user_presave().
+ */
+function farmos_allow_any_domain_user_presave($account) {
+  // Allow any email domain
+  return;
+}

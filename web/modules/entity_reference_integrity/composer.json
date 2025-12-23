@@ -1,0 +1,12 @@
+{
+  "name": "drupal/entity_reference_integrity",
+  "type": "drupal-module",
+  "description": "Protect entities from being deleted if they are the target of an entity reference field.",
+  "keywords": ["Drupal"],
+  "license": "GPL-2.0+",
+  "homepage": "https://www.drupal.org/project/entity_reference_integrity",
+  "support": {
+    "issues": "http://drupal.org/project/issues/entity_reference_integrity",
+    "source": "https://git.drupalcode.org/project/entity_reference_integrity"
+  }
+}

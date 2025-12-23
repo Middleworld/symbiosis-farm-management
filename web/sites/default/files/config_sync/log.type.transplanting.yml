@@ -1,0 +1,21 @@
+uuid: 70aec553-fba3-4948-85b6-6e6ed97014f3
+langcode: en
+status: true
+dependencies:
+  module:
+    - farm_location
+    - farm_log
+  enforced:
+    module:
+      - farm_transplanting
+third_party_settings:
+  farm_location:
+    is_movement: true
+_core:
+  default_config_hash: c1L2E_flpmJhUsFgszg-r2pKOmTvOQjGHS_EclNND58
+id: transplanting
+label: Transplanting
+description: ''
+name_pattern: 'Transplanting log [log:id]'
+workflow: farm_log_workflow
+new_revision: true

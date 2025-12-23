@@ -1,0 +1,11 @@
+uuid: c048fabf-e148-45d1-8a94-8ded512a1dc0
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_land_types
+_core:
+  default_config_hash: lG0bABr2GuziZUMNeu7q78TVW-HRKC3bA-SYW-EMsko
+id: landmark
+label: Landmark

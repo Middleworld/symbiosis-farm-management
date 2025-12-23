@@ -1,0 +1,21 @@
+uuid: ca1ed3ab-b54c-4a72-9280-31d40522aef8
+langcode: en
+status: true
+dependencies:
+  module:
+    - farm_log
+    - farm_log_quantity
+  enforced:
+    module:
+      - farm_input
+third_party_settings:
+  farm_log_quantity:
+    default_quantity_type: material
+_core:
+  default_config_hash: E_PxeODEoQCivkqf3_mcjdo7pje9CMB2IY4IFylg_k0
+id: input
+label: Input
+description: ''
+name_pattern: 'Input log [log:id]'
+workflow: farm_log_workflow
+new_revision: true

@@ -1,0 +1,17 @@
+uuid: 843bdfd8-ae40-4a74-800e-7d51f6ae249d
+langcode: en
+status: true
+dependencies:
+  module:
+    - farm_log
+  enforced:
+    module:
+      - farm_medical
+_core:
+  default_config_hash: qwKBep2DxLk4kpSjD_n5YZrhA2jbQCdSuZ8rEmd3THI
+id: medical
+label: Medical
+description: ''
+name_pattern: 'Medical log [log:id]'
+workflow: farm_log_workflow
+new_revision: true

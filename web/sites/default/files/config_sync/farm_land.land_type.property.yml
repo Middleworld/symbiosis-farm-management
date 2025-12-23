@@ -1,0 +1,11 @@
+uuid: 41021f98-497f-4147-893a-9770a28055e7
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_land_types
+_core:
+  default_config_hash: cNise47qpb1qwLlRegRPE9Bd1DawNpdfcouB04XkG6s
+id: property
+label: Property

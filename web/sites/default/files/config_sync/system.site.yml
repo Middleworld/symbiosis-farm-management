@@ -1,0 +1,15 @@
+_core:
+  default_config_hash: HlN7eAN2N4JIHsYv56V4E7sqC9bS609KwvGFjyD_mgk
+langcode: en
+uuid: 1576f1ca-b5e8-47c3-b048-8c078879e391
+name: 'Middle World Farms'
+mail: admin@example.com
+slogan: ''
+page:
+  403: /403
+  404: ''
+  front: /dashboard
+admin_compact_mode: false
+weight_select_max: 100
+default_langcode: en
+mail_notification: null

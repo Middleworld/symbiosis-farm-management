@@ -1,0 +1,25 @@
+uuid: d339217e-9d76-4052-8af9-a196537c4f32
+langcode: en
+status: true
+dependencies:
+  module:
+    - farm_role
+  enforced:
+    module:
+      - farm_role_roles
+third_party_settings:
+  farm_role:
+    access:
+      config: false
+      entity:
+        'view all': true
+        'create all': true
+        'update all': true
+        'delete all': true
+_core:
+  default_config_hash: 78DQcp_BVJWEvRKk2qITlxMi0Y7YHxpZau9kWpFict8
+id: farm_worker
+label: Worker
+weight: 1
+is_admin: false
+permissions: {  }

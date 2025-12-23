@@ -1,0 +1,13 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_satellite_layers
+      - farm_map
+id: default
+label: Default
+description: 'The default farmOS map.'
+behaviors:
+  - satellite_layers
+options: {}

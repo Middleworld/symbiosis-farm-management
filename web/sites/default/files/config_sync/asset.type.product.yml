@@ -1,0 +1,14 @@
+uuid: 3ef3b176-df7d-40d4-906a-96ca37371eb5
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_product
+_core:
+  default_config_hash: s2Xct2CFxYRzYgOMmioGtdYUWRP8yvYwGly6ZAd5yv0
+id: product
+label: Product
+description: ''
+workflow: asset_default
+new_revision: true

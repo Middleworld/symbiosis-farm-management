@@ -1,0 +1,15 @@
+uuid: f5b30dc7-2b72-42fc-8060-2400d73c76a2
+langcode: en
+status: true
+dependencies:
+  module:
+    - asset
+    - farm_export_kml
+_core:
+  default_config_hash: T9pwOqZY3tOmfFyy9IlPI-L-eCwh-BKO8A6HhQu2evU
+id: asset_kml_action
+label: 'Export KML'
+type: asset
+plugin: 'entity:kml_action:asset'
+configuration:
+  geofield: geometry

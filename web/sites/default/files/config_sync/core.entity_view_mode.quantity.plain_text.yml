@@ -1,0 +1,16 @@
+uuid: 49e15998-4239-48fd-a843-34a50d4ea719
+langcode: en
+status: true
+dependencies:
+  module:
+    - quantity
+  enforced:
+    module:
+      - quantity
+_core:
+  default_config_hash: GvftmY9vRTdoseQdRxoukvLC7o8Sje5qL9ARfAr4tgI
+id: quantity.plain_text
+label: 'Plain text'
+description: ''
+targetEntityType: quantity
+cache: false

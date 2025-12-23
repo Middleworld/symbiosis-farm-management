@@ -1,0 +1,11 @@
+uuid: fb375ded-504d-40ee-b91c-c4ba8a2cce6c
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_structure_types
+_core:
+  default_config_hash: locRpxn_470fumIe83O5lgTGKLjg-DLysjViKi96rpg
+id: greenhouse
+label: Greenhouse

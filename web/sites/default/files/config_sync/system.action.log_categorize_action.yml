@@ -1,0 +1,14 @@
+uuid: 36e66d89-bdcf-4d72-a1fb-23fbe32ba5b4
+langcode: en
+status: true
+dependencies:
+  module:
+    - farm_log_category
+    - log
+_core:
+  default_config_hash: FqPZdXTiZ6tCQ1Irajn05id0H0QtfUC3g6Ks2xHP5zQ
+id: log_categorize_action
+label: Categorize
+type: log
+plugin: log_categorize_action
+configuration: {  }

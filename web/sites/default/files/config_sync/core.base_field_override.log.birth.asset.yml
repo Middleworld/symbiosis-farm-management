@@ -1,0 +1,25 @@
+uuid: 22b98729-70ee-4df3-9b2e-f51db93a6d72
+langcode: en
+status: true
+dependencies:
+  config:
+    - log.type.birth
+_core:
+  default_config_hash: d6rAcocMBAN6uTjZ0a-xTMANg390Ej2TpTsZuJdsmow
+id: log.birth.asset
+field_name: asset
+entity_type: log
+bundle: birth
+label: Children
+description: 'Which child assets were born?'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: views
+  handler_settings:
+    view:
+      view_name: farm_asset_reference
+      display_name: entity_reference
+field_type: entity_reference

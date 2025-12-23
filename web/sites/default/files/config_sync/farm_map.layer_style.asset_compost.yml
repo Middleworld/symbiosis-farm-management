@@ -1,0 +1,14 @@
+uuid: ad644958-8cfa-4b22-b54c-12e5d6086547
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_compost
+_core:
+  default_config_hash: O4Ij20dT4CkZ7L9sDR1C4MrIuA0jS1xVAaKy9GmOksI
+id: asset_compost
+color: yellow
+conditions:
+  asset_type:
+    - compost

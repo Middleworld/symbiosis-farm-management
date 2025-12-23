@@ -1,0 +1,12 @@
+name: JSON:API Menu items test
+description: 'Test functionality for JSON:API Menu items'
+type: module
+package: Testing
+dependencies:
+  - drupal:menu_link_content
+  - jsonapi_menu_items:jsonapi_menu_items
+
+# Information added by Drupal.org packaging script on 2025-06-02
+version: '1.2.8'
+project: 'jsonapi_menu_items'
+datestamp: 1748881161

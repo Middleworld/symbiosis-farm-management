@@ -1,0 +1,85 @@
+uuid: 91e17f50-7d82-4e96-8d7b-69f2e57f0621
+langcode: en
+status: true
+dependencies:
+  config:
+    - asset.type.structure
+    - core.entity_view_mode.asset.map_popup
+  module:
+    - comment
+    - farm_inventory
+    - options
+    - text
+_core:
+  default_config_hash: Omtp1cs8cklZtI-B-GwsEEyJCaLM3plb5G6lahYDXr8
+id: asset.structure.map_popup
+targetEntityType: asset
+bundle: structure
+mode: map_popup
+content:
+  flag:
+    type: list_default
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    weight: 0
+    region: content
+  group:
+    type: entity_reference_label
+    label: inline
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 94
+    region: content
+  inventory:
+    type: inventory
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    weight: 94
+    region: content
+  location:
+    type: entity_reference_label
+    label: inline
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 3
+    region: content
+  notes:
+    type: text_default
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    weight: 2
+    region: content
+  owner:
+    type: entity_reference_label
+    label: inline
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: -70
+    region: content
+  structure_type:
+    type: list_default
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    weight: 1
+    region: content
+hidden:
+  data: true
+  file: true
+  geometry: true
+  id_tag: true
+  image: true
+  intrinsic_geometry: true
+  is_fixed: true
+  is_location: true
+  langcode: true
+  parent: true
+  quick: true
+  status: true
+  uid: true

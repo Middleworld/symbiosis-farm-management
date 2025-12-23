@@ -1,0 +1,14 @@
+uuid: bc8e2d2a-7654-4e47-9026-c85afbe11d5a
+langcode: en
+status: true
+dependencies:
+  module:
+    - asset
+    - farm_owner
+_core:
+  default_config_hash: TFaIkHB_fGW6WsxIq911O-J0UdWFFW4oiFCL-erLzM4
+id: asset_assign_action
+label: 'Assign owners'
+type: asset
+plugin: asset_assign_action
+configuration: {  }

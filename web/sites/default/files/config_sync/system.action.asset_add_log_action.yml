@@ -1,0 +1,14 @@
+uuid: d174e1c0-078f-46f7-a730-9291c21b8491
+langcode: en
+status: true
+dependencies:
+  module:
+    - asset
+    - farm_log
+_core:
+  default_config_hash: zMUv8nvz5qNJVLBayx5mzDrb2snP91qIHzTUD2f1iOQ
+id: asset_add_log_action
+label: 'Add log'
+type: asset
+plugin: asset_add_log_action
+configuration: {  }

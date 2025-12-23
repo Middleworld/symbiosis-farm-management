@@ -1,0 +1,14 @@
+uuid: 145ff57d-c61a-4b3e-af1e-b83a2a5a8222
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_plant_type
+_core:
+  default_config_hash: 80qf08tG_Z9GmAsawQqbEk6422oRWLs00r7dEJHkpq0
+name: 'Crop family'
+vid: crop_family
+description: 'A list of crop families.'
+weight: 0
+new_revision: false

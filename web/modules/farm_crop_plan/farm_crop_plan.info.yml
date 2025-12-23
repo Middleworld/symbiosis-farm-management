@@ -1,0 +1,18 @@
+name: Crop plan
+description: Crop plan type and related features for farmOS.
+type: module
+package: farmOS Contrib
+core_version_requirement: ^10
+dependencies:
+  - farm_entity
+  - farm_log
+  - farm_location
+  - farm_plant
+  - farm_season
+  - farm_timeline
+  - plan
+
+# Information added by Drupal.org packaging script on 2024-09-24
+version: '3.0.0-alpha3'
+project: 'farm_crop_plan'
+datestamp: 1727191889

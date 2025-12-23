@@ -1,0 +1,16 @@
+uuid: 36fe5e48-2868-458c-801d-9c5e830d5b2d
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_satellite_layers
+      - farm_map
+_core:
+  default_config_hash: tQu8mlqO_ZXWGRp9GEI3-tNOS8mtH7Oub_pRB4YDehc
+id: default
+label: Default
+description: 'The default farmOS map.'
+behaviors:
+  - satellite_layers
+options: {  }

@@ -1,0 +1,14 @@
+uuid: 2921d607-4c96-4882-a9b9-e578af697b59
+langcode: en
+status: true
+dependencies:
+  module:
+    - asset
+    - farm_flag
+_core:
+  default_config_hash: nfoVtVz9L9X1MaFE-vYVBBlI9IMcRGwY28Dcs5vQBiw
+id: asset_flag_action
+label: 'Flag asset'
+type: asset
+plugin: 'entity:flag_action:asset'
+configuration: {  }

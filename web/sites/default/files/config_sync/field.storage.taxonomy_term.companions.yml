@@ -1,0 +1,24 @@
+uuid: ff2b1dd6-bc5d-4eee-becc-cb24aed8378c
+langcode: en
+status: true
+dependencies:
+  module:
+    - taxonomy
+  enforced:
+    module:
+      - farm_plant_type
+_core:
+  default_config_hash: Pr6cZ9mYwls_Qhu6Y1KABHf0SsC0QToHU6dDZ00mL7c
+id: taxonomy_term.companions
+field_name: companions
+entity_type: taxonomy_term
+type: entity_reference
+settings:
+  target_type: taxonomy_term
+module: core
+locked: false
+cardinality: -1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

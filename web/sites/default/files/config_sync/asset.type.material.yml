@@ -1,0 +1,14 @@
+uuid: 94d5a067-dd5b-49b0-9c28-b80d09a5408b
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_material
+_core:
+  default_config_hash: jhdEYv8VGvzOgMs8qOYNJNKq2Doxw58bljPBuuQZwjI
+id: material
+label: Material
+description: ''
+workflow: asset_default
+new_revision: true

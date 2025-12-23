@@ -1,0 +1,9 @@
+parameters:
+  drupal:
+    entityMapping:
+      log:
+        class: Drupal\log\Entity\Log
+        storage: Drupal\log\LogStorage
+      log_type:
+        class: Drupal\log\Entity\LogType
+        storage: Drupal\Core\Config\Entity\ConfigEntityStorage

@@ -1,0 +1,17 @@
+uuid: a9af848d-2427-40a4-ac26-6f74b402d824
+langcode: en
+status: true
+dependencies:
+  module:
+    - farm_log
+  enforced:
+    module:
+      - farm_maintenance
+_core:
+  default_config_hash: FpxRK6Fij3VRKXfppF72UERBZpdN3KoFwTGHjBg0ORA
+id: maintenance
+label: Maintenance
+description: ''
+name_pattern: 'Maintenance log [log:id]'
+workflow: farm_log_workflow
+new_revision: true

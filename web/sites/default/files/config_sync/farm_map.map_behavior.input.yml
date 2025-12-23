@@ -1,0 +1,14 @@
+uuid: 55feba26-9667-4033-8b84-68e1eb0d4da9
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_map
+_core:
+  default_config_hash: 0M7RLsFYZmwnIHjnx1WTroZOGKjKo12KlTDUhG0AuBY
+id: input
+label: Input
+description: 'Syncs editable map layer data into a form input.'
+library: farm_map/behavior_input
+settings: {  }

@@ -1,0 +1,14 @@
+uuid: 518e023a-81e8-4388-9bb9-673baf863457
+langcode: en
+status: true
+dependencies:
+  module:
+    - farm_flag
+    - plan
+_core:
+  default_config_hash: qjk84z7UCy536wsSPfHHgfPLbNzwRoi6EgFNhxCv9WA
+id: plan_flag_action
+label: 'Flag plan'
+type: plan
+plugin: 'entity:flag_action:plan'
+configuration: {  }

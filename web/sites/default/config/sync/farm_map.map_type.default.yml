@@ -1,0 +1,15 @@
+uuid: default-uuid-placeholder
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_ui_map
+_core:
+  default_config_hash: default-hash-placeholder
+id: default
+label: 'Default'
+description: 'The default map.'
+behaviors:
+  - satellite_layers
+options: {  }

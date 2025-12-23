@@ -1,0 +1,7 @@
+farmos_menu_api.menu_api:
+  path: '/api/menu/{menu_name}'
+  defaults:
+    _controller: '\Drupal\farmos_menu_api\Controller\MenuApiController::getMenu'
+  requirements:
+    _permission: 'access content'
+  methods: [GET]

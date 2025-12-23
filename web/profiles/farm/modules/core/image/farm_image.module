@@ -1,0 +1,22 @@
+<?php
+
+/**
+ * @file
+ * Contains farm_image.module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_farm_update_exclude_config().
+ */
+function farm_image_farm_update_exclude_config() {
+
+  // Exclude config that we have overridden in hook_install().
+  return [
+    'image.style.large',
+    'image.style.medium',
+    'image.style.thumbnail',
+    'image.style.wide',
+  ];
+}

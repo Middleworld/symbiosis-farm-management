@@ -1,0 +1,12 @@
+uuid: 4a404265-5381-4d87-9721-385ff1747baf
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - data_stream
+_core:
+  default_config_hash: Yt_Q30BgeMJVc9nkkohvpJyik0jjZnZpjgSEipVpscU
+id: basic
+label: Basic
+description: 'Basic data stream'

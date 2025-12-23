@@ -1,0 +1,14 @@
+uuid: 63633abd-fb2a-444a-96ef-d8f1b86aee5f
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_map_mapbox
+_core:
+  default_config_hash: RO_UQiBrFFBuqhTrT5UhTjFGNIkZq1AgIm-mv45hvLc
+id: mapbox
+label: Mapbox
+description: 'Displays Mapbox layers.'
+library: farm_map_mapbox/mapbox
+settings: {  }

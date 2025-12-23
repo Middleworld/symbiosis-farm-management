@@ -1,0 +1,21 @@
+uuid: 11d231cf-7d1b-43bc-a219-f9c712dbdb0b
+langcode: en
+status: true
+dependencies:
+  module:
+    - farm_log
+    - farm_log_quantity
+  enforced:
+    module:
+      - farm_lab_test
+third_party_settings:
+  farm_log_quantity:
+    default_quantity_type: test
+_core:
+  default_config_hash: uliFocmQIEgxsO4aaPXYfAkQdYL4N-czxcXo0HPVM5E
+id: lab_test
+label: 'Lab test'
+description: ''
+name_pattern: 'Lab test log [log:id]'
+workflow: farm_log_workflow
+new_revision: true

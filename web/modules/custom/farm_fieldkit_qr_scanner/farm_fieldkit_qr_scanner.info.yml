@@ -1,0 +1,7 @@
+name: farmOS Field Kit QR Scanner
+description: Scan QR codes on farm assets to view details and create logs
+type: module
+package: farmOS
+core_version_requirement: ^10
+dependencies:
+  - farm:farm_fieldkit

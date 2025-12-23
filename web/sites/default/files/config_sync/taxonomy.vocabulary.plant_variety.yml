@@ -1,0 +1,9 @@
+uuid: ff427e91-03e1-43dc-be19-75ac0157a941
+langcode: en
+status: true
+dependencies: {  }
+name: 'Plant Varieties'
+vid: plant_variety
+description: 'Specific varieties/cultivars of plants grown on the farm'
+weight: 0
+new_revision: false

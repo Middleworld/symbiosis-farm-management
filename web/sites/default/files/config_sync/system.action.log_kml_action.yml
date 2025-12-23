@@ -1,0 +1,15 @@
+uuid: c6754e19-0ba3-4732-973f-5aefbf4bbd2c
+langcode: en
+status: true
+dependencies:
+  module:
+    - farm_export_kml
+    - log
+_core:
+  default_config_hash: y8-uMjQvkjQlN19_X6SN7FLokuRVTThZmI-vRaZpP1I
+id: log_kml_action
+label: 'Export KML'
+type: log
+plugin: 'entity:kml_action:log'
+configuration:
+  geofield: geometry

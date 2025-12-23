@@ -1,0 +1,14 @@
+uuid: 512ed8a1-5d68-417a-afec-29e1163d9abb
+langcode: en
+status: true
+dependencies:
+  module:
+    - farm_owner
+    - log
+_core:
+  default_config_hash: RVe8dAo9QoZ3Wwz6r3YBHWSZJ9HIGm3ZC90xpF-YBfc
+id: log_assign_action
+label: 'Assign owners'
+type: log
+plugin: log_assign_action
+configuration: {  }

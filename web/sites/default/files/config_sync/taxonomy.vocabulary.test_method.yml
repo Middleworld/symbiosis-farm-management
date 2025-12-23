@@ -1,0 +1,14 @@
+uuid: b4b0e7e0-8327-4d93-a7bc-ec09bea8c2d2
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_test_method
+_core:
+  default_config_hash: L9gUU44kp85T2AH77-kTAYEfrOCA7n-6nmGuMTyHBRo
+name: 'Test method'
+vid: test_method
+description: 'A list of test methods.'
+weight: 0
+new_revision: false

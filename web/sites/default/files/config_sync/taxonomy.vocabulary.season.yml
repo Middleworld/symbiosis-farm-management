@@ -1,0 +1,14 @@
+uuid: 27dda80e-13c1-44dc-89e4-616945ec78c3
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_season
+_core:
+  default_config_hash: f9s0_TCAS6c6qsflE67Hr5TXEDivEYFkJInqxPd4PJs
+name: Season
+vid: season
+description: 'A list of seasons.'
+weight: 0
+new_revision: false

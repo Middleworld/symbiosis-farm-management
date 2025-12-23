@@ -1,0 +1,14 @@
+uuid: 079e86dd-8ffb-4432-9d36-d9435b42dfd5
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_equipment_type
+_core:
+  default_config_hash: tAJ4-E4gm5-0dt_WrW7WhBcNIJVI6OXVEH82JxwXkf8
+name: 'Equipment type'
+vid: equipment_type
+description: 'A list of equipment types.'
+weight: 0
+new_revision: false

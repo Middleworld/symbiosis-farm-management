@@ -1,0 +1,14 @@
+uuid: 90dd2689-03ed-42ee-ba08-0ee34b6dc2ae
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_animal
+_core:
+  default_config_hash: 667gAUIaz6ixzPRALv8zpiasjFOolvAyklzeRAq-xy4
+id: animal
+label: Animal
+description: ''
+workflow: asset_default
+new_revision: true

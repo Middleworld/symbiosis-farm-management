@@ -1,0 +1,17 @@
+<?php
+/**
+ * @file
+ * Custom menu API endpoints for farmOS.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function farmos_menu_api_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.farmos_menu_api':
+      return '<p>' . t('Provides API endpoints for farmOS menus.') . '</p>';
+  }
+}

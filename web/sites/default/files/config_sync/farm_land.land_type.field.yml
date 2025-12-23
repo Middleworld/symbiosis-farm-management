@@ -1,0 +1,11 @@
+uuid: ae8833ba-34e8-4125-aa93-b958d26f6bb4
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_land_types
+_core:
+  default_config_hash: uKFnrskZaA4D_w9cUIx2yvZaijkbngLOnSIb40PZ9wk
+id: field
+label: Field

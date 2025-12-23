@@ -1,0 +1,4 @@
+scope_provider: static
+public_key: /var/www/vhosts/middleworldfarms.org/subdomains/farmos/web/sites/default/files/private/public.key
+private_key: /var/www/vhosts/middleworldfarms.org/subdomains/farmos/web/sites/default/files/private/private.key
+disable_openid_connect: true

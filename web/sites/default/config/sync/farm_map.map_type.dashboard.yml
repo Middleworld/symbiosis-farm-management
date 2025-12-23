@@ -1,0 +1,16 @@
+uuid: dashboard-uuid-placeholder
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_ui_map
+_core:
+  default_config_hash: dashboard-hash-placeholder
+id: dashboard
+label: 'Dashboard'
+description: 'The dashboard map.'
+behaviors:
+  - locations
+  - satellite_layers
+options: {  }

@@ -1,0 +1,7 @@
+name: 'FarmOS Menu API'
+type: module
+description: 'Expose Drupal menus as JSON:API resources.'
+core_version_requirement: ^10
+package: Custom
+dependencies:
+  - drupal:jsonapi

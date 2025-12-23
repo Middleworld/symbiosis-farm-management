@@ -1,0 +1,14 @@
+uuid: aaf645bd-a855-4490-bcc9-de914931fe02
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_bee
+_core:
+  default_config_hash: 85vyeAS8vVpV1bEDSY9okBFVHBBNv9ClzepQgcNaO9w
+id: bee_colony
+label: 'Bee colony'
+description: ''
+workflow: asset_default
+new_revision: true

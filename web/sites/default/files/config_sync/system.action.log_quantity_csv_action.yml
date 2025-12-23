@@ -1,0 +1,17 @@
+uuid: 786fac5b-6ddf-41bc-b49c-bf7407ea0766
+langcode: en
+status: true
+dependencies:
+  module:
+    - farm_export_csv
+    - log
+  enforced:
+    module:
+      - farm_export_csv
+_core:
+  default_config_hash: aDLHHUo0CF45Y0o8g24n511DsB290cZujJ3Uv1peTeU
+id: log_quantity_csv_action
+label: 'Export Quantities CSV'
+type: log
+plugin: 'farm_export_csv:log_quantity'
+configuration: {  }

@@ -1,0 +1,11 @@
+uuid: 8e7479a5-f8aa-4b0b-af23-b7d299147398
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_lab_test
+_core:
+  default_config_hash: m1PTjkBsLAudTKSUr6sN7w9yODCXgXbyWlyn7umexMw
+id: tissue
+label: 'Tissue test'

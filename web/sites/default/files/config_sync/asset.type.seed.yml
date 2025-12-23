@@ -1,0 +1,14 @@
+uuid: 40bcf5d5-291f-4a83-b640-f9722c806428
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_seed
+_core:
+  default_config_hash: tsz5KO5jsuwJipEKOfRuc8jH0l8JVEbBlcf4Pre8xlI
+id: seed
+label: Seed
+description: ''
+workflow: asset_default
+new_revision: true

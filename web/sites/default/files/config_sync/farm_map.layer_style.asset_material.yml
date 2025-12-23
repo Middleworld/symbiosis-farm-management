@@ -1,0 +1,14 @@
+uuid: b63cbb3e-361d-49cb-9a61-0325d1e5bf51
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_material
+_core:
+  default_config_hash: BFLFIfC_2gi4c9h-XLDOl0oN2XrujRXYmNvS_tm-ixo
+id: asset_material
+color: yellow
+conditions:
+  asset_type:
+    - material

@@ -1,0 +1,53 @@
+<?php
+
+/**
+ * @file
+ * The farmOS Satellite Layers module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_farm_map_behaviors().
+ */
+function farm_satellite_layers_farm_map_behaviors() {
+  return [
+    'satellite_layers' => [
+      'label' => t('Satellite Layers'),
+      'description' => t('Adds satellite imagery base layer options to farmOS maps.'),
+      'library' => 'farm_satellite_layers/satellite_layers',
+      'settings' => [],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_install().
+ */
+function farm_satellite_layers_install() {
+  // Add satellite layers behavior to existing map types
+  $config_factory = \Drupal::configFactory();
+  
+  $map_types = [
+    'farm_map.map_type.default',
+    'farm_map.map_type.dashboard', 
+    'farm_map.map_type.asset_list',
+    'farm_map.map_type.geofield',
+  ];
+  
+  foreach ($map_types as $map_type_id) {
+    $config = $config_factory->getEditable($map_type_id);
+    
+    if ($config->isNew()) {
+      continue;
+    }
+    
+    $behaviors = $config->get('behaviors') ?: [];
+    
+    if (!in_array('satellite_layers', $behaviors)) {
+      $behaviors[] = 'satellite_layers';
+      $config->set('behaviors', $behaviors);
+      $config->save();
+    }
+  }
+}

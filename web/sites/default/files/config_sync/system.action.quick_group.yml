@@ -1,0 +1,14 @@
+uuid: 3a8b56b9-b452-46dd-892d-bcb65267ab09
+langcode: en
+status: true
+dependencies:
+  module:
+    - asset
+    - farm_quick_group
+_core:
+  default_config_hash: '-bOWPnNv8Kh5Tm5hAqJHym1GoR4IztnPfTcoCth4mDk'
+id: quick_group
+label: 'Assign group membership'
+type: asset
+plugin: quick_group
+configuration: {  }

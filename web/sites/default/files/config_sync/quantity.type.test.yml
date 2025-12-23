@@ -1,0 +1,13 @@
+uuid: 17863b52-319f-45a1-a984-ec961a1a61b5
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_quantity_test
+_core:
+  default_config_hash: NooyB5_ryknSMdynK2U98Lda7hsS4fd8uJ0b8aD7nQw
+id: test
+label: Test
+description: 'Test measurement quantity type.'
+new_revision: true

@@ -1,0 +1,11 @@
+uuid: 0348e493-ecba-4782-bb6b-d05ebd128a5e
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_structure
+_core:
+  default_config_hash: MIBmLjQsJKvq5k9ESFfdamodI1STeVf1Ht3vhLUgalQ
+id: other
+label: Other

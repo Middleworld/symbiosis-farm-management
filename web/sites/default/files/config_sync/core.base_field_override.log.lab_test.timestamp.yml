@@ -1,0 +1,23 @@
+uuid: f31c60f2-c51d-4001-87d1-91da5d2ebbcc
+langcode: en
+status: true
+dependencies:
+  config:
+    - log.type.lab_test
+  enforced:
+    module:
+      - farm_lab_test
+_core:
+  default_config_hash: aJoSeQwSgxlVilCYnDYhcjQW3MAVt6qJXfkdUoPQlnA
+id: log.lab_test.timestamp
+field_name: timestamp
+entity_type: log
+bundle: lab_test
+label: 'Date sampled'
+description: 'The date when the sample was collected.'
+required: true
+translatable: true
+default_value: {  }
+default_value_callback: 'Drupal\log\Entity\Log::getRequestTime'
+settings: {  }
+field_type: timestamp

@@ -1,0 +1,6 @@
+satellite_layers:
+  js:
+    js/farmOS.map.behaviors.satellite_layers.js: {}
+  dependencies:
+    - core/drupalSettings
+    - farm_map/farmOS-map

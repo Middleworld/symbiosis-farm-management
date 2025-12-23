@@ -1,0 +1,14 @@
+uuid: fa695dbc-84c0-4e2f-a700-a342df4043a2
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_sensor
+_core:
+  default_config_hash: BBAWfwzq04aF3iB3B62LL7j-1ZQb8XOx2proP3K2DyM
+id: asset_sensor
+color: grey
+conditions:
+  asset_type:
+    - sensor

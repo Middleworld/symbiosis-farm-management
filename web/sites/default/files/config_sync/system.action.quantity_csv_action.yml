@@ -1,0 +1,17 @@
+uuid: ac6fd84b-096b-40cd-8d0a-9828e9b4ac73
+langcode: en
+status: true
+dependencies:
+  module:
+    - farm_export_csv
+    - quantity
+  enforced:
+    module:
+      - farm_export_csv
+_core:
+  default_config_hash: ZFituNA3n_Jpy0XFD0Gq5eF8K4NSzRKx-pvPoNPCsFg
+id: quantity_csv_action
+label: 'Export CSV'
+type: quantity
+plugin: 'entity:csv_action:quantity'
+configuration: {  }

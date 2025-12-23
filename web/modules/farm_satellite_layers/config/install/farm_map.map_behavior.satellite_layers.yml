@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_satellite_layers
+id: satellite_layers
+label: 'Satellite Layers'
+description: 'Adds satellite imagery base layer options to farmOS maps.'
+library: farm_satellite_layers/satellite_layers
+settings: {}

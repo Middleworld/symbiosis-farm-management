@@ -1,0 +1,17 @@
+uuid: 3f4e5ebc-9904-4718-a97a-194d302b2a7d
+langcode: en
+status: true
+dependencies:
+  module:
+    - farm_export_csv
+    - log
+  enforced:
+    module:
+      - farm_export_csv
+_core:
+  default_config_hash: aaOGTdhcIA4mqrEgUD0wLR81H0u-u4k8PO69zUKCnlQ
+id: log_csv_action
+label: 'Export CSV'
+type: log
+plugin: 'entity:csv_action:log'
+configuration: {  }

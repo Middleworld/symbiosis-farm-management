@@ -1,0 +1,14 @@
+uuid: a17bf51d-43b3-4eab-960c-af2377f3f567
+langcode: en
+status: true
+dependencies:
+  config:
+    - user.role.farm_account_admin
+  module:
+    - user
+id: user_remove_role_action.farm_account_admin
+label: 'Remove the Account Admin role from the selected user(s)'
+type: user
+plugin: user_remove_role_action
+configuration:
+  rid: farm_account_admin

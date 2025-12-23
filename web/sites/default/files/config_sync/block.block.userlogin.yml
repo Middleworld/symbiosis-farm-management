@@ -1,0 +1,25 @@
+uuid: cd0ff27f-89af-45df-bf6d-bbfbca9ff694
+langcode: en
+status: false
+dependencies:
+  module:
+    - user
+  theme:
+    - claro
+  enforced:
+    module:
+      - farm_ui_user
+_core:
+  default_config_hash: gvSGdZSEy3Brg8qZ3rd_FwSfCa-JCH60UD6U41o-pqU
+id: userlogin
+theme: claro
+region: content
+weight: 0
+provider: null
+plugin: user_login_block
+settings:
+  id: user_login_block
+  label: 'User login'
+  label_display: '0'
+  provider: user
+visibility: {  }

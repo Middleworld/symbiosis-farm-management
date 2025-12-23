@@ -1,0 +1,110 @@
+uuid: bfd05b54-63cb-4bc0-8e60-826e1f4ea413
+langcode: en
+status: true
+dependencies:
+  config:
+    - asset.type.equipment
+    - core.entity_view_mode.asset.map_popup
+  module:
+    - comment
+    - farm_inventory
+    - options
+    - text
+_core:
+  default_config_hash: NUulhbh1NqTDDR6cRdTPagzl_zRtD6nNtAUiC9kc6jk
+id: asset.equipment.map_popup
+targetEntityType: asset
+bundle: equipment
+mode: map_popup
+content:
+  equipment_type:
+    type: entity_reference_label
+    label: inline
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: -50
+    region: content
+  flag:
+    type: list_default
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    weight: 0
+    region: content
+  group:
+    type: entity_reference_label
+    label: inline
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 94
+    region: content
+  inventory:
+    type: inventory
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    weight: 94
+    region: content
+  location:
+    type: entity_reference_label
+    label: inline
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: 5
+    region: content
+  manufacturer:
+    type: string
+    label: inline
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 1
+    region: content
+  model:
+    type: string
+    label: inline
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 2
+    region: content
+  notes:
+    type: text_default
+    label: inline
+    settings: {  }
+    third_party_settings: {  }
+    weight: 4
+    region: content
+  owner:
+    type: entity_reference_label
+    label: inline
+    settings:
+      link: true
+    third_party_settings: {  }
+    weight: -70
+    region: content
+  serial_number:
+    type: string
+    label: inline
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+    weight: 3
+    region: content
+hidden:
+  data: true
+  file: true
+  geometry: true
+  id_tag: true
+  image: true
+  intrinsic_geometry: true
+  is_fixed: true
+  is_location: true
+  langcode: true
+  parent: true
+  quick: true
+  status: true
+  uid: true

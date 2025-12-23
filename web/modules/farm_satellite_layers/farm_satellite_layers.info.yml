@@ -1,0 +1,8 @@
+name: 'farmOS Satellite Layers'
+description: 'Adds satellite imagery layers to farmOS maps for aerial farm analysis and field management.'
+type: module
+package: farmOS
+core_version_requirement: ^10
+dependencies:
+  - farm_map
+  - farm_ui_map

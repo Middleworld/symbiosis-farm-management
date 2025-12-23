@@ -1,0 +1,15 @@
+uuid: locations-uuid-placeholder
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_ui_map
+_core:
+  default_config_hash: locations-hash-placeholder
+id: locations
+label: 'Locations'
+description: 'The locations map.'
+behaviors:
+  - satellite_layers
+options: {  }

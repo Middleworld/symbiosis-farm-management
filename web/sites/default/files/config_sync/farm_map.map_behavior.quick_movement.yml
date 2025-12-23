@@ -1,0 +1,14 @@
+uuid: ce3dde90-4a14-4351-b8e1-2f26515acd9c
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_quick_movement
+_core:
+  default_config_hash: _4EI--APwhLmn7ShcSlyBlQQpPjT20V_D0qkHh6oJG0
+id: quick_movement
+label: 'Quick movement'
+description: 'Refreshes map from movement quick form inputs.'
+library: farm_quick_movement/behavior_quick_movement
+settings: {  }

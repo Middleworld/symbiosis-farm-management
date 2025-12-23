@@ -1,0 +1,14 @@
+uuid: 717d8a5a-9d45-4bbf-abe5-29d5cc739af5
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_log_category
+_core:
+  default_config_hash: '-3SADNCpqXGvGusvRLuPGfk-lvmVq_SmgJV5pl64C68'
+name: 'Log category'
+vid: log_category
+description: 'A list of log categories.'
+weight: 0
+new_revision: false

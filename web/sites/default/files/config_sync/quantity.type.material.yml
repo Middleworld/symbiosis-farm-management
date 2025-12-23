@@ -1,0 +1,13 @@
+uuid: a88b5cf9-4730-46f0-8abb-f66230bf0ce1
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_quantity_material
+_core:
+  default_config_hash: 9ijjQl_-XYUc-iNI2H9idXLjYIR-QG4d7A25zwzSyZM
+id: material
+label: Material
+description: 'Material quantity type.'
+new_revision: true

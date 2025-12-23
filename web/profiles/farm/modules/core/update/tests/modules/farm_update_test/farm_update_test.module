@@ -1,0 +1,15 @@
+<?php
+
+/**
+ * @file
+ * Contains farm_update_test.module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_farm_update_exclude_config().
+ */
+function farm_update_test_farm_update_exclude_config() {
+  return ['farm_flag.flag.priority'];
+}

@@ -1,0 +1,14 @@
+uuid: 29d2217c-0870-451d-b668-73ca6639a837
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_group
+_core:
+  default_config_hash: oYErV76SxHfUuWZ_ywHsRQDv-UyyjAmUmyxjeM62nmc
+id: group
+label: Group
+description: ''
+workflow: asset_default
+new_revision: true

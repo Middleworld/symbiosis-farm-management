@@ -1,0 +1,14 @@
+uuid: d1e7c0c7-1562-4a55-9f35-0f5bb00e1b3f
+langcode: en
+status: true
+dependencies:
+  module:
+    - asset
+    - farm_quick_movement
+_core:
+  default_config_hash: w_-TsHSJEoS1Rf0lxfLUzMEyGJRaUWwib4NBVgrYTwc
+id: quick_movement
+label: 'Record movement'
+type: asset
+plugin: quick_movement
+configuration: {  }

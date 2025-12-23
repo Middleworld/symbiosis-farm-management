@@ -1,0 +1,14 @@
+uuid: ad114f06-71d0-43f8-bd98-7b168743b038
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_group
+_core:
+  default_config_hash: TdLVU8-c9wAMnpnbfBv8nnYGZaejzp-IfCqb0wH3Uys
+id: asset_group
+color: purple
+conditions:
+  asset_type:
+    - group

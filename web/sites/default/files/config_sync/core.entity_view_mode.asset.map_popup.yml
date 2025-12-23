@@ -1,0 +1,16 @@
+uuid: 0b050c9a-72f8-4dbf-918f-a45d7a82672e
+langcode: en
+status: true
+dependencies:
+  module:
+    - asset
+  enforced:
+    module:
+      - farm_ui_map
+_core:
+  default_config_hash: no7Hu_dIzTvWxoAph4FR9-jjX9OaE1RyBhEdLKoqgts
+id: asset.map_popup
+label: 'Map popup'
+description: ''
+targetEntityType: asset
+cache: true

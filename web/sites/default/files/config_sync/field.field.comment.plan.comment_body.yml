@@ -1,0 +1,27 @@
+uuid: 547b852e-63aa-480e-a0da-e9bdf941c07f
+langcode: en
+status: true
+dependencies:
+  config:
+    - comment.type.plan
+    - field.storage.comment.comment_body
+  module:
+    - text
+  enforced:
+    module:
+      - farm_comment_plan
+_core:
+  default_config_hash: guIzsQTfMyiq3P6aKqyFY7cngV2__pYkqPCnToRiQws
+id: comment.plan.comment_body
+field_name: comment_body
+entity_type: comment
+bundle: plan
+label: Comment
+description: ''
+required: true
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long
