@@ -90,45 +90,95 @@ After installation:
 php artisan vegbox:import-woo-subscriptions --dry-run
 php artisan vegbox:import-woo-subscriptions
 
-# Create WordPress users for imported subscriptions (required for user switching)
+# Create WordPress users for imported subscriptions
+# REQUIRED for user switching to work - creates wp_users records with correct table prefix
 php artisan subscriptions:sync-wp-users --dry-run
 php artisan subscriptions:sync-wp-users
 ```
+
+**Important:** The `sync-wp-users` command automatically uses the WordPress table prefix from your `.env` configuration (`WP_DB_PREFIX`). It will create user meta with keys like `{prefix}capabilities` and `{prefix}user_level` to match your WordPress installation.
 
 ## User Switching
 
 ### How It Works
 
-User switching allows admins to view subscriptions from the customer's perspective:
+User switching allows admins to impersonate customers and view their WooCommerce My Account page:
 
-1. Admin clicks "Switch User" in Laravel delivery schedule
-2. Laravel queries WordPress database for user by email
-3. Laravel calls AJAX endpoint: `wp-admin/admin-ajax.php?action=mwf_generate_plugin_switch_url`
-4. WordPress generates auto-login token (5-minute expiry)
-5. Laravel redirects admin to WooCommerce My Account as the customer
+1. **Admin Action**: Admin clicks "Switch to User" button in Laravel admin panel (customers page or delivery schedule)
+2. **Token Generation**: 
+   - Laravel calls WordPress AJAX endpoint: `wp-admin/admin-ajax.php?action=mwf_generate_plugin_switch_url`
+   - WordPress plugin generates secure auto-login token (5-minute expiry)
+   - Token stored in WordPress options table with user ID and redirect path
+3. **Auto-Login URL**: Laravel receives URL like `https://site.com/?mwf_auto_login=TOKEN&redirect_to=/my-account/`
+4. **Customer Impersonation**:
+   - WordPress plugin intercepts request in constructor (before `init` hook)
+   - Validates token and checks expiry
+   - Logs in as customer using `wp_set_current_user()` and `wp_set_auth_cookie()`
+   - Redirects to My Account page
+5. **Customer View**: Admin sees the site as the customer, fully logged in
+
+### Technical Implementation
+
+**Critical:** The `handle_auto_login()` method is called **directly in the constructor** of `MWF_User_Switching` class, not on the `init` hook. This is because the class is instantiated during `init`, so adding another `init` hook would be too late.
+
+```php
+// In class-mwf-user-switching.php constructor:
+public function __construct() {
+    // Call immediately - don't wait for 'init' hook
+    $this->handle_auto_login();
+    $this->init_hooks();
+}
+```
+
+### Security
+
+**Shared Secret Key:** `mwf_admin_switch_2025_secret_key`
+- Must match in both Laravel (`WpApiService.php`) and WordPress (`class-mwf-user-switching.php`)
+- Used to generate admin key: `hash('sha256', $userId . $redirectTo . $secret)`
+- **Change this for production deployments**
+
+**Token Security:**
+- Tokens expire after 5 minutes
+- One-time use (deleted after consumption)
+- Stored in WordPress options table: `mwf_auto_login_token_{TOKEN}`
 
 ### Configuration
 
-**Security:** Uses shared secret key for authentication
-- WordPress: `mwf_admin_switch_2025_secret_key` (in `class-mwf-user-switching.php`)
-- Laravel: Matches in `WpApiService::generateUserSwitchUrl()`
+**WordPress Side** (`wp-content/plugins/mwf-integration/includes/class-mwf-user-switching.php`):
+- Secret key in `get_admin_switch_key()` method
+- Token expiry: `$token_expiry = time() + 300;` (5 minutes)
 
-**For production:** Change this secret in both locations before deployment.
+**Laravel Side** (`app/Services/WpApiService.php`):
+- Secret key in `generateUserSwitchUrl()` method
+- AJAX endpoint: `{$this->apiUrl}/wp-admin/admin-ajax.php`
+- Appends `redirect_to` parameter to returned URL
 
 ### Troubleshooting
 
 **Error: "No WordPress user found for email"**
 - **Cause:** Imported subscriptions don't have WordPress accounts
 - **Fix:** Run `php artisan subscriptions:sync-wp-users`
+- **Note:** WordPress users need correct table prefix (e.g., `demo_wp_capabilities` not `wp_capabilities`)
+
+**User switches but lands on homepage instead of My Account**
+- **Cause:** WordPress plugin not processing auto-login token
+- **Check:** WordPress debug log at `wp-content/debug.log` for "MWF Auto Login" messages
+- **Fix:** Ensure MWF Integration plugin is activated
+- **Fix:** Verify plugin version has auto-login in constructor, not on `init` hook
 
 **Error: "Failed to switch user"**
-- Verify MWF Integration plugin is activated
-- Check `MWF_API_KEY` matches in Laravel `.env` and WordPress `wp-config.php`
-- Review WordPress error logs: `wp-content/debug.log`
+- **Check:** MWF Integration plugin is activated in WordPress
+- **Check:** `MWF_API_KEY` matches in Laravel `.env` and WordPress `wp-config.php`
+- **Review:** WordPress error logs: `wp-content/debug.log`
 
 **Error: "Invalid admin key"**
-- Secret key mismatch between Laravel and WordPress
-- Verify secret in both `WpApiService.php` and `class-mwf-user-switching.php`
+- **Cause:** Secret key mismatch between Laravel and WordPress
+- **Fix:** Verify secret in both `WpApiService.php` and `class-mwf-user-switching.php` match exactly
+
+**Cookies not persisting / Login form shows after redirect**
+- **Cause:** Browser not maintaining cookies (shouldn't happen in real browsers, only curl tests)
+- **Fix:** Test in actual browser, not with curl
+- **Note:** Plugin fires `do_action('wp_login')` to ensure all WordPress login hooks execute
 
 ## API Endpoints
 
