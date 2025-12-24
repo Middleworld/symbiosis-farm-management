@@ -1261,6 +1261,9 @@ class ProductController extends Controller
                     $aiDescription = preg_replace('/^🤖\s*\*\*[^:]+:\*\*\s*/u', '', $aiDescription);
                     $aiDescription = trim($aiDescription);
                     
+                    // Format description with proper paragraphs for better SEO and readability
+                    $aiDescription = $this->formatDescriptionWithParagraphs($aiDescription);
+                    
                     return response()->json([
                         'success' => true,
                         'description' => $aiDescription,
@@ -1302,9 +1305,60 @@ class ProductController extends Controller
             $prompt .= "Additional context: " . substr($context, 0, 200) . ". ";
         }
         
-        $prompt .= "Write 2-3 paragraphs highlighting: freshness, organic growing methods, seasonal availability, nutritional benefits, and how it supports local sustainable farming. Make it warm, inviting, and customer-focused. Avoid technical jargon.";
+        $prompt .= "\n\nIMPORTANT: Write EXACTLY 3 paragraphs separated by double line breaks. Each paragraph should be 2-3 sentences. Structure:\n";
+        $prompt .= "Paragraph 1: Opening hook about freshness and what makes this product special\n";
+        $prompt .= "Paragraph 2: Growing methods, organic practices, and seasonal benefits\n";
+        $prompt .= "Paragraph 3: Community impact and call to action\n\n";
+        $prompt .= "Use warm, inviting language. Avoid technical jargon. Make it customer-focused and SEO-friendly.";
         
         return $prompt;
+    }
+
+    /**
+     * Format AI-generated description with proper HTML paragraphs
+     */
+    private function formatDescriptionWithParagraphs($text)
+    {
+        // Remove any existing HTML tags
+        $text = strip_tags($text);
+        
+        // Trim whitespace
+        $text = trim($text);
+        
+        // Split by double newlines or sentence breaks to create paragraphs
+        // First, try to split by double newlines
+        $paragraphs = preg_split('/\n\n+/', $text);
+        
+        // If we don't have at least 2 paragraphs, try splitting by sentences
+        if (count($paragraphs) < 2) {
+            // Split into sentences (ending with . ! or ?)
+            $sentences = preg_split('/(?<=[.!?])\s+/', $text, -1, PREG_SPLIT_NO_EMPTY);
+            
+            // Group sentences into paragraphs (about 2-3 sentences each)
+            $paragraphs = [];
+            $currentParagraph = [];
+            $sentencesPerParagraph = ceil(count($sentences) / 3);
+            
+            foreach ($sentences as $i => $sentence) {
+                $currentParagraph[] = $sentence;
+                
+                if (count($currentParagraph) >= $sentencesPerParagraph || $i == count($sentences) - 1) {
+                    $paragraphs[] = implode(' ', $currentParagraph);
+                    $currentParagraph = [];
+                }
+            }
+        }
+        
+        // Wrap each paragraph in <p> tags
+        $html = '';
+        foreach ($paragraphs as $para) {
+            $para = trim($para);
+            if (!empty($para)) {
+                $html .= '<p>' . htmlspecialchars($para, ENT_QUOTES, 'UTF-8') . '</p>';
+            }
+        }
+        
+        return $html;
     }
 
     /**

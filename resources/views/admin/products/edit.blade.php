@@ -201,7 +201,8 @@
                                 </div>
                             </div>
 
-                            <!-- Pricing & Inventory -->
+                            <!-- Pricing & Inventory - Hidden for Variable Products -->
+                            @if($product->product_type !== 'variable')
                             <div class="col-md-4">
                                 <div class="card">
                                     <div class="card-header">
@@ -348,7 +349,11 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                            @endif
 
+                            <!-- Product Categories (shown for all product types) -->
+                            <div class="col-md-4">
                                 <!-- Product Categories -->
                                 <div class="card mt-3">
                                     <div class="card-header">
