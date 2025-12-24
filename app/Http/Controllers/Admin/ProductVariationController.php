@@ -50,8 +50,11 @@ class ProductVariationController extends Controller
             'sale_price' => $request->sale_price,
             'description' => $request->description,
             'attributes' => $request->attributes ?? [],
+            'metadata' => $request->metadata ?? [],
             'stock_quantity' => $request->stock_quantity,
-            'stock_status' => ($request->manage_stock && $request->stock_quantity > 0) ? 'instock' : 'outofstock',
+            'stock_status' => $request->manage_stock 
+                ? (($request->stock_quantity ?? 0) > 0 ? 'instock' : 'outofstock')
+                : 'instock', // If not managing stock, always show as in stock (e.g., vegboxes)
             'manage_stock' => $request->has('manage_stock'),
             'is_active' => $request->has('is_active'),
         ]);

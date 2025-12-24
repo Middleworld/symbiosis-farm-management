@@ -41,9 +41,9 @@
                                 </td>
                                 <td>
                                     @if($shippingClass->is_farm_collection)
-                                        <span class="badge badge-success">Farm Collection</span>
+                                        <span class="badge bg-success text-white">Farm Collection</span>
                                     @else
-                                        <span class="badge badge-info">Delivery</span>
+                                        <span class="badge bg-info text-white">Delivery</span>
                                     @endif
                                 </td>
                                 <td>
@@ -55,21 +55,21 @@
                                 </td>
                                 <td>
                                     @if($shippingClass->is_free)
-                                        <span class="badge badge-success">Yes</span>
+                                        <span class="badge bg-success text-white">Yes</span>
                                     @else
-                                        <span class="badge badge-secondary">No</span>
+                                        <span class="badge bg-secondary text-white">No</span>
                                     @endif
                                 </td>
                                 <td>{{ $shippingClass->sort_order }}</td>
                                 <td>
                                     @if($shippingClass->is_active)
-                                        <span class="badge badge-success">Active</span>
+                                        <span class="badge bg-success text-white">Active</span>
                                     @else
-                                        <span class="badge badge-secondary">Inactive</span>
+                                        <span class="badge bg-secondary text-white">Inactive</span>
                                     @endif
                                 </td>
                                 <td>
-                                    <span class="badge badge-light">{{ $shippingClass->products()->count() }} products</span>
+                                    <span class="badge bg-dark text-white">{{ $shippingClass->products()->count() }} products</span>
                                 </td>
                                 <td>
                                     <div class="btn-group">

@@ -19,7 +19,11 @@ class Product extends Model
         'cost_price',
         'category',
         'subcategory',
+        'product_categories',
+        'product_tags',
+        'brand',
         'image_url',
+        'gallery_images',
         'barcode',
         'stock_quantity',
         'min_stock_level',
@@ -31,8 +35,10 @@ class Product extends Model
         'unit',
         'supplier_id',
         'woo_product_id',
-        'shipping_class_id',
-        'metadata' // Stores solidarity pricing settings and other custom data
+        'reviews_enabled',
+        'upsell_ids',
+        'crosssell_ids',
+        'metadata' // Stores solidarity pricing settings, short_description, and other custom data
     ];
 
     protected $casts = [
@@ -44,8 +50,14 @@ class Product extends Model
         'is_active' => 'boolean',
         'is_taxable' => 'boolean',
         'tax_rate' => 'decimal:2',
+        'reviews_enabled' => 'boolean',
+        'upsell_ids' => 'array',
+        'crosssell_ids' => 'array',
         'weight' => 'decimal:3',
         'metadata' => 'array',
+        'gallery_images' => 'array',
+        'product_categories' => 'array',
+        'product_tags' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime'

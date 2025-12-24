@@ -2,6 +2,21 @@
 
 @section('title', 'Product Details')
 
+@section('styles')
+<style>
+.card-body .mb-0 {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+}
+.description-content {
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+</style>
+@endsection
+
 @section('content')
 <div class="container-fluid">
     <div class="row">
@@ -32,7 +47,7 @@
                                         @if(str_starts_with($product->image_url, 'http'))
                                             <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="img-fluid rounded">
                                         @else
-                                            <img src="{{ asset('storage/' . $product->image_url) }}" alt="{{ $product->name }}" class="img-fluid rounded">
+                                            <img src="{{ route('product.image', ['path' => $product->image_url]) }}" alt="{{ $product->name }}" class="img-fluid rounded">
                                         @endif
                                     @else
                                         <div class="bg-light d-flex align-items-center justify-content-center rounded" style="height: 300px;">
@@ -218,16 +233,71 @@
                                 </div>
                             </div>
 
+                            <!-- Short Description -->
+                            @if(isset($product->metadata['short_description']) && $product->metadata['short_description'])
+                                <div class="row mt-3">
+                                    <div class="col-12">
+                                        <div class="card">
+                                            <div class="card-header bg-light">
+                                                <h4 class="card-title mb-0">Short Description</h4>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-0 text-muted description-content">{!! $product->metadata['short_description'] !!}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
                             <!-- Description -->
                             @if($product->description)
                                 <div class="row mt-3">
                                     <div class="col-12">
                                         <div class="card">
                                             <div class="card-header">
-                                                <h4 class="card-title">Description</h4>
+                                                <h4 class="card-title">Full Description</h4>
                                             </div>
                                             <div class="card-body">
-                                                <div class="mb-0">{!! $product->description !!}</div>
+                                                <div class="mb-0 description-content">{!! $product->description !!}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
+                            <!-- SEO Information -->
+                            @if(isset($product->metadata['seo_title']) || isset($product->metadata['seo_description']) || isset($product->metadata['seo_keywords']))
+                                <div class="row mt-3">
+                                    <div class="col-12">
+                                        <div class="card">
+                                            <div class="card-header bg-info text-white">
+                                                <h4 class="card-title mb-0">
+                                                    <i class="fas fa-search"></i> SEO Information
+                                                </h4>
+                                            </div>
+                                            <div class="card-body">
+                                                @if(isset($product->metadata['seo_title']) && $product->metadata['seo_title'])
+                                                    <div class="mb-3">
+                                                        <strong class="d-block mb-1">SEO Title:</strong>
+                                                        <div class="text-muted">{{ $product->metadata['seo_title'] }}</div>
+                                                        <small class="text-info">{{ strlen($product->metadata['seo_title']) }} characters</small>
+                                                    </div>
+                                                @endif
+
+                                                @if(isset($product->metadata['seo_description']) && $product->metadata['seo_description'])
+                                                    <div class="mb-3">
+                                                        <strong class="d-block mb-1">Meta Description:</strong>
+                                                        <div class="text-muted">{{ $product->metadata['seo_description'] }}</div>
+                                                        <small class="text-info">{{ strlen($product->metadata['seo_description']) }} characters</small>
+                                                    </div>
+                                                @endif
+
+                                                @if(isset($product->metadata['seo_keywords']) && $product->metadata['seo_keywords'])
+                                                    <div class="mb-0">
+                                                        <strong class="d-block mb-1">Focus Keywords:</strong>
+                                                        <div class="text-muted">{{ $product->metadata['seo_keywords'] }}</div>
+                                                    </div>
+                                                @endif
                                             </div>
                                         </div>
                                     </div>

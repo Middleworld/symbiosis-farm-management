@@ -511,7 +511,7 @@ class WooCommerceApiService
         if (!empty($productData['image_url'])) {
             $wooProduct['images'] = [
                 [
-                    'src' => asset('storage/' . $productData['image_url']),
+                    'src' => route('product.image', ['path' => $productData['image_url']]),
                     'name' => $productData['name'],
                     'alt' => $productData['name']
                 ]

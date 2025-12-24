@@ -65,7 +65,7 @@ async def ask_simple(payload: Dict):
             ollama_response = requests.post(
                 "http://localhost:11434/api/generate",
                 json={
-                    "model": "mistral",
+                    "model": "phi3:mini",
                     "prompt": enhanced_prompt,
                     "stream": False
                 },
@@ -131,11 +131,11 @@ async def ask_ollama(payload: Dict):
         ollama_response = requests.post(
             "http://localhost:11434/api/generate",
             json={
-                "model": "mistral",
+                "model": "phi3:mini",
                 "prompt": enhanced_prompt,
                 "stream": False
             },
-            timeout=30
+            timeout=90
         )
         
         if ollama_response.status_code == 200:

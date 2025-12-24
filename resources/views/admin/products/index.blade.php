@@ -179,7 +179,7 @@
                                             @if(str_starts_with($product->image_url, 'http'))
                                                 <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
                                             @else
-                                                <img src="{{ asset('storage/' . $product->image_url) }}" alt="{{ $product->name }}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
+                                                <img src="{{ route('product.image', ['path' => $product->image_url]) }}" alt="{{ $product->name }}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
                                             @endif
                                         @else
                                             <div class="bg-light d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
@@ -189,8 +189,10 @@
                                     </td>
                                     <td>
                                         <strong>{{ $product->name }}</strong>
-                                        @if($product->description)
-                                            <br><small class="text-muted">{{ Str::limit(html_entity_decode(strip_tags($product->description)), 50) }}</small>
+                                        @if(isset($product->metadata['short_description']) && $product->metadata['short_description'])
+                                            <br><small class="text-muted">{{ Str::limit(html_entity_decode(strip_tags($product->metadata['short_description'])), 80) }}</small>
+                                        @elseif($product->description)
+                                            <br><small class="text-muted">{{ Str::limit(html_entity_decode(strip_tags($product->description)), 80) }}</small>
                                         @endif
                                     </td>
                                     <td>{{ $product->sku }}</td>

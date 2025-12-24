@@ -45,7 +45,7 @@ class ProductAttributeController extends Controller
                     'type' => $attr->is_taxonomy ? 'taxonomy' : 'custom',
                     'variation' => $attr->is_variation,
                     'visible' => $attr->is_visible,
-                    'options' => json_decode($attr->options, true) ?: []
+                    'options' => is_array($attr->options) ? $attr->options : (json_decode($attr->options, true) ?: [])
                 ];
             });
 

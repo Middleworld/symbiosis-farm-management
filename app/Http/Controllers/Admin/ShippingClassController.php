@@ -167,32 +167,49 @@ class ShippingClassController extends Controller
     {
         try {
             if ($shippingClass->woo_id) {
-                // Update existing
-                $existing = DB::connection('wordpress')->select(
-                    'SELECT t.term_id FROM demo_wp_terms t JOIN demo_wp_term_taxonomy tt ON t.term_id = tt.term_id WHERE tt.taxonomy = ? AND t.term_id = ?',
-                    ['product_shipping_class', $shippingClass->woo_id]
-                );
+                // Check if WooCommerce record exists
+                $existing = DB::connection('wordpress')
+                    ->table('terms')
+                    ->join('term_taxonomy', 'terms.term_id', '=', 'term_taxonomy.term_id')
+                    ->where('term_taxonomy.taxonomy', 'product_shipping_class')
+                    ->where('terms.term_id', $shippingClass->woo_id)
+                    ->first();
 
-                if (count($existing) > 0) {
-                    // Update existing
-                    DB::connection('wordpress')->update(
-                        'UPDATE demo_wp_terms SET name = ?, slug = ? WHERE term_id = ?',
-                        [$shippingClass->name, $shippingClass->slug, $shippingClass->woo_id]
-                    );
-                    DB::connection('wordpress')->update(
-                        'UPDATE demo_wp_term_taxonomy SET description = ? WHERE term_id = ? AND taxonomy = ?',
-                        [$shippingClass->description ?: '', $shippingClass->woo_id, 'product_shipping_class']
-                    );
+                if ($existing) {
+                    // Update existing WooCommerce record
+                    DB::connection('wordpress')
+                        ->table('terms')
+                        ->where('term_id', $shippingClass->woo_id)
+                        ->update([
+                            'name' => $shippingClass->name,
+                            'slug' => $shippingClass->slug
+                        ]);
+
+                    DB::connection('wordpress')
+                        ->table('term_taxonomy')
+                        ->where('term_id', $shippingClass->woo_id)
+                        ->where('taxonomy', 'product_shipping_class')
+                        ->update([
+                            'description' => $shippingClass->description ?: ''
+                        ]);
+
+                    \Log::info('Shipping class updated in WooCommerce', [
+                        'shipping_class_id' => $shippingClass->id,
+                        'woo_term_id' => $shippingClass->woo_id
+                    ]);
                 } else {
                     // WooCommerce record missing, recreate
                     $this->createShippingClassInDatabase($shippingClass);
                 }
             } else {
-                // Create new
+                // Create new WooCommerce record
                 $this->createShippingClassInDatabase($shippingClass);
             }
         } catch (\Exception $e) {
-            \Log::error('Failed to sync shipping class to WooCommerce: ' . $e->getMessage());
+            \Log::error('Failed to sync shipping class to WooCommerce', [
+                'shipping_class_id' => $shippingClass->id,
+                'error' => $e->getMessage()
+            ]);
         }
     }
 
@@ -201,22 +218,37 @@ class ShippingClassController extends Controller
      */
     private function createShippingClassInDatabase($shippingClass)
     {
-        // Insert into WordPress terms
-        DB::connection('wordpress')->insert(
-            'INSERT INTO demo_wp_terms (name, slug, term_group) VALUES (?, ?, 0)',
-            [$shippingClass->name, $shippingClass->slug]
-        );
+        try {
+            // Insert into WordPress terms table
+            $termId = DB::connection('wordpress')->table('terms')->insertGetId([
+                'name' => $shippingClass->name,
+                'slug' => $shippingClass->slug,
+                'term_group' => 0
+            ]);
 
-        // Get the inserted term ID
-        $termId = DB::connection('wordpress')->select('SELECT LAST_INSERT_ID() as id')[0]->id;
+            // Insert into term_taxonomy table
+            DB::connection('wordpress')->table('term_taxonomy')->insert([
+                'term_id' => $termId,
+                'taxonomy' => 'product_shipping_class',
+                'description' => $shippingClass->description ?: '',
+                'parent' => 0,
+                'count' => 0
+            ]);
 
-        // Insert into term_taxonomy
-        DB::connection('wordpress')->insert(
-            'INSERT INTO demo_wp_term_taxonomy (term_id, taxonomy, description, parent, count) VALUES (?, ?, ?, 0, 0)',
-            [$termId, 'product_shipping_class', $shippingClass->description ?: '']
-        );
+            // Update Laravel record with WooCommerce ID
+            $shippingClass->update(['woo_id' => $termId]);
 
-        // Update Laravel record with WooCommerce ID
-        $shippingClass->update(['woo_id' => $termId]);
+            \Log::info('Shipping class created in WooCommerce', [
+                'shipping_class_id' => $shippingClass->id,
+                'woo_term_id' => $termId
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to create shipping class in WooCommerce', [
+                'shipping_class_id' => $shippingClass->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 }
