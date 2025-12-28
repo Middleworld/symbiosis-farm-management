@@ -133,3 +133,8 @@ ingest/archive*.zip
 # Application secrets and UUIDs
 *.uuid.json
 *-*-*-*-*.json
+
+# WordPress configuration and uploads
+wp-config.php
+wp-content/uploads/
+.well-known/
