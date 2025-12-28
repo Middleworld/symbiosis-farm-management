@@ -184,8 +184,6 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         Route::post('/{id}/change-plan', [App\Http\Controllers\Admin\VegboxSubscriptionController::class, 'changePlan'])->name('change-plan');
     });
 
-<<<<<<< Updated upstream
-=======
     // Vegbox Plan Management routes
     Route::resource('vegbox-plans', App\Http\Controllers\Admin\VegboxPlanController::class)->names([
         'index' => 'admin.vegbox-plans.index',
@@ -209,7 +207,6 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         Route::post('/{id}/duplicate', [App\Http\Controllers\Admin\BoxConfigurationController::class, 'duplicate'])->name('duplicate');
     });
 
->>>>>>> Stashed changes
     // Payment Method Management routes
     Route::prefix('users/{userId}/payment-methods')->name('admin.payment-methods.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\PaymentMethodController::class, 'index'])->name('index');
@@ -357,6 +354,16 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         Route::get('/{product}/woo-id', [App\Http\Controllers\Admin\ProductController::class, 'getWooProductId'])->name('get-woo-id');
         Route::get('/{product}/variations', [App\Http\Controllers\Admin\ProductController::class, 'variations'])->name('variations');
         
+        // AI-powered content generation
+        Route::post('/{product}/generate-seo', [App\Http\Controllers\Admin\ProductController::class, 'generateSeoSuggestions'])->name('generate-seo');
+        Route::post('/{product}/generate-description', [App\Http\Controllers\Admin\ProductController::class, 'generateDescription'])->name('generate-description');
+        Route::post('/{product}/generate-tags', [App\Http\Controllers\Admin\ProductController::class, 'generateTags'])->name('generate-tags');
+        
+        Route::post('/{product}/generate-short-description', [App\Http\Controllers\Admin\ProductController::class, 'generateShortDescription'])->name('generate-short-description');
+        
+        // AI Tags generation
+        Route::post('/{product}/generate-tags', [App\Http\Controllers\Admin\ProductController::class, 'generateTags'])->name('generate-tags');
+        
         // Product Variations nested routes
         Route::prefix('/{product}/variations')->name('variations.')->group(function () {
             Route::get('/create', [App\Http\Controllers\Admin\ProductVariationController::class, 'create'])->name('create');
@@ -492,6 +499,7 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
     // Product Attributes Management routes
     Route::prefix('product-attributes')->name('admin.product-attributes.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\ProductAttributeController::class, 'index'])->name('index');
+        Route::get('/api/list', [App\Http\Controllers\Admin\ProductAttributeController::class, 'apiList'])->name('api.list');
         Route::get('/create', [App\Http\Controllers\Admin\ProductAttributeController::class, 'create'])->name('create');
         Route::post('/', [App\Http\Controllers\Admin\ProductAttributeController::class, 'store'])->name('store');
         Route::get('/{attribute}', [App\Http\Controllers\Admin\ProductAttributeController::class, 'show'])->name('show');
@@ -825,3 +833,14 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         Route::get('/transactions', [App\Http\Controllers\Admin\WooCommerceFundsController::class, 'getTransactions'])->name('transactions');
     });
 });
+
+// Serve product images (workaround for nginx 403 on /storage)
+Route::get('/product-image/{path}', function ($path) {
+    $filePath = storage_path('app/public/' . $path);
+    
+    if (!file_exists($filePath)) {
+        abort(404);
+    }
+    
+    return response()->file($filePath);
+})->where('path', '.*')->name('product.image');

@@ -297,13 +297,31 @@ class UserSwitchingController extends Controller
                 'customer_name' => $customerName
             ]);
             
+            // First try API search
             $users = $this->wpApi->searchUsers($email, 1);
             
-            Log::info("UserSwitching: Search results", [
+            Log::info("UserSwitching: API search results", [
                 'email' => $email,
                 'users_found' => $users ? $users->count() : 0,
                 'users_data' => $users ? $users->toArray() : null
             ]);
+            
+            // Fallback to database if API returns empty
+            if (empty($users) || $users->isEmpty()) {
+                Log::info("UserSwitching: API search failed, trying direct database lookup");
+                $wpUser = \App\Models\WordPressUser::where('user_email', $email)->first();
+                
+                if ($wpUser) {
+                    // Convert to array format expected by rest of code
+                    $users = collect([[
+                        'id' => $wpUser->ID,
+                        'email' => $wpUser->user_email,
+                        'username' => $wpUser->user_login,
+                        'display_name' => $wpUser->display_name,
+                    ]]);
+                    Log::info("UserSwitching: Found user in database", ['user_id' => $wpUser->ID]);
+                }
+            }
             
             if (empty($users) || $users->isEmpty()) {
                 // Fallback 1: Try searching by customer name if provided

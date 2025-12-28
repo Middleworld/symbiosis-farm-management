@@ -51,6 +51,28 @@
 
 @section('content')
 <div class="container-fluid">
+    <!-- Flash Messages -->
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    
+    @if(session('warning'))
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle"></i> {{ session('warning') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-times-circle"></i> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    
     <div class="row">
         <div class="col-12">
             <div class="card">
@@ -179,7 +201,7 @@
                                             @if(str_starts_with($product->image_url, 'http'))
                                                 <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
                                             @else
-                                                <img src="{{ asset('storage/' . $product->image_url) }}" alt="{{ $product->name }}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
+                                                <img src="{{ route('product.image', ['path' => $product->image_url]) }}" alt="{{ $product->name }}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
                                             @endif
                                         @else
                                             <div class="bg-light d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
@@ -189,8 +211,10 @@
                                     </td>
                                     <td>
                                         <strong>{{ $product->name }}</strong>
-                                        @if($product->description)
-                                            <br><small class="text-muted">{{ Str::limit(html_entity_decode(strip_tags($product->description)), 50) }}</small>
+                                        @if(isset($product->metadata['short_description']) && $product->metadata['short_description'])
+                                            <br><small class="text-muted">{{ Str::limit(html_entity_decode(strip_tags($product->metadata['short_description'])), 80) }}</small>
+                                        @elseif($product->description)
+                                            <br><small class="text-muted">{{ Str::limit(html_entity_decode(strip_tags($product->description)), 80) }}</small>
                                         @endif
                                     </td>
                                     <td>{{ $product->sku }}</td>
@@ -287,11 +311,14 @@
                     </table>
                 </div>
 
-                @if($products->hasPages())
-                    <div class="card-footer">
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <div class="text-muted">
+                        Showing {{ $products->firstItem() ?? 0 }} to {{ $products->lastItem() ?? 0 }} of {{ $products->total() }} products
+                    </div>
+                    <div>
                         {{ $products->appends(request()->query())->links() }}
                     </div>
-                @endif
+                </div>
             </div>
         </div>
     </div>

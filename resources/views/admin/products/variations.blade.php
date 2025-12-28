@@ -272,15 +272,35 @@ $(document).ready(function() {
 async function loadProductAttributes() {
     try {
         showLoading('attributes-section', 'Loading attributes...');
-        const response = await window.mwfApi.getProductAttributes(currentProductId);
+        
+        console.log('=== DEBUG loadProductAttributes ===');
+        console.log('Fetching from:', '{{ route("admin.product-attributes.api.list") }}');
+        
+        // Load both product-specific and global attributes
+        const [productResponse, globalResponse] = await Promise.all([
+            window.mwfApi.getProductAttributes(currentProductId),
+            fetch('{{ route("admin.product-attributes.api.list") }}').then(r => r.json())
+        ]);
+        
+        console.log('Product response:', productResponse);
+        console.log('Global response:', globalResponse);
 
-        if (response.success) {
-            productAttributes = response.attributes;
+        if (productResponse.success && globalResponse.success) {
+            // Merge product and global attributes, prioritizing product-specific ones
+            const productAttrNames = productResponse.attributes.map(a => a.name);
+            const globalAttrs = globalResponse.attributes.filter(a => !productAttrNames.includes(a.name));
+            
+            console.log('Product attribute names:', productAttrNames);
+            console.log('Global attributes:', globalAttrs);
+            
+            productAttributes = [...productResponse.attributes, ...globalAttrs];
+            console.log('Merged productAttributes:', productAttributes);
             renderAttributes();
         } else {
-            throw new Error(response.error || 'Failed to load attributes');
+            throw new Error(productResponse.error || globalResponse.error || 'Failed to load attributes');
         }
     } catch (error) {
+        console.error('Error loading attributes:', error);
         showError('attributes-section', error.message);
     }
 }
@@ -420,13 +440,21 @@ async function editVariation(variationId) {
 // Render variation attributes in form
 function renderVariationAttributes(selectedAttributes = {}) {
     let html = '';
+    
+    console.log('=== DEBUG renderVariationAttributes ===');
+    console.log('Total productAttributes:', productAttributes.length);
+    console.log('productAttributes:', productAttributes);
 
     productAttributes.forEach(attr => {
+        console.log(`Checking attribute: ${attr.label}, variation: ${attr.variation}`);
         if (!attr.variation) return; // Only show attributes used for variations
 
+        const isGlobal = attr.type === 'taxonomy';
+        const badge = isGlobal ? '<span class="badge badge-info ml-2">Global</span>' : '<span class="badge badge-secondary ml-2">Custom</span>';
+        
         html += `<div class="form-group">`;
-        html += `<label>${attr.label}</label>`;
-        html += `<select class="form-control" name="attributes[${attr.name}]">`;
+        html += `<label>${attr.label}${badge}</label>`;
+        html += `<select class="form-control" name="attributes[${attr.name}]" required>`;
         html += `<option value="">Select ${attr.label}</option>`;
 
         attr.options.forEach(option => {
@@ -438,6 +466,12 @@ function renderVariationAttributes(selectedAttributes = {}) {
 
         html += `</select></div>`;
     });
+    
+    console.log('Generated HTML:', html === '' ? 'EMPTY' : 'Has content');
+
+    if (html === '') {
+        html = '<div class="alert alert-info">No variation attributes defined for this product. <a href="{{ route("admin.product-attributes.index") }}" target="_blank">Manage global attributes</a> or add custom attributes to the product.</div>';
+    }
 
     $('#attributes-container').html(html);
 }

@@ -403,6 +403,33 @@ php artisan vegbox:process-renewals --dry-run
 - Phase 2: Build native customer portal in Laravel for subscription management
 - Phase 3: Migrate customers to native portal with seamless WooCommerce data import
 
+### Shipping Classes Architecture
+**CRITICAL**: Shipping classes in this system are **determined by subscription plan at checkout**, NOT set per-product.
+
+**How Shipping Works**:
+- **Subscription-Based**: Shipping cost is determined by the customer's subscription plan choice:
+  - Collection from the farm (£0)
+  - Single Delivery (£4)
+  - Monthly Payment Weekly Delivery (£19)
+  - Monthly Payment Fortnightly Delivery (£9)
+  - Annual Payment Weekly Delivery (£132)
+  - Annual Payment Fortnightly Delivery (£66)
+- **Not Product-Level**: Individual products do NOT have assigned shipping classes
+- **WooCommerce Integration**: Shipping classes exist in WooCommerce but are applied to subscriptions, not products
+
+**Database**:
+- Table: `shipping_classes`
+- Fields: `id`, `woo_id`, `name`, `slug`, `description`, `cost`, `is_free`, `is_farm_collection`, `delivery_zones`, `sort_order`, `is_active`
+- Admin Interface: `/admin/shipping-classes` - manage shipping options
+
+**Product Editor**:
+- ❌ **Removed shipping class dropdown** (December 2024) - was causing confusion
+- ✅ **Informational note**: "Shipping determined by customer's subscription plan at checkout"
+- **Controller**: `ProductController::edit()` no longer passes `$shippingClasses` to view
+- **Sync**: Removed `syncShippingClassToWooCommerce()` call from product update flow
+
+**Key Rule**: When implementing product features, never add shipping class selection - it's handled at the subscription/checkout level.
+
 ## Configuration Conventions
 
 ### Environment Variables

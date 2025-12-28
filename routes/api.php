@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\Api\VegboxSubscriptionApiController;
+use App\Http\Controllers\Api\BoxCustomizationApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -62,6 +63,26 @@ Route::middleware(['verify.wc.api.token'])->prefix('subscriptions')->group(funct
     
     // Change billing frequency (weekly <-> monthly)
     Route::post('/{id}/change-billing-frequency', [VegboxSubscriptionApiController::class, 'changeBillingFrequency']);
+});
+
+// Box Customization API routes - SECURED with WooCommerce API token authentication
+// Used by WordPress MWF Custom Subscriptions plugin for drag-and-drop box customization
+Route::middleware(['verify.wc.api.token'])->prefix('box-customization')->group(function () {
+    
+    // Get available items for a subscription's upcoming week
+    Route::get('/available-items/{subscriptionId}', [BoxCustomizationApiController::class, 'getAvailableItems']);
+    
+    // Get customer's current box selection
+    Route::get('/customer-box/{subscriptionId}/{selectionId?}', [BoxCustomizationApiController::class, 'getCustomerBox']);
+    
+    // Update customer's box selection
+    Route::post('/update/{subscriptionId}', [BoxCustomizationApiController::class, 'updateCustomerBox']);
+    
+    // Get token balance for subscription
+    Route::get('/token-balance/{subscriptionId}', [BoxCustomizationApiController::class, 'getTokenBalance']);
+    
+    // Reset box to defaults
+    Route::post('/reset/{subscriptionId}', [BoxCustomizationApiController::class, 'resetToDefault']);
 });
 
 // ===== Field Kit Webhook API Routes =====

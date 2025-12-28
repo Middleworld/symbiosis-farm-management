@@ -28,17 +28,19 @@ class SymbiosisAIService
         }
 
         try {
-            Log::info('Checking Ollama health', ['url' => $this->baseUrl]);
+            Log::info('Checking AI service health', ['url' => $this->baseUrl]);
             
-            // Try to connect to Ollama with short timeout
-            $response = Http::timeout(3)->get($this->baseUrl . '/tags');
+            // Try to connect to AI service with short timeout
+            // Check root endpoint instead of /tags (works for both Ollama and custom service)
+            $response = Http::timeout(3)->get(rtrim($this->baseUrl, '/api'));
             
             $available = $response->successful();
             
             if ($available) {
-                Log::info('Ollama is available', ['models' => $response->json()['models'] ?? []]);
+                $body = $response->json();
+                Log::info('AI service is available', ['response' => $body]);
             } else {
-                Log::warning('Ollama health check failed', [
+                Log::warning('AI service health check failed', [
                     'status' => $response->status(),
                     'body' => $response->body()
                 ]);

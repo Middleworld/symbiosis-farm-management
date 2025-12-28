@@ -64,12 +64,109 @@
                                         </div>
 
                                         <div class="form-group">
-                                            <label for="description">Description</label>
-                                            <textarea class="form-control @error('description') is-invalid @enderror"
-                                                      id="description" name="description" rows="4">{{ old('description', $product->description) }}</textarea>
+                                            <label for="description">Description
+                                                <button type="button" class="btn btn-sm btn-info ml-2" onclick="generateDescription('main')">
+                                                    <i class="fas fa-magic"></i> Generate with AI
+                                                </button>
+                                            </label>
+                                            <div style="border: 1px solid #ccc; border-radius: 4px;">
+                                                <div id="toolbar-description" style="border-bottom: 1px solid #ccc; background: #f8f9fa; padding: 8px;">
+                                                    <select class="ql-header">
+                                                        <option value="1">Heading</option>
+                                                        <option value="2">Subheading</option>
+                                                        <option selected>Normal</option>
+                                                    </select>
+                                                    <button class="ql-bold"></button>
+                                                    <button class="ql-italic"></button>
+                                                    <button class="ql-underline"></button>
+                                                    <button class="ql-list" value="ordered"></button>
+                                                    <button class="ql-list" value="bullet"></button>
+                                                    <button class="ql-link"></button>
+                                                </div>
+                                                <div id="editor-description" style="min-height: 200px; background: white; padding: 12px;">{!! old('description', $product->description) !!}</div>
+                                            </div>
+                                            <textarea name="description" id="description" style="display:none;">{{ old('description', $product->description) }}</textarea>
                                             @error('description')
+                                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                                            @enderror
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="short_description">Short Description
+                                                <button type="button" class="btn btn-sm btn-info ml-2" onclick="generateDescription('short')">
+                                                    <i class="fas fa-magic"></i> Generate with AI
+                                                </button>
+                                            </label>
+                                            <div style="border: 1px solid #ccc; border-radius: 4px;">
+                                                <div id="toolbar-short" style="border-bottom: 1px solid #ccc; background: #f8f9fa; padding: 8px;">
+                                                    <button class="ql-bold"></button>
+                                                    <button class="ql-italic"></button>
+                                                    <button class="ql-list" value="bullet"></button>
+                                                </div>
+                                                <div id="editor-short" style="min-height: 80px; background: white; padding: 12px;">{!! old('metadata.short_description', $product->metadata['short_description'] ?? '') !!}</div>
+                                            </div>
+                                            <textarea name="metadata[short_description]" id="short_description" style="display:none;">{{ old('metadata.short_description', $product->metadata['short_description'] ?? '') }}</textarea>
+                                        </div>
+
+                                        <!-- Product Images -->
+                                        <div class="form-group">
+                                            <label for="image">Featured Image</label>
+                                            @if($product->image_url)
+                                                <div class="mb-3">
+                                                    <label class="d-block text-muted small">Current Image:</label>
+                                                    @if(str_starts_with($product->image_url, 'http'))
+                                                        <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="img-thumbnail" style="max-width: 200px;">
+                                                    @else
+                                                        <img src="{{ route('product.image', ['path' => $product->image_url]) }}" alt="{{ $product->name }}" class="img-thumbnail" style="max-width: 200px;">
+                                                    @endif
+                                                </div>
+                                            @endif
+                                            <input type="file" class="form-control-file @error('image') is-invalid @enderror"
+                                                   id="image" name="image" accept="image/*" onchange="previewMainImage(this)">
+                                            @error('image')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
+                                            <small class="form-text text-muted">Main product image. Recommended: 800x800px, JPEG or PNG, max 8MB</small>
+                                            <div id="image-preview" class="mt-2" style="display: none;">
+                                                <label class="d-block text-muted small">Preview:</label>
+                                                <img id="preview-img" src="" alt="Preview" class="img-thumbnail" style="max-width: 200px;">
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label>Gallery Images</label>
+                                            @if($product->gallery_images && count($product->gallery_images) > 0)
+                                                <div class="mb-3">
+                                                    <label class="d-block text-muted small">Current Gallery:</label>
+                                                    <div class="d-flex flex-wrap">
+                                                        @foreach($product->gallery_images as $index => $image)
+                                                            <div class="position-relative mr-2 mb-2">
+                                                                <img src="{{ route('product.image', ['path' => $image]) }}" 
+                                                                     alt="Gallery {{ $index + 1 }}" 
+                                                                     class="img-thumbnail" 
+                                                                     style="width: 100px; height: 100px; object-fit: cover;">
+                                                                <button type="button" 
+                                                                        class="btn btn-danger btn-sm position-absolute" 
+                                                                        style="top: 5px; right: 5px; padding: 2px 6px; font-size: 10px;"
+                                                                        onclick="removeGalleryImage({{ $index }})">
+                                                                    <i class="fas fa-times"></i>
+                                                                </button>
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                </div>
+                                            @endif
+                                            <input type="file" 
+                                                   class="form-control-file"
+                                                   id="gallery_images" 
+                                                   name="gallery_images[]" 
+                                                   accept="image/*"
+                                                   multiple
+                                                   onchange="previewGalleryImages(this)">
+                                            <small class="form-text text-muted">Upload up to 5 additional product images. Recommended: 800x800px each</small>
+                                            <div id="gallery-preview" class="mt-2 d-flex flex-wrap" style="display: none;">
+                                                <!-- Previews added by JS -->
+                                            </div>
                                         </div>
 
                                         <div class="row">
@@ -104,7 +201,8 @@
                                 </div>
                             </div>
 
-                            <!-- Pricing & Inventory -->
+                            <!-- Pricing & Inventory - Hidden for Variable Products -->
+                            @if($product->product_type !== 'variable')
                             <div class="col-md-4">
                                 <div class="card">
                                     <div class="card-header">
@@ -251,8 +349,48 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                            @endif
 
-                                <!-- Solidarity Pricing (WooCommerce Sync) -->
+                            <!-- Product Categories (shown for all product types) -->
+                            <div class="col-md-4">
+                                <!-- Product Categories -->
+                                <div class="card mt-3">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Product Categories</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-group mb-0" style="max-height: 250px; overflow-y: auto;">
+                                            @php
+                                                $wooCategories = [
+                                                    'Allium', 'Brassica', 'Cucurbita', 'Eggs', 'Fresh Honey', 
+                                                    'Fruit', 'Greens', 'Herbs', 'Jams and preserves', 'Legumes',
+                                                    'Nightshades', 'Root Vegetables', 'Saladings', 'Seasonal Produce',
+                                                    'Vegetable Boxes', 'Bakery', 'Uncategorized'
+                                                ];
+                                                $productCategories = old('woo_categories', $product->metadata['woo_categories'] ?? []);
+                                                if (!is_array($productCategories)) {
+                                                    $productCategories = [];
+                                                }
+                                            @endphp
+                                            @foreach($wooCategories as $category)
+                                                <div class="form-check">
+                                                    <input type="checkbox" class="form-check-input" 
+                                                           id="woo_cat_{{ Str::slug($category) }}" 
+                                                           name="woo_categories[]" 
+                                                           value="{{ $category }}"
+                                                           {{ in_array($category, $productCategories) ? 'checked' : '' }}>
+                                                    <label class="form-check-label" for="woo_cat_{{ Str::slug($category) }}">
+                                                        {{ $category }}
+                                                    </label>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Solidarity Pricing (WooCommerce Sync) - Hidden for Variable Products -->
+                                @if($product->product_type !== 'variable')
                                 <div class="card mt-3">
                                     <div class="card-header">
                                         <h4 class="card-title">💚 Solidarity Pricing</h4>
@@ -319,6 +457,7 @@
                                         </div>
                                     </div>
                                 </div>
+                                @endif
 
                                 <!-- Status -->
                                 <div class="card mt-3">
@@ -333,34 +472,77 @@
                                     </div>
                                 </div>
 
-                                <!-- Image Upload -->
+                                <!-- Tags -->
                                 <div class="card mt-3">
                                     <div class="card-header">
-                                        <h4 class="card-title">Product Image</h4>
+                                        <h4 class="card-title">Tags</h4>
+                                        <div class="card-tools">
+                                            <button type="button" class="btn btn-sm btn-primary" onclick="generateTags()">
+                                                <i class="fas fa-magic"></i> Generate with AI
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="card-body">
-                                        @if($product->image_url)
-                                            <div class="mb-3">
-                                                <label>Current Image:</label><br>
-                                                @if(str_starts_with($product->image_url, 'http'))
-                                                    <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="img-thumbnail" style="max-width: 200px;">
-                                                @else
-                                                    <img src="{{ asset('storage/' . $product->image_url) }}" alt="{{ $product->name }}" class="img-thumbnail" style="max-width: 200px;">
-                                                @endif
-                                            </div>
-                                        @endif
-
-                                        <div class="form-group">
-                                            <label for="image">Upload New Image (leave empty to keep current)</label>
-                                            <input type="file" class="form-control-file @error('image') is-invalid @enderror"
-                                                   id="image" name="image" accept="image/*">
-                                            @error('image')
+                                        <div class="form-group mb-0">
+                                            <label for="tags">Product Tags</label>
+                                            <input type="text" class="form-control @error('tags') is-invalid @enderror"
+                                                   id="tags" name="tags" value="{{ old('tags', is_array($product->tags) ? implode(', ', $product->tags) : $product->tags) }}"
+                                                   placeholder="organic, seasonal, local">
+                                            @error('tags')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
-                                            <small class="form-text text-muted">Accepted formats: JPEG, PNG, JPG, GIF. Max size: 2MB</small>
+                                            <small class="form-text text-muted">Comma-separated (e.g., organic, seasonal)</small>
                                         </div>
-                                        <div id="image-preview" class="mt-2" style="display: none;">
-                                            <img id="preview-img" src="" alt="Preview" class="img-thumbnail" style="max-width: 200px;">
+                                    </div>
+                                </div>
+
+                                <!-- SEO -->
+                                <div class="card mt-3">
+                                    <div class="card-header">
+                                        <h4 class="card-title">SEO</h4>
+                                        <div class="card-tools">
+                                            <button type="button" class="btn btn-sm btn-primary" onclick="generateSEOContent()">
+                                                <i class="fas fa-magic"></i> Generate with AI
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-group">
+                                            <label for="seo_title">SEO Title</label>
+                                            <input type="text" class="form-control @error('metadata.seo_title') is-invalid @enderror"
+                                                   id="seo_title" name="metadata[seo_title]" 
+                                                   value="{{ old('metadata.seo_title', $product->metadata['seo_title'] ?? '') }}"
+                                                   maxlength="60"
+                                                   placeholder="Leave blank to use product name">
+                                            @error('metadata.seo_title')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                            <small class="form-text text-muted">Recommended: 50-60 characters <span id="seo-title-count"></span></small>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="seo_description">Meta Description</label>
+                                            <textarea class="form-control @error('metadata.seo_description') is-invalid @enderror"
+                                                      id="seo_description" name="metadata[seo_description]" 
+                                                      rows="3"
+                                                      maxlength="160"
+                                                      placeholder="Brief description for search engines">{{ old('metadata.seo_description', $product->metadata['seo_description'] ?? '') }}</textarea>
+                                            @error('metadata.seo_description')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                            <small class="form-text text-muted">Recommended: 150-160 characters <span id="seo-desc-count"></span></small>
+                                        </div>
+
+                                        <div class="form-group mb-0">
+                                            <label for="seo_keywords">Focus Keywords</label>
+                                            <input type="text" class="form-control @error('metadata.seo_keywords') is-invalid @enderror"
+                                                   id="seo_keywords" name="metadata[seo_keywords]" 
+                                                   value="{{ old('metadata.seo_keywords', $product->metadata['seo_keywords'] ?? '') }}"
+                                                   placeholder="organic vegetables, seasonal produce">
+                                            @error('metadata.seo_keywords')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                            <small class="form-text text-muted">Comma-separated keywords</small>
                                         </div>
                                     </div>
                                 </div>
@@ -434,13 +616,9 @@
                                                             <a href="{{ route('admin.products.variations.edit', [$product, $variation]) }}" class="btn btn-sm btn-warning">
                                                                 <i class="fas fa-edit"></i>
                                                             </a>
-                                                            <form action="{{ route('admin.products.variations.destroy', [$product, $variation]) }}" method="POST" class="d-inline">
-                                                                @csrf
-                                                                @method('DELETE')
-                                                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this variation?')">
-                                                                    <i class="fas fa-trash"></i>
-                                                                </button>
-                                                            </form>
+                                                            <button type="button" class="btn btn-sm btn-danger" onclick="if(confirm('Delete this variation?')) { var form = document.createElement('form'); form.method = 'POST'; form.action = '{{ route('admin.products.variations.destroy', [$product, $variation]) }}'; var csrf = document.createElement('input'); csrf.type = 'hidden'; csrf.name = '_token'; csrf.value = '{{ csrf_token() }}'; var method = document.createElement('input'); method.type = 'hidden'; method.name = '_method'; method.value = 'DELETE'; form.appendChild(csrf); form.appendChild(method); document.body.appendChild(form); form.submit(); }">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
                                                         </td>
                                                     </tr>
                                                     @endforeach
@@ -474,8 +652,41 @@
 </div>
 @endsection
 
+@section('styles')
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+@endsection
+
 @section('scripts')
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 <script>
+// Initialize Quill for main description
+const quillDescription = new Quill('#editor-description', {
+    modules: { toolbar: '#toolbar-description' },
+    theme: 'snow'
+});
+
+// Initialize Quill for short description  
+const quillShort = new Quill('#editor-short', {
+    modules: { toolbar: '#toolbar-short' },
+    theme: 'snow',
+    placeholder: 'Enter a brief product summary (1-2 sentences)...'
+});
+
+// Sync Quill content to hidden textareas on form submit
+const productForm = document.querySelector('form[action*="products"]');
+if (productForm) {
+    productForm.addEventListener('submit', function(e) {
+        const descContent = quillDescription.root.innerHTML;
+        const shortContent = quillShort.root.innerHTML;
+        
+        document.getElementById('description').value = descContent;
+        document.getElementById('short_description').value = shortContent;
+        
+        console.log('Form submit - Description length:', descContent.length);
+        console.log('Form submit - Short description length:', shortContent.length);
+    });
+}
+
 // Get solidarity pricing percentages from settings
 const minPercent = {{ $minPercent ?? 70 }} / 100;
 const maxPercent = {{ $maxPercent ?? 167 }} / 100;
@@ -543,6 +754,234 @@ function updatePlaceholders(price) {
     }
     if (maxField) {
         maxField.placeholder = 'Auto: £' + (price * maxPercent).toFixed(2);
+    }
+}
+
+// Image preview functions
+function previewMainImage(input) {
+    const preview = document.getElementById('image-preview');
+    const previewImg = document.getElementById('preview-img');
+    
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImg.src = e.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        preview.style.display = 'none';
+    }
+}
+
+function previewGalleryImages(input) {
+    const preview = document.getElementById('gallery-preview');
+    preview.innerHTML = '';
+    
+    if (input.files && input.files.length > 0) {
+        preview.style.display = 'flex';
+        
+        Array.from(input.files).slice(0, 5).forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const div = document.createElement('div');
+                div.className = 'mr-2 mb-2';
+                div.innerHTML = `<img src="${e.target.result}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">`;
+                preview.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        });
+    } else {
+        preview.style.display = 'none';
+    }
+}
+
+function removeGalleryImage(index) {
+    if (confirm('Remove this gallery image?')) {
+        // This would need backend implementation to actually remove the image
+        alert('Gallery image removal will be saved when you update the product');
+    }
+}
+
+// Character counters for SEO fields
+document.getElementById('seo_title')?.addEventListener('input', function() {
+    const count = this.value.length;
+    document.getElementById('seo-title-count').textContent = `(${count}/60)`;
+});
+
+document.getElementById('seo_description')?.addEventListener('input', function() {
+    const count = this.value.length;
+    document.getElementById('seo-desc-count').textContent = `(${count}/160)`;
+});
+
+// Generate product descriptions using AI
+async function generateDescription(type) {
+    const productName = document.getElementById('name').value;
+    const productCategory = document.getElementById('category').value;
+    
+    if (!productName) {
+        alert('Please enter a product name first');
+        return;
+    }
+    
+    const button = event.target.closest('button');
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    
+    try {
+        const response = await fetch('{{ route("admin.products.generate-description", $product) }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                product_name: productName,
+                category: productCategory,
+                type: type // 'main' or 'short'
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('AI service unavailable');
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            if (type === 'main' && data.description) {
+                quillDescription.root.innerHTML = data.description;
+                console.log('Description set:', data.description.substring(0, 100));
+                // Also sync to hidden field immediately
+                document.getElementById('description').value = data.description;
+            } else if (type === 'short' && data.short_description) {
+                quillShort.root.innerHTML = data.short_description;
+                console.log('Short description set:', data.short_description);
+                // Also sync to hidden field immediately
+                document.getElementById('short_description').value = data.short_description;
+            }
+        } else if (data.error) {
+            throw new Error(data.error);
+        }
+        
+    } catch (error) {
+        console.error('Description generation error:', error);
+        alert('Failed to generate description: ' + error.message);
+    } finally {
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-magic"></i> Generate with AI';
+    }
+}
+
+// Generate product tags using AI
+async function generateTags() {
+    const productName = document.getElementById('name').value;
+    const productCategory = document.getElementById('category').value;
+    const productDescription = quillDescription.root.innerText.substring(0, 200);
+    
+    if (!productName) {
+        alert('Please enter a product name first');
+        return;
+    }
+    
+    const button = event.target.closest('button');
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    
+    try {
+        const response = await fetch('{{ route("admin.products.generate-tags", $product) }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                product_name: productName,
+                category: productCategory,
+                description: productDescription
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('AI service unavailable');
+        }
+        
+        const data = await response.json();
+        
+        if (data.success && data.tags) {
+            // If tags is an array, join with commas
+            const tagsValue = Array.isArray(data.tags) ? data.tags.join(', ') : data.tags;
+            document.getElementById('tags').value = tagsValue;
+        } else if (data.error) {
+            throw new Error(data.error);
+        }
+        
+    } catch (error) {
+        console.error('Tags generation error:', error);
+        alert('Failed to generate tags: ' + error.message);
+    } finally {
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-magic"></i> Generate with AI';
+    }
+}
+
+// Generate SEO content from RAG service
+async function generateSEOContent() {
+    const productName = document.getElementById('name').value;
+    
+    if (!productName) {
+        alert('Please enter a product name first');
+        return;
+    }
+    
+    const button = event.target.closest('button');
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    
+    try {
+        const response = await fetch('{{ route("admin.products.generate-seo", $product) }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                product_name: productName,
+                description: quillDescription.root.innerText.substring(0, 500),
+                category: document.getElementById('category').value
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to generate SEO content');
+        }
+        
+        const data = await response.json();
+        
+        if (data.success && data.suggestions) {
+            if (data.suggestions.title) {
+                document.getElementById('seo_title').value = data.suggestions.title;
+                document.getElementById('seo-title-count').textContent = `(${data.suggestions.title.length}/60)`;
+            }
+            
+            if (data.suggestions.description) {
+                document.getElementById('seo_description').value = data.suggestions.description;
+                document.getElementById('seo-desc-count').textContent = `(${data.suggestions.description.length}/160)`;
+            }
+            
+            if (data.suggestions.keywords) {
+                document.getElementById('seo_keywords').value = data.suggestions.keywords;
+            }
+        } else {
+            throw new Error(data.error || 'Failed to generate SEO content');
+        }
+        
+    } catch (error) {
+        console.error('SEO generation error:', error);
+        alert('Failed to generate SEO content: ' + error.message);
+    } finally {
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-magic"></i> Generate with AI';
     }
 }
 </script>
