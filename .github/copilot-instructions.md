@@ -20,41 +20,69 @@ Laravel 12 (PHP 8.2+) application for Community Supported Agriculture (CSA) deli
 
 ## Development Workflow
 
-### Staging Environment Setup (December 2025)
-**CRITICAL**: Development must occur in staging environment (`admin.soilsync.shop`) on `demo` branch, NOT directly in production.
+### Git Branch Architecture (December 2025)
+**CRITICAL**: This project uses **three separate git repositories** with distinct branches:
 
-#### Environment Configuration
-- **Production**: `admin.middleworldfarms.org` (master branch) - LIVE SITE
-- **Staging**: `admin.soilsync.shop` (demo branch) - DEVELOPMENT ENVIRONMENT
+#### Repository Structure
+```
+/var/www/vhosts/soilsync.shop/
+├── admin.soilsync.shop/    → GitHub repo, branch: admin
+├── httpdocs/                → GitHub repo, branch: main (WordPress)
+└── subdomains/farmos/httpdocs/ → GitHub repo, branch: farmos
+```
 
-#### Development Process
-1. **Work in Staging**:
-   ```bash
-   cd /opt/sites/admin.soilsync.shop
-   git checkout demo
-   # Make your changes
-   ```
-
-2. **Test in Staging**:
-   ```bash
-   php artisan test
-   # Visit admin.soilsync.shop to verify functionality
-   ```
-
-3. **Deploy to Production**:
-   ```bash
-   # Option A: Automated deployment
-   ./scripts/deployment/update-deploy.sh deploy production
+#### Branch Rules
+1. **admin.soilsync.shop** → Always use `admin` branch
+   - Laravel admin application
+   - Commands: `cd /var/www/vhosts/soilsync.shop/admin.soilsync.shop && git checkout admin`
    
-   # Option B: GitHub Actions (automatic on PR merge)
-   # Create PR: demo → master, merge triggers deployment
-   ```
+2. **httpdocs** (WordPress) → Always use `main` branch
+   - WooCommerce site
+   - Commands: `cd /var/www/vhosts/soilsync.shop/httpdocs && git checkout main`
+   
+3. **farmos** → Always use `farmos` branch
+   - FarmOS installation
+   - Commands: `cd /var/www/vhosts/soilsync.shop/subdomains/farmos/httpdocs && git checkout farmos`
+
+#### Committing Changes
+**ALWAYS verify you're on the correct branch before committing:**
+
+```bash
+# Admin changes
+cd /var/www/vhosts/soilsync.shop/admin.soilsync.shop
+git checkout admin
+git add .
+git commit -m "Description"
+git push origin admin
+
+# WordPress changes
+cd /var/www/vhosts/soilsync.shop/httpdocs
+git checkout main
+git add .
+git commit -m "Description"
+git push origin main
+
+# FarmOS changes
+cd /var/www/vhosts/soilsync.shop/subdomains/farmos/httpdocs
+git checkout farmos
+git add .
+git commit -m "Description"
+git push origin farmos
+```
+
+#### Merge Strategy
+- **Keep branches separate** - they are independent applications
+- **Do NOT merge** between admin/main/farmos branches
+- If you accidentally switch branches and see "missing files" in VSCode:
+  - This is NORMAL - files exist on other branches
+  - Switch back to correct branch: `git checkout <correct-branch>`
+  - Files will reappear
 
 **Key Rules**:
-- Never develop directly on `master` branch
-- All changes in staging are safe and isolated
-- Use UpdateTracking system for deployment logging
-- Test thoroughly in staging before production deployment
+- Never commit admin code to main branch or vice versa
+- Each folder has its own dedicated branch
+- VSCode may show files as "deleted" when switching branches - this is expected
+- Test thoroughly before pushing to origin
 
 ## Critical Architecture Patterns
 
