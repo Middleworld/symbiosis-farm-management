@@ -97,7 +97,7 @@ class ProductController extends Controller
             'weight' => 'nullable|numeric|min:0',
             'unit' => 'nullable|string|max:50',
             'shipping_class_id' => 'nullable|exists:shipping_classes,id',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:8192',
         ]);
 
         if ($validator->fails()) {
@@ -190,8 +190,8 @@ class ProductController extends Controller
             'tax_rate' => 'nullable|numeric|min:0|max:100',
             'weight' => 'nullable|numeric|min:0',
             'unit' => 'nullable|string|max:50',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:8192',
+            'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:8192',
         ]);
 
         if ($validator->fails()) {
@@ -369,25 +369,69 @@ class ProductController extends Controller
             'metadata_keys' => array_keys($product->metadata ?? [])
         ]);
         
+        // Track what was updated
+        $updates = [];
+        $updates[] = "Product '{$product->name}' updated";
+        
+        if (isset($data['image_url'])) {
+            $updates[] = "Image uploaded";
+        }
+        
+        if (count($galleryImages) > 0) {
+            $updates[] = count($galleryImages) . " gallery images";
+        }
+        
+        if (!empty($data['product_categories'])) {
+            $updates[] = count($data['product_categories']) . " categories";
+        }
+        
+        if (!empty($data['product_tags'])) {
+            $updates[] = count($data['product_tags']) . " tags";
+        }
+        
         // Sync to WooCommerce if linked
+        $wooSyncSuccess = false;
+        $wooSyncErrors = [];
+        
         if ($product->woo_product_id) {
-            $this->syncImagesToWooCommerce($product);
-            $this->syncShortDescriptionToWooCommerce($product);
-            // Note: Shipping classes are determined by subscription plan at checkout, not per-product
-            $this->syncReviewsToWooCommerce($product);
-            $this->syncUpsellsToWooCommerce($product);
-            $this->syncCrosssellsToWooCommerce($product);
+            try {
+                $this->syncImagesToWooCommerce($product);
+                $this->syncShortDescriptionToWooCommerce($product);
+                // Note: Shipping classes are determined by subscription plan at checkout, not per-product
+                $this->syncReviewsToWooCommerce($product);
+                $this->syncUpsellsToWooCommerce($product);
+                $this->syncCrosssellsToWooCommerce($product);
+                
+                $wooSyncSuccess = true;
+                $updates[] = "Synced to WooCommerce (ID: {$product->woo_product_id})";
+            } catch (\Exception $e) {
+                $wooSyncErrors[] = "WooCommerce sync failed: " . $e->getMessage();
+                Log::error('WooCommerce sync error', [
+                    'product_id' => $product->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
         }
         
         Log::info('Product updated successfully', [
             'product_id' => $product->id,
             'new_name' => $product->fresh()->name,
             'new_description_length' => strlen($product->fresh()->description ?? ''),
-            'woo_sync' => $product->woo_product_id ? 'yes' : 'no'
+            'woo_sync' => $wooSyncSuccess ? 'yes' : 'no'
         ]);
-
-        return redirect()->route('admin.products.index')
-                        ->with('success', 'Product updated successfully.');
+        
+        // Build success message with details
+        $message = implode(', ', $updates);
+        
+        $redirect = redirect()->route('admin.products.index')
+                        ->with('success', $message);
+        
+        // Add warnings if WooCommerce sync had issues
+        if (!empty($wooSyncErrors)) {
+            $redirect->with('warning', implode(', ', $wooSyncErrors));
+        }
+        
+        return $redirect;
     }
 
     /**
@@ -441,6 +485,27 @@ class ProductController extends Controller
     {
         try {
             $wooCommerceService = new WooCommerceApiService();
+            
+            // Check if product has a woo_product_id that doesn't exist in current WooCommerce
+            if ($product->woo_product_id) {
+                try {
+                    $existingProduct = $wooCommerceService->getProduct($product->woo_product_id);
+                    // If product doesn't exist, clear the ID and create new
+                    if (!$existingProduct || (isset($existingProduct['code']) && $existingProduct['code'] === 'woocommerce_rest_product_invalid_id')) {
+                        \Log::info("Product ID {$product->woo_product_id} doesn't exist in WooCommerce, creating new product instead");
+                        $product->woo_product_id = null;
+                        $product->save();
+                    }
+                } catch (\Exception $e) {
+                    // If we can't check, clear the ID to be safe
+                    if (strpos($e->getMessage(), 'Invalid ID') !== false || strpos($e->getMessage(), 'invalid_id') !== false) {
+                        \Log::info("Clearing invalid WooCommerce product ID {$product->woo_product_id} for product: {$product->name}");
+                        $product->woo_product_id = null;
+                        $product->save();
+                    }
+                }
+            }
+            
             $result = $wooCommerceService->syncProduct($product);
 
             if ($result['success']) {
@@ -1228,6 +1293,7 @@ class ProductController extends Controller
             $productName = $request->input('product_name', $product->name);
             $category = $request->input('category', $product->category);
             $currentDescription = $request->input('current_description', '');
+            $type = $request->input('type', 'main'); // 'main' or 'short'
 
             // Build context from RAG and product data
             $context = $this->buildProductContextWithRAG($product);
@@ -1242,7 +1308,7 @@ class ProductController extends Controller
                 ->toArray();
             
             // Build AI prompt for description generation
-            $prompt = $this->buildDescriptionPrompt($productName, $category, $context, $seasonalCrops, $currentDescription);
+            $prompt = $this->buildDescriptionPrompt($productName, $category, $context, $seasonalCrops, $currentDescription, $type);
             
             // Call AI service with 90s timeout
             $response = Http::timeout(90)->post('http://localhost:8005/ask-ollama', [
@@ -1264,11 +1330,19 @@ class ProductController extends Controller
                     // Format description with proper paragraphs for better SEO and readability
                     $aiDescription = $this->formatDescriptionWithParagraphs($aiDescription);
                     
-                    return response()->json([
+                    $response = [
                         'success' => true,
-                        'description' => $aiDescription,
                         'source' => 'ai_phi3'
-                    ]);
+                    ];
+                    
+                    // Return appropriate field based on type
+                    if ($type === 'short') {
+                        $response['short_description'] = $aiDescription;
+                    } else {
+                        $response['description'] = $aiDescription;
+                    }
+                    
+                    return response()->json($response);
                 }
             }
             
@@ -1288,7 +1362,7 @@ class ProductController extends Controller
     /**
      * Build AI prompt for product description
      */
-    private function buildDescriptionPrompt($productName, $category, $context, $seasonalCrops, $currentDescription)
+    private function buildDescriptionPrompt($productName, $category, $context, $seasonalCrops, $currentDescription, $type = 'main')
     {
         $seasonal = count($seasonalCrops) > 0 ? implode(', ', $seasonalCrops) : 'seasonal produce';
         
@@ -1305,11 +1379,17 @@ class ProductController extends Controller
             $prompt .= "Additional context: " . substr($context, 0, 200) . ". ";
         }
         
-        $prompt .= "\n\nIMPORTANT: Write EXACTLY 3 paragraphs separated by double line breaks. Each paragraph should be 2-3 sentences. Structure:\n";
-        $prompt .= "Paragraph 1: Opening hook about freshness and what makes this product special\n";
-        $prompt .= "Paragraph 2: Growing methods, organic practices, and seasonal benefits\n";
-        $prompt .= "Paragraph 3: Community impact and call to action\n\n";
-        $prompt .= "Use warm, inviting language. Avoid technical jargon. Make it customer-focused and SEO-friendly.";
+        if ($type === 'short') {
+            $prompt .= "\n\nIMPORTANT: Write a SHORT description - ONLY 1-2 sentences (maximum 50 words). ";
+            $prompt .= "Make it punchy and compelling. Focus on the key benefit and what makes this product special. ";
+            $prompt .= "Use warm, inviting language. No paragraphs, just a brief hook.";
+        } else {
+            $prompt .= "\n\nIMPORTANT: Write EXACTLY 3 paragraphs separated by double line breaks. Each paragraph should be 2-3 sentences. Structure:\n";
+            $prompt .= "Paragraph 1: Opening hook about freshness and what makes this product special\n";
+            $prompt .= "Paragraph 2: Growing methods, organic practices, and seasonal benefits\n";
+            $prompt .= "Paragraph 3: Community impact and call to action\n\n";
+            $prompt .= "Use warm, inviting language. Avoid technical jargon. Make it customer-focused and SEO-friendly.";
+        }
         
         return $prompt;
     }

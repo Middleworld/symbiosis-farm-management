@@ -274,7 +274,7 @@
                                             @error('image')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
-                                            <small class="form-text text-muted">Accepted formats: JPEG, PNG, JPG, GIF. Max size: 2MB</small>
+                                            <small class="form-text text-muted">Accepted formats: JPEG, PNG, JPG, GIF. Max size: 8MB</small>
                                         </div>
                                         <div id="image-preview" class="mt-2" style="display: none;">
                                             <img id="preview-img" src="" alt="Preview" class="img-thumbnail" style="max-width: 200px;">

@@ -126,7 +126,7 @@
                                             @error('image')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
-                                            <small class="form-text text-muted">Main product image. Recommended: 800x800px, JPEG or PNG, max 2MB</small>
+                                            <small class="form-text text-muted">Main product image. Recommended: 800x800px, JPEG or PNG, max 8MB</small>
                                             <div id="image-preview" class="mt-2" style="display: none;">
                                                 <label class="d-block text-muted small">Preview:</label>
                                                 <img id="preview-img" src="" alt="Preview" class="img-thumbnail" style="max-width: 200px;">
@@ -668,14 +668,24 @@ const quillDescription = new Quill('#editor-description', {
 // Initialize Quill for short description  
 const quillShort = new Quill('#editor-short', {
     modules: { toolbar: '#toolbar-short' },
-    theme: 'snow'
+    theme: 'snow',
+    placeholder: 'Enter a brief product summary (1-2 sentences)...'
 });
 
 // Sync Quill content to hidden textareas on form submit
-document.querySelector('form').addEventListener('submit', function() {
-    document.getElementById('description').value = quillDescription.root.innerHTML;
-    document.getElementById('short_description').value = quillShort.root.innerHTML;
-});
+const productForm = document.querySelector('form[action*="products"]');
+if (productForm) {
+    productForm.addEventListener('submit', function(e) {
+        const descContent = quillDescription.root.innerHTML;
+        const shortContent = quillShort.root.innerHTML;
+        
+        document.getElementById('description').value = descContent;
+        document.getElementById('short_description').value = shortContent;
+        
+        console.log('Form submit - Description length:', descContent.length);
+        console.log('Form submit - Short description length:', shortContent.length);
+    });
+}
 
 // Get solidarity pricing percentages from settings
 const minPercent = {{ $minPercent ?? 70 }} / 100;
@@ -841,8 +851,14 @@ async function generateDescription(type) {
         if (data.success) {
             if (type === 'main' && data.description) {
                 quillDescription.root.innerHTML = data.description;
+                console.log('Description set:', data.description.substring(0, 100));
+                // Also sync to hidden field immediately
+                document.getElementById('description').value = data.description;
             } else if (type === 'short' && data.short_description) {
                 quillShort.root.innerHTML = data.short_description;
+                console.log('Short description set:', data.short_description);
+                // Also sync to hidden field immediately
+                document.getElementById('short_description').value = data.short_description;
             }
         } else if (data.error) {
             throw new Error(data.error);

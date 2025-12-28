@@ -23,6 +23,7 @@ class Product extends Model
         'product_tags',
         'brand',
         'image_url',
+        'local_image_path',
         'gallery_images',
         'barcode',
         'stock_quantity',

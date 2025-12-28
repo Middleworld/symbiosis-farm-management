@@ -184,6 +184,28 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         Route::post('/{id}/change-plan', [App\Http\Controllers\Admin\VegboxSubscriptionController::class, 'changePlan'])->name('change-plan');
     });
 
+    // Vegbox Plan Management routes
+    Route::resource('vegbox-plans', App\Http\Controllers\Admin\VegboxPlanController::class)->names([
+        'index' => 'admin.vegbox-plans.index',
+        'create' => 'admin.vegbox-plans.create',
+        'store' => 'admin.vegbox-plans.store',
+        'edit' => 'admin.vegbox-plans.edit',
+        'update' => 'admin.vegbox-plans.update',
+        'destroy' => 'admin.vegbox-plans.destroy',
+    ]);
+
+    // Box Configuration Management routes
+    Route::prefix('box-configurations')->name('admin.box-configurations.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\BoxConfigurationController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\Admin\BoxConfigurationController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\Admin\BoxConfigurationController::class, 'store'])->name('store');
+        Route::get('/{id}', [App\Http\Controllers\Admin\BoxConfigurationController::class, 'show'])->name('show');
+        Route::get('/{id}/edit', [App\Http\Controllers\Admin\BoxConfigurationController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [App\Http\Controllers\Admin\BoxConfigurationController::class, 'update'])->name('update');
+        Route::post('/{id}/import-harvests', [App\Http\Controllers\Admin\BoxConfigurationController::class, 'importHarvests'])->name('import-harvests');
+        Route::post('/{id}/duplicate', [App\Http\Controllers\Admin\BoxConfigurationController::class, 'duplicate'])->name('duplicate');
+    });
+
     // Payment Method Management routes
     Route::prefix('users/{userId}/payment-methods')->name('admin.payment-methods.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\PaymentMethodController::class, 'index'])->name('index');

@@ -614,6 +614,16 @@
                         <span class="badge bg-danger ms-2">{{ $failedCount }}</span>
                     @endif
                 </a>
+                
+                <a href="/admin/vegbox-plans" class="nav-link {{ request()->is('admin/vegbox-plans*') ? 'active' : '' }}">
+                    <i class="fas fa-boxes"></i>
+                    <span>Vegbox Plans</span>
+                </a>
+                
+                <a href="/admin/box-configurations" class="nav-link {{ request()->is('admin/box-configurations*') ? 'active' : '' }}">
+                    <i class="fas fa-box-open"></i>
+                    <span>Box Customization</span>
+                </a>
             </div>
             
             <div class="nav-section" data-section="pos">

@@ -252,6 +252,24 @@ class WooCommerceApiService
     }
 
     /**
+     * Check if a product exists in WooCommerce
+     */
+    public function productExists($wooProductId)
+    {
+        try {
+            $this->woocommerce->get("products/{$wooProductId}");
+            return true;
+        } catch (\Exception $e) {
+            // If we get a 404 or invalid ID error, product doesn't exist
+            if (strpos($e->getMessage(), 'Invalid ID') !== false || strpos($e->getMessage(), '404') !== false) {
+                return false;
+            }
+            // Re-throw other exceptions
+            throw $e;
+        }
+    }
+
+    /**
      * Update a product in WooCommerce
      */
     public function updateProduct($wooProductId, $wooProductData)
@@ -302,18 +320,41 @@ class WooCommerceApiService
             $wooProductData = $this->formatProductForWooCommerce($productData, $product);
 
             if ($product->woo_product_id) {
-                // Update existing WooCommerce product
-                $result = $this->updateProduct($product->woo_product_id, $wooProductData);
-                if ($result['success']) {
-                    // Sync variations if variable product
-                    if ($product->product_type === 'variable') {
-                        $this->syncProductVariations($product);
+                // Check if product exists in WooCommerce before updating
+                $exists = $this->productExists($product->woo_product_id);
+                
+                if ($exists) {
+                    // Update existing WooCommerce product
+                    $result = $this->updateProduct($product->woo_product_id, $wooProductData);
+                    if ($result['success']) {
+                        // Sync variations if variable product
+                        if ($product->product_type === 'variable') {
+                            $this->syncProductVariations($product);
+                        }
+                        
+                        // Sync solidarity pricing meta
+                        $this->syncSolidarityPricingMeta($product);
+                        
+                        Log::info("Updated WooCommerce product {$product->woo_product_id} for Laravel product {$product->id}");
                     }
-                    
-                    // Sync solidarity pricing meta
-                    $this->syncSolidarityPricingMeta($product);
-                    
-                    Log::info("Updated WooCommerce product {$product->woo_product_id} for Laravel product {$product->id}");
+                } else {
+                    // Product doesn't exist in WooCommerce, create it and update the ID
+                    Log::warning("WooCommerce product {$product->woo_product_id} doesn't exist, creating new product");
+                    $result = $this->createProduct($wooProductData);
+                    if ($result['success']) {
+                        $wooProduct = $result['data'];
+                        $product->update(['woo_product_id' => $wooProduct->id]);
+                        
+                        // Sync variations if variable product
+                        if ($product->product_type === 'variable') {
+                            $this->syncProductVariations($product);
+                        }
+                        
+                        // Sync solidarity pricing meta
+                        $this->syncSolidarityPricingMeta($product);
+                        
+                        Log::info("Created WooCommerce product {$wooProduct->id} for Laravel product {$product->id}");
+                    }
                 }
             } else {
                 // Create new WooCommerce product
@@ -507,8 +548,20 @@ class WooCommerceApiService
             ];
         }
 
-        // Add images if available
-        if (!empty($productData['image_url'])) {
+        // Skip image syncing for now - images are stored in Laravel and displayed there
+        // WooCommerce can't access images via URL due to cross-site restrictions
+        // Images will still display correctly in the Laravel admin and box customization interface
+        /*
+        if (!empty($productData['local_image_path'])) {
+            $wooProduct['images'] = [
+                [
+                    'src' => url('storage/' . $productData['local_image_path']),
+                    'name' => $productData['name'],
+                    'alt' => $productData['name']
+                ]
+            ];
+        } elseif (!empty($productData['image_url']) && !str_starts_with($productData['image_url'], 'http')) {
+            // Only sync local images (legacy format)
             $wooProduct['images'] = [
                 [
                     'src' => route('product.image', ['path' => $productData['image_url']]),
@@ -517,6 +570,7 @@ class WooCommerceApiService
                 ]
             ];
         }
+        */
 
         // Add tax settings
         if (isset($productData['is_taxable']) && $productData['is_taxable']) {
