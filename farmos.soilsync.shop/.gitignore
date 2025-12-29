@@ -1,0 +1,8 @@
+# farmOS/Drupal gitignore
+sites/default/settings.php
+sites/default/files/
+vendor/
+node_modules/
+.env
+*.sql
+*.log

@@ -1,0 +1,203 @@
+╔════════════════════════════════════════════════════════════════════════╗
+║          AI RECOMMENDATION ACCEPT BUTTON - USER GUIDE                  ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+📍 LOCATION: Right Sidebar → "Symbioisis AI Succession Advisor" Section
+
+┌────────────────────────────────────────────────────────────────────────┐
+│  Symbioisis AI Succession Advisor                                     │
+├────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  🟢 AI Service Status: Ready                                           │
+│                                                                         │
+│  ┌──────────────────────────────────────────────────────────────────┐ │
+│  │  [Chat Messages Area - shows conversation history]               │ │
+│  └──────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌──────────────────────────────────────────────────────────────────┐ │
+│  │ Ask a question... (e.g., 'What's the best succession...')        │ │
+│  └──────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  [ Evaluate Plan ]  [ Analyze Plan ]  [ Send Message ]                │
+│     (basic chat)    (RAG-powered)     (send typed msg)                │
+│                                                                         │
+│  ╔════════════════════════════════════════════════════════════════╗  │
+│  ║  🤖 AI RESPONSE AREA (appears after clicking Analyze Plan)      ║  │
+│  ╠════════════════════════════════════════════════════════════════╣  │
+│  ║                                                                  ║  │
+│  ║  Your succession plan looks good overall! However, I notice:    ║  │
+│  ║                                                                  ║  │
+│  ║  • Succession 3 (Apr 10) is too close to Succession 2 (Apr 1)  ║  │
+│  ║    Only 9 days creates harvest overlap risk                     ║  │
+│  ║                                                                  ║  │
+│  ║  RECOMMENDATIONS:                                                ║  │
+│  ║  1. Delay succession 3 by 1 week                                ║  │
+│  ║     This will space harvests better and reduce overlap          ║  │
+│  ║                                                                  ║  │
+│  ║  2. Consider companion planting nasturtiums with succession 2   ║  │
+│  ║     They repel aphids and attract beneficial insects            ║  │
+│  ║                                                                  ║  │
+│  ║  ─────────────────────────────────────────────────────────────  ║  │
+│  ║  [✓ Accept Recommendations]  [✏️ Request Modifications]         ║  │ ← HERE!
+│  ║  ─────────────────────────────────────────────────────────────  ║  │
+│  ║                                                                  ║  │
+│  ║  🕐 3:45 PM                                                      ║  │
+│  ╚════════════════════════════════════════════════════════════════╝  │
+│                                                                         │
+└────────────────────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HOW IT WORKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 1: Create Your Succession Plan
+   • Select crop, variety, harvest window
+   • Click "Calculate Harvest Window"
+   • Plan appears in table on left side
+
+STEP 2: Click "Analyze Plan" Button
+   • Blue button with 🧠 brain icon
+   • Sends plan to AI with RAG-powered context
+   • AI uses 76 knowledge entries for analysis
+
+STEP 3: AI Response Appears Below Buttons
+   • Response area becomes visible
+   • Shows AI's analysis and recommendations
+   • Detects actionable items:
+     ❌ Remove succession X
+     📅 Delay/Advance succession X by Y days/weeks
+     📏 Spacing concerns (flagged for review)
+     🌿 Companion planting suggestions
+
+STEP 4: Accept Button Appears (if recommendations detected)
+   • Only shows when AI suggests succession-related changes
+   • Green "Accept Recommendations" button
+   • Grey "Request Modifications" button for iteration
+
+STEP 5: Click "Accept Recommendations"
+   • Modal popup shows detected changes:
+     ┌─────────────────────────────────────────────────────┐
+     │  ✓ Accept AI Recommendations                        │
+     ├─────────────────────────────────────────────────────┤
+     │  Ready to apply AI recommendations?                 │
+     │                                                      │
+     │  ⚠️ Detected Changes:                               │
+     │    📅 Delay succession 3 by 1 week                  │
+     │                                                      │
+     │  ℹ️ Changes will be applied to your current plan    │
+     │                                                      │
+     │  [Cancel] [Accept & Apply Changes]                  │
+     └─────────────────────────────────────────────────────┘
+
+STEP 6: Confirm and Watch Magic Happen! ✨
+   • Plan automatically updates:
+     ✓ Succession 3 dates shift by +7 days
+     ✓ Seeding: Apr 10 → Apr 17
+     ✓ Transplant: Apr 25 → May 2
+     ✓ Harvest: Jun 10-25 → Jun 17-Jul 2
+   • Table flashes green to show update
+   • Success message appears
+   • Full audit trail logged
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BUTTON COMPARISON
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌──────────────────┬──────────────────────────────────────────────────┐
+│ BUTTON           │ WHAT IT DOES                                     │
+├──────────────────┼──────────────────────────────────────────────────┤
+│ Evaluate Plan    │ • Sends basic question to chat                  │
+│ (Blue)           │ • Generic: "Can you give me advice?"            │
+│                  │ • No special processing                          │
+│                  │ • NO Accept button                               │
+│                  │ • Just conversational feedback                   │
+├──────────────────┼──────────────────────────────────────────────────┤
+│ Analyze Plan     │ • RAG-powered deep analysis                      │
+│ (Blue/Brain)     │ • Uses vector search (76 knowledge entries)      │
+│                  │ • Searches companion planting patterns           │
+│                  │ • Searches crop rotation rules                   │
+│                  │ • Searches UK planting calendar                  │
+│                  │ • Formats context for AI                         │
+│                  │ • SHOWS Accept button if actionable              │
+│                  │ • Parses recommendations automatically           │
+│                  │ • Can apply changes to plan                      │
+├──────────────────┼──────────────────────────────────────────────────┤
+│ Send Message     │ • Sends whatever you typed                       │
+│ (Green)          │ • Free-form chat                                 │
+│                  │ • Can ask anything                               │
+│                  │ • NO special processing                          │
+└──────────────────┴──────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHAT CAN BE ACCEPTED?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ AUTOMATIC CHANGES (applied when you click Accept):
+
+1. Remove Successions
+   AI says: "Remove succession 3"
+   Result: Succession 3 deleted, remaining renumbered (4→3, 5→4)
+
+2. Delay Timing
+   AI says: "Delay succession 2 by 1 week"
+   Result: All dates for succession 2 shift +7 days
+
+3. Advance Timing
+   AI says: "Advance succession 4 by 2 weeks"
+   Result: All dates for succession 4 shift -14 days
+
+4. Generic Timing (defaults to 7 days)
+   AI says: "Succession 3 is too early"
+   Result: All dates for succession 3 shift +7 days
+
+⚠️ FLAGGED FOR REVIEW (shows in modal, you decide):
+
+5. Spacing Concerns
+   AI says: "Spacing in succession 2 seems tight"
+   Result: Shows in modal, prompts you to review manually
+
+6. Companion Planting
+   AI says: "Consider adding nasturtiums"
+   Result: Shows in modal, informational only
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXAMPLE WORKFLOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. You create a 5-succession Brussels Sprouts plan
+   Apr 1 → Apr 15 → May 1 → May 15 → Jun 1
+
+2. Click "🧠 Analyze Plan"
+
+3. AI analyzes (using RAG knowledge):
+   ✓ Checks companion planting entries (nasturtiums good!)
+   ✓ Checks rotation rules (follows legumes well)
+   ✓ Checks UK calendar (April = ideal for brassicas)
+   ✓ Analyzes timing gaps
+
+4. AI responds:
+   "Your plan follows good rotation principles! Brussels Sprouts after
+   legumes is excellent. However, successions 1-2 are only 14 days apart.
+   I recommend delaying succession 2 by 1 week to allow better spacing.
+   Consider companion planting nasturtiums (repel aphids)."
+
+5. Accept button appears below response
+
+6. You click "✓ Accept Recommendations"
+
+7. Modal shows:
+   📅 Delay succession 2 by 1 week
+   🌿 Companion: nasturtiums (informational)
+
+8. You click "Accept & Apply Changes"
+
+9. Plan updates:
+   Succession 2: Apr 15 → Apr 22 (all dates shift +7 days)
+   Table flashes green
+   Success: "1 change(s) applied to your succession plan"
+
+10. Ready to submit to FarmOS! 🎉
+
+╔════════════════════════════════════════════════════════════════════════╗
+║  NOW YOU HAVE A SMART AI ASSISTANT WITH AN ACCEPT BUTTON! 🚀          ║
+╚════════════════════════════════════════════════════════════════════════╝

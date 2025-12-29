@@ -1,0 +1,52 @@
+# System and cache directories
+logs/
+.cache/
+.ssh/
+.composer/cache/
+.wp-cli/cache/
+.config/psysh/
+
+# Plesk system files
+.imunify_patch_id
+.myimunify_id
+.php-ini
+.php-version
+public/
+web/
+
+# Backups
+wordpress-backups/
+
+# Environment files (keep .env.example)
+.env
+!**/.env.example
+
+# Vendor and dependencies
+**/vendor/
+**/node_modules/
+
+# IDE
+.idea/
+.vscode/
+**/__pycache__/
+
+# Temporary files
+**/*.log
+**/*.tmp
+**/.DS_Store
+
+# WordPress specific
+httpdocs/wp-content/uploads/
+httpdocs/wp-content/upgrade/
+httpdocs/wp-content/cache/
+
+# Laravel specific
+admin.soilsync.shop/storage/logs/
+admin.soilsync.shop/storage/framework/cache/
+admin.soilsync.shop/storage/framework/sessions/
+admin.soilsync.shop/storage/framework/views/
+admin.soilsync.shop/bootstrap/cache/*.php
+
+# farmOS specific
+farmos.soilsync.shop/web/sites/default/files/
+farmos.soilsync.shop/web/sites/*/files/private/

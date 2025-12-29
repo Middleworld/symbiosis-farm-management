@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://www.companieshouse.gov.uk/ef/ixbrl/package/0.1/">
+    <Contents>
+        <Document>
+            <File>accounts.pdf</File>
+            <Type>application/pdf</Type>
+        </Document>
+        <Document>
+            <File>cicreport.pdf</File>
+            <Type>application/pdf</Type>
+        </Document>
+    </Contents>
+</Package>
