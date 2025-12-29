@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Models\BrandSetting;
 use App\Models\VarietyAuditResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Cache;
 use App\Jobs\ProcessRagFile;
 
 class SettingsController extends Controller
@@ -129,7 +131,10 @@ class SettingsController extends Controller
             }
         }
         
-        return view('admin.settings.index', compact('settings', 'auditResults', 'auditStats', 'auditRunning', 'auditProgress', 'ragRunning', 'ragProgress', 'queuedRagFiles'));
+        // Get branding settings
+        $branding = BrandSetting::active();
+        
+        return view('admin.settings.index', compact('settings', 'auditResults', 'auditStats', 'auditRunning', 'auditProgress', 'ragRunning', 'ragProgress', 'queuedRagFiles', 'branding'));
     }
     
     /**
@@ -189,6 +194,10 @@ class SettingsController extends Controller
             'claude_api_key' => 'nullable|string|max:255',
             'stripe_key' => 'nullable|string|max:255',
             'stripe_secret' => 'nullable|string|max:255',
+            // Branding logo uploads
+            'brand_logo_main' => 'nullable|image|mimes:png,jpg,jpeg,svg|max:2048',
+            'brand_logo_small' => 'nullable|image|mimes:png,jpg,jpeg,svg,ico|max:1024',
+            'brand_logo_white' => 'nullable|image|mimes:png,svg|max:2048',
             // 3CX Phone System validations
             'threecx_server_url' => 'nullable|string|max:255',
             'threecx_extension' => 'nullable|string|max:50',
@@ -523,6 +532,49 @@ class SettingsController extends Controller
                     'description' => $this->getPosSettingDescription($key)
                 ];
             }
+        }
+        
+        // Handle branding settings
+        if ($request->has('brand_company_name')) {
+            $brandData = [
+                'company_name' => $request->brand_company_name,
+                'tagline' => $request->brand_tagline,
+                'primary_color' => $request->brand_primary_color,
+                'secondary_color' => $request->brand_secondary_color,
+                'accent_color' => $request->brand_accent_color,
+                'contact_email' => $request->brand_contact_email,
+                'contact_phone' => $request->brand_contact_phone,
+                'address' => $request->brand_address,
+                'logo_alt_text' => $request->brand_logo_alt_text,
+                'social_links' => [
+                    'facebook' => $request->brand_social_facebook,
+                    'instagram' => $request->brand_social_instagram,
+                    'twitter' => $request->brand_social_twitter,
+                ],
+            ];
+            
+            // Handle logo uploads
+            if ($request->hasFile('brand_logo_main')) {
+                $brandData['logo_path'] = $request->file('brand_logo_main')->store('brand/logos', 'public');
+            }
+            if ($request->hasFile('brand_logo_small')) {
+                $brandData['logo_small_path'] = $request->file('brand_logo_small')->store('brand/logos', 'public');
+            }
+            if ($request->hasFile('brand_logo_white')) {
+                $brandData['logo_white_path'] = $request->file('brand_logo_white')->store('brand/logos', 'public');
+            }
+            
+            // Get existing branding or create new
+            $branding = BrandSetting::active();
+            if ($branding) {
+                $branding->update($brandData);
+            } else {
+                BrandSetting::create(array_merge($brandData, ['is_active' => true]));
+            }
+            
+            // Clear branding cache after update
+            Cache::forget('active_branding');
+            Cache::forget('branding_css_variables');
         }
         
         Setting::setMultiple($settingsData);

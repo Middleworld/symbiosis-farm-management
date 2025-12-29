@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\Api\VegboxSubscriptionApiController;
 use App\Http\Controllers\Api\BoxCustomizationApiController;
+use App\Http\Controllers\Api\BrandingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -106,4 +107,22 @@ Route::prefix('fieldkit')->group(function () {
     // Get sync status
     Route::get('/sync-status', [App\Http\Controllers\Api\FieldKitWebhookController::class, 'syncStatus'])
         ->name('api.fieldkit.sync-status');
+});
+
+// ===== Branding API Routes =====
+// PUBLIC routes for WordPress/external systems to fetch branding
+Route::prefix('branding')->group(function () {
+    
+    // Get active branding settings (JSON)
+    Route::get('/', [BrandingController::class, 'index'])
+        ->name('api.branding.index');
+    
+    // Get CSS variables (text/css)
+    Route::get('/css', [BrandingController::class, 'cssVariables'])
+        ->name('api.branding.css');
+    
+    // Clear branding cache (admin only)
+    Route::post('/clear-cache', [BrandingController::class, 'clearCache'])
+        ->name('api.branding.clear-cache')
+        ->middleware('admin.auth');
 });
