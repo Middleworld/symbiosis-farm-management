@@ -144,7 +144,7 @@ class SettingsController extends Controller
     {
         $request->validate([
             // Company Information
-            'company_type' => 'required|string|in:cic,ltd,plc,sole_trader,partnership,charity,other',
+            'company_type' => 'nullable|string|in:cic,ltd,plc,sole_trader,partnership,charity,other',
             'company_number' => 'nullable|string|max:20',
             'tax_year_end' => 'nullable|string|in:31-03,30-09,31-12',
             'vat_registered' => 'nullable|boolean',
@@ -262,6 +262,27 @@ class SettingsController extends Controller
         
         // Store settings in database with defaults
         $settingsData = [
+            // Company Information
+            'company_type' => [
+                'value' => $request->company_type,
+                'type' => 'string',
+                'description' => 'Type of business entity (CIC, Ltd, PLC, etc.)'
+            ],
+            'company_number' => [
+                'value' => $request->company_number,
+                'type' => 'string',
+                'description' => 'Companies House registration number'
+            ],
+            'tax_year_end' => [
+                'value' => $request->tax_year_end ?? '30-09',
+                'type' => 'string',
+                'description' => 'Tax year end date (MM-DD format)'
+            ],
+            'vat_registered' => [
+                'value' => (bool) ($request->vat_registered ?? 0),
+                'type' => 'boolean',
+                'description' => 'Whether business is VAT registered'
+            ],
             // Farm Season Settings
             'farm_name' => [
                 'value' => $request->farm_name ?? 'Middle World Farms',
