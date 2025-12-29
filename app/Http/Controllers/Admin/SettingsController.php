@@ -160,7 +160,9 @@ class SettingsController extends Controller
             'default_printer_paper_size' => 'nullable|string|in:A4,Letter',
             'enable_route_optimization' => 'nullable|boolean',
             'delivery_time_slots' => 'nullable|boolean',
+            'delivery_cutoff_day' => 'nullable|string|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
             'delivery_cutoff_time' => 'nullable|string|regex:/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/',
+            'collection_cutoff_day' => 'nullable|string|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
             'collection_cutoff_time' => 'nullable|string|regex:/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/',
             'collection_reminder_hours' => 'nullable|integer|min:1|max:168',
             'email_notifications' => 'nullable|boolean',
@@ -330,15 +332,25 @@ class SettingsController extends Controller
                 'type' => 'boolean',
                 'description' => 'Enable delivery time slot selection'
             ],
+            'delivery_cutoff_day' => [
+                'value' => $request->delivery_cutoff_day ?? 'Thursday',
+                'type' => 'string',
+                'description' => 'Day of week for delivery cut-off'
+            ],
             'delivery_cutoff_time' => [
                 'value' => $request->delivery_cutoff_time ?? '10:00',
                 'type' => 'string',
-                'description' => 'Cut-off time for deliveries (Thursday)'
+                'description' => 'Time of day for delivery cut-off'
+            ],
+            'collection_cutoff_day' => [
+                'value' => $request->collection_cutoff_day ?? 'Friday',
+                'type' => 'string',
+                'description' => 'Day of week for collection cut-off'
             ],
             'collection_cutoff_time' => [
                 'value' => $request->collection_cutoff_time ?? '12:00',
                 'type' => 'string',
-                'description' => 'Cut-off time for collections (Friday)'
+                'description' => 'Time of day for collection cut-off'
             ],
             'collection_reminder_hours' => [
                 'value' => (int) ($request->collection_reminder_hours ?? 24),

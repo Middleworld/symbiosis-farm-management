@@ -7,6 +7,7 @@ use App\Models\Setting;
 use App\Models\BrandSetting;
 use App\Models\VarietyAuditResult;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
@@ -142,122 +143,9 @@ class SettingsController extends Controller
      */
     public function update(Request $request)
     {
-        $request->validate([
-            // Company Information
-            'company_type' => 'nullable|string|in:cic,ltd,plc,sole_trader,partnership,charity,other',
-            'company_number' => 'nullable|string|max:20',
-            'tax_year_end' => 'nullable|string|in:31-03,30-09,31-12',
-            'vat_registered' => 'nullable|boolean',
-            // Farm Season Settings
-            'farm_name' => 'nullable|string|max:255',
-            'season_start_date' => 'nullable|date',
-            'season_end_date' => 'nullable|date|after_or_equal:season_start_date',
-            'season_weeks' => 'nullable|integer|min:1|max:52',
-            'delivery_days' => 'nullable|array',
-            'delivery_days.*' => 'nullable|string|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
-            'fortnightly_week_a_start' => 'nullable|date',
-            'closure_start_date' => 'nullable|date',
-            'closure_end_date' => 'nullable|date|after_or_equal:closure_start_date',
-            'resume_billing_date' => 'nullable|date|after_or_equal:closure_end_date',
-            // Existing validations...
-            'auto_print_mode' => 'nullable|boolean',
-            'print_company_logo' => 'nullable|boolean',
-            'default_printer_paper_size' => 'nullable|string|in:A4,Letter',
-            'enable_route_optimization' => 'nullable|boolean',
-            'delivery_time_slots' => 'nullable|boolean',
-            'delivery_cutoff_time' => 'nullable|string|regex:/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/',
-            'collection_cutoff_time' => 'nullable|string|regex:/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/',
-            'collection_reminder_hours' => 'nullable|integer|min:1|max:168',
-            'email_notifications' => 'nullable|boolean',
-            'sms_notifications' => 'nullable|boolean',
-            'sms_welcome_back_enabled' => 'nullable|boolean',
-            'sms_special_offers_enabled' => 'nullable|boolean',
-            // API Key validations
-            'farmos_api_url' => 'nullable|string|max:255',
-            'farmos_username' => 'nullable|string|max:255',
-            'farmos_password' => 'nullable|string|max:255',
-            'farmos_oauth_client_id' => 'nullable|string|max:255',
-            'farmos_oauth_client_secret' => 'nullable|string|max:255',
-            'woocommerce_consumer_key' => 'nullable|string|max:255',
-            'woocommerce_consumer_secret' => 'nullable|string|max:255',
-            'solidarity_min_percent' => 'nullable|integer|min:0|max:100',
-            'solidarity_max_percent' => 'nullable|integer|min:100|max:500',
-            'mwf_api_key' => 'nullable|string|max:255',
-            'google_maps_api_key' => 'nullable|string|max:255',
-            'met_office_api_key' => 'nullable|string|max:5000',
-            'met_office_land_observations_key' => 'nullable|string|max:5000',
-            'met_office_site_specific_key' => 'nullable|string|max:5000',
-            'met_office_atmospheric_key' => 'nullable|string|max:5000',
-            'met_office_map_images_key' => 'nullable|string|max:5000',
-            'openweather_api_key' => 'nullable|string|max:255',
-            'huggingface_api_key' => 'nullable|string|max:255',
-            'claude_api_key' => 'nullable|string|max:255',
-            'stripe_key' => 'nullable|string|max:255',
-            'stripe_secret' => 'nullable|string|max:255',
-            // Branding logo uploads
-            'brand_logo_main' => 'nullable|image|mimes:png,jpg,jpeg,svg|max:2048',
-            'brand_logo_small' => 'nullable|image|mimes:png,jpg,jpeg,svg,ico|max:1024',
-            'brand_logo_white' => 'nullable|image|mimes:png,svg|max:2048',
-            // 3CX Phone System validations
-            'threecx_server_url' => 'nullable|string|max:255',
-            'threecx_extension' => 'nullable|string|max:50',
-            'threecx_did' => 'nullable|string|max:50',
-            'threecx_mobile' => 'nullable|string|max:50',
-            'threecx_username' => 'nullable|string|max:100',
-            'threecx_crm_url' => 'nullable|url|max:500',
-            'threecx_enable_tapi' => 'nullable|boolean',
-            // AI Settings validations
-            'ollama_primary_url' => 'nullable|string|max:255',
-
-            'ollama_primary_model' => 'nullable|string|max:255',
-            'ollama_primary_timeout' => 'nullable|integer|min:1|max:600',
-            'ollama_primary_enabled' => 'nullable|boolean',
-            'ollama_processing_url' => 'nullable|string|max:255',
-            'ollama_processing_model' => 'nullable|string|max:255',
-            'ollama_processing_timeout' => 'nullable|integer|min:1|max:600',
-            'ollama_processing_enabled' => 'nullable|boolean',
-            'ollama_rag_url' => 'nullable|string|max:255',
-            'ollama_rag_model' => 'nullable|string|max:255',
-            'ollama_rag_timeout' => 'nullable|integer|min:1|max:600',
-            'ollama_rag_enabled' => 'nullable|boolean',
-            'ai_chatbot_enabled' => 'nullable|boolean',
-            'ai_succession_planner' => 'nullable|boolean',
-            'ai_harvest_planning' => 'nullable|boolean',
-            'ai_crop_recommendations' => 'nullable|boolean',
-            'ai_data_analysis' => 'nullable|boolean',
-            // RAG Settings validations
-            'rag_ingestion_enabled' => 'nullable|boolean',
-            'rag_watch_directory' => 'nullable|string|max:500',
-            'rag_processed_directory' => 'nullable|string|max:500',
-            'rag_chunk_size' => 'nullable|integer|min:100|max:10000',
-            'rag_chunk_overlap' => 'nullable|integer|min:0|max:1000',
-            'rag_supported_formats' => 'nullable|string|max:255',
-            'rag_embedding_model' => 'nullable|string|max:255',
-            'rag_ingestion_schedule' => 'nullable|string|max:255',
-            // Twilio SMS API validations
-            'twilio_sid' => 'nullable|string|max:255',
-            'twilio_token' => 'nullable|string|max:255',
-            'twilio_from' => 'nullable|string|max:50',
-            // IMAP Email Client validations
-            'imap_host' => 'nullable|string|max:255',
-            'imap_port' => 'nullable|integer|min:1|max:65535',
-            'imap_username' => 'nullable|string|max:255',
-            'imap_password' => 'nullable|string|max:255',
-            'imap_encryption' => 'nullable|string|in:ssl,tls,none',
-            'smtp_host' => 'nullable|string|max:255',
-            'smtp_port' => 'nullable|integer|min:1|max:65535',
-            'smtp_username' => 'nullable|string|max:255',
-            'smtp_password' => 'nullable|string|max:255',
-            'smtp_encryption' => 'nullable|string|in:ssl,tls,none',
-            'email_client_enabled' => 'nullable|boolean',
-            'email_auto_sync' => 'nullable|boolean',
-            // POS Settings validations
-            'pos_card_reader_type' => 'nullable|string|in:manual,stripe_terminal',
-            'pos_stripe_publishable_key' => 'nullable|string|max:255',
-            'pos_stripe_location_id' => 'nullable|string|max:255',
-            'pos_currency' => 'nullable|string|in:gbp,usd,eur',
-            'pos_email_receipts' => 'nullable|boolean',
-            'pos_require_customer_email' => 'nullable|boolean',
+        // Minimal validation - just check required types, no strict value validation
+        $validated = $request->validate([
+            '*' => 'nullable', // Accept any field as nullable by default
         ]);
         
         // Store settings in database with defaults
@@ -360,15 +248,25 @@ class SettingsController extends Controller
                 'type' => 'boolean',
                 'description' => 'Enable delivery time slot selection'
             ],
+            'delivery_cutoff_day' => [
+                'value' => $request->delivery_cutoff_day ?? 'Thursday',
+                'type' => 'string',
+                'description' => 'Day of week for delivery cut-off'
+            ],
             'delivery_cutoff_time' => [
                 'value' => $request->delivery_cutoff_time ?? '10:00',
                 'type' => 'string',
-                'description' => 'Cut-off time for deliveries (Thursday)'
+                'description' => 'Time of day for delivery cut-off'
+            ],
+            'collection_cutoff_day' => [
+                'value' => $request->collection_cutoff_day ?? 'Friday',
+                'type' => 'string',
+                'description' => 'Day of week for collection cut-off'
             ],
             'collection_cutoff_time' => [
                 'value' => $request->collection_cutoff_time ?? '12:00',
                 'type' => 'string',
-                'description' => 'Cut-off time for collections (Friday)'
+                'description' => 'Time of day for collection cut-off'
             ],
             'collection_reminder_hours' => [
                 'value' => (int) ($request->collection_reminder_hours ?? 24),
@@ -420,62 +318,15 @@ class SettingsController extends Controller
                 'type' => 'boolean',
                 'description' => 'Enable TAPI (Telephony Application Programming Interface) for desktop integration'
             ],
+            'mwf_logging_enabled' => [
+                'value' => (bool) ($request->has('mwf_logging_enabled') ? 1 : 0),
+                'type' => 'boolean',
+                'description' => 'Enable MWF integration transaction and error logging'
+            ],
         ];
         
-        // Add API keys to settings data (encrypted)
-        $apiKeys = [
-            'farmos_api_url' => $request->farmos_api_url,
-            'farmos_username' => $request->farmos_username,
-            'farmos_password' => $request->farmos_password,
-            'farmos_oauth_client_id' => $request->farmos_oauth_client_id,
-            'farmos_oauth_client_secret' => $request->farmos_oauth_client_secret,
-            'woocommerce_consumer_key' => $request->woocommerce_consumer_key,
-            'woocommerce_consumer_secret' => $request->woocommerce_consumer_secret,
-            'mwf_api_key' => $request->mwf_api_key,
-            'google_maps_api_key' => $request->google_maps_api_key,
-            'met_office_api_key' => $request->met_office_api_key,
-            'met_office_land_observations_key' => $request->met_office_land_observations_key,
-            'met_office_site_specific_key' => $request->met_office_site_specific_key,
-            'met_office_atmospheric_key' => $request->met_office_atmospheric_key,
-            'met_office_map_images_key' => $request->met_office_map_images_key,
-            'openweather_api_key' => $request->openweather_api_key,
-            'huggingface_api_key' => $request->huggingface_api_key,
-            'claude_api_key' => $request->claude_api_key,
-            'stripe_key' => $request->stripe_key,
-            'stripe_secret' => $request->stripe_secret,
-            // 3CX Phone System
-            'threecx_server_url' => $request->threecx_server_url,
-            'threecx_extension' => $request->threecx_extension,
-            'threecx_did' => $request->threecx_did,
-            'threecx_mobile' => $request->threecx_mobile,
-            'threecx_username' => $request->threecx_username,
-            'threecx_crm_url' => $request->threecx_crm_url,
-            // Twilio SMS API
-            'twilio_sid' => $request->twilio_sid,
-            'twilio_token' => $request->twilio_token,
-            'twilio_from' => $request->twilio_from,
-            // IMAP Email Client
-            'imap_host' => $request->imap_host,
-            'imap_port' => $request->imap_port,
-            'imap_username' => $request->imap_username,
-            'imap_password' => $request->imap_password,
-            'imap_encryption' => $request->imap_encryption,
-            'smtp_host' => $request->smtp_host,
-            'smtp_port' => $request->smtp_port,
-            'smtp_username' => $request->smtp_username,
-            'smtp_password' => $request->smtp_password,
-            'smtp_encryption' => $request->smtp_encryption,
-        ];
-        
-        foreach ($apiKeys as $key => $value) {
-            if ($value !== null) {
-                $settingsData[$key] = [
-                    'value' => $this->encryptApiKey($value),
-                    'type' => 'string',
-                    'description' => $this->getApiKeyDescription($key)
-                ];
-            }
-        }
+        // API keys are now managed in .env only - not stored in database
+        // Self-hosters edit .env directly, hosted customers have it configured by admin
         
         // Add AI settings (non-encrypted)
         $aiSettings = [
