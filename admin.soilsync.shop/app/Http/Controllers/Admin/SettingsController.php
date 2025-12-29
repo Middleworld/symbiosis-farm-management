@@ -2304,35 +2304,73 @@ class SettingsController extends Controller
     }
     
     /**
-     * Test farmOS connection
+     * Test farmOS connection (both API and Direct DB)
      */
     public function testFarmOSConnection(Request $request)
     {
+        $results = [
+            'api' => ['status' => 'untested', 'message' => ''],
+            'database' => ['status' => 'untested', 'message' => ''],
+        ];
+        
+        // Test API Connection
         try {
             $farmosService = app(\App\Services\FarmOSApi::class);
-            
-            // Try to fetch basic info to test connection
             $response = $farmosService->makeRequest('GET', '/api');
             
             if ($response && isset($response['meta'])) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Connection successful',
+                $results['api'] = [
+                    'status' => 'success',
+                    'message' => 'API connection successful',
                     'version' => $response['meta']['farm']['name'] ?? 'Unknown',
                     'auth_method' => config('services.farmos.client_id') ? 'OAuth2' : 'Basic Auth'
-                ]);
+                ];
+            } else {
+                $results['api'] = [
+                    'status' => 'error',
+                    'message' => 'Unexpected API response'
+                ];
             }
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Unexpected response from farmOS'
-            ], 500);
-            
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 500);
+            $results['api'] = [
+                'status' => 'error',
+                'message' => 'API Error: ' . $e->getMessage()
+            ];
         }
+        
+        // Test Direct Database Connection
+        try {
+            // Try to query farmOS database directly
+            $varietyCount = DB::connection('farmos')
+                ->table('taxonomy_term_field_data')
+                ->where('vid', 'plant_type')
+                ->count();
+            
+            $bedCount = DB::connection('farmos')
+                ->table('asset__field_land_type')
+                ->where('field_land_type_value', 'bed')
+                ->count();
+            
+            $results['database'] = [
+                'status' => 'success',
+                'message' => 'Direct database connection successful',
+                'varieties' => $varietyCount,
+                'beds' => $bedCount
+            ];
+        } catch (\Exception $e) {
+            $results['database'] = [
+                'status' => 'error',
+                'message' => 'Database Error: ' . $e->getMessage()
+            ];
+        }
+        
+        // Determine overall success
+        $overallSuccess = $results['api']['status'] === 'success' || $results['database']['status'] === 'success';
+        
+        return response()->json([
+            'success' => $overallSuccess,
+            'message' => $overallSuccess ? 'farmOS connection verified' : 'farmOS connection failed',
+            'results' => $results
+        ], $overallSuccess ? 200 : 500);
     }
 }

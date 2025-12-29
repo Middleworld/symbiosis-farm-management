@@ -82,7 +82,7 @@
 <script>
 function testFarmOSConnection() {
     const resultDiv = document.getElementById('farmos-test-result');
-    resultDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Testing connection...</div>';
+    resultDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Testing API and database connections...</div>';
     
     fetch('/admin/farmos/test-connection', {
         method: 'POST',
@@ -93,22 +93,69 @@ function testFarmOSConnection() {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            resultDiv.innerHTML = `
-                <div class="alert alert-success">
-                    <i class="fas fa-check-circle"></i> <strong>Connection successful!</strong><br>
-                    <small>farmOS Version: ${data.version || 'Unknown'}</small><br>
-                    <small>Auth Method: ${data.auth_method || 'Unknown'}</small>
+        let html = '<div class="card">';
+        
+        // API Test Result
+        if (data.results.api.status === 'success') {
+            html += `
+                <div class="card-body border-bottom">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-check-circle text-success fs-4 me-3"></i>
+                        <div>
+                            <strong>API Connection</strong>
+                            <div class="small text-muted">
+                                Version: ${data.results.api.version || 'Unknown'}<br>
+                                Auth: ${data.results.api.auth_method || 'Unknown'}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
         } else {
-            resultDiv.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="fas fa-times-circle"></i> <strong>Connection failed</strong><br>
-                    <small>${data.message || 'Unknown error'}</small>
+            html += `
+                <div class="card-body border-bottom">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-times-circle text-danger fs-4 me-3"></i>
+                        <div>
+                            <strong>API Connection Failed</strong>
+                            <div class="small text-danger">${data.results.api.message}</div>
+                        </div>
+                    </div>
                 </div>
             `;
         }
+        
+        // Database Test Result
+        if (data.results.database.status === 'success') {
+            html += `
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-check-circle text-success fs-4 me-3"></i>
+                        <div>
+                            <strong>Direct Database Connection</strong>
+                            <div class="small text-muted">
+                                ${data.results.database.varieties} varieties, ${data.results.database.beds} beds found
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            html += `
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-times-circle text-danger fs-4 me-3"></i>
+                        <div>
+                            <strong>Direct Database Connection Failed</strong>
+                            <div class="small text-danger">${data.results.database.message}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        html += '</div>';
+        resultDiv.innerHTML = html;
     })
     .catch(error => {
         resultDiv.innerHTML = `
