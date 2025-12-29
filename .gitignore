@@ -20,6 +20,8 @@ wordpress-backups/
 # Environment files (keep .env.example)
 .env
 !**/.env.example
+*.env.backup*
+cookies.txt
 
 # Vendor and dependencies
 **/vendor/
