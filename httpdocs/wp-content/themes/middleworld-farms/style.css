@@ -1,0 +1,20 @@
+/*
+Theme Name: Middleworld Farms
+Theme URI: https://middleworldfarms.org
+Description: Custom child theme for Middleworld Farms with centralized branding from Laravel admin
+Author: Middleworld Farms
+Author URI: https://middleworldfarms.org
+Template: twentytwentyfive
+Version: 1.0.0
+License: GNU General Public License v2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: middleworld-farms
+Tags: custom, branding, agriculture, csa
+*/
+
+/* 
+ * Child theme styles will be loaded after parent theme.
+ * Branding colors and fonts are dynamically injected via functions.php
+ */
+
+/* Custom CSS Variables will be injected here from Laravel API */
