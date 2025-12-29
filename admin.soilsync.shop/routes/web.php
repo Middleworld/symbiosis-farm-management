@@ -269,6 +269,9 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
     Route::get('/settings/reset', [App\Http\Controllers\Admin\SettingsController::class, 'reset'])->name('admin.settings.reset');
     Route::get('/settings/api', [App\Http\Controllers\Admin\SettingsController::class, 'api'])->name('admin.settings.api');
     
+    // Connection test routes
+    Route::post('/farmos/test-connection', [App\Http\Controllers\Admin\SettingsController::class, 'testFarmOSConnection'])->name('admin.farmos.test-connection');
+    
     // Server monitoring routes for IONOS I/O throttling detection
     Route::get('/settings/server-metrics', [App\Http\Controllers\Admin\SettingsController::class, 'serverMetrics'])->name('admin.settings.server-metrics');
     Route::post('/settings/test-io-speed', [App\Http\Controllers\Admin\SettingsController::class, 'testIOSpeed'])->name('admin.settings.test-io-speed');

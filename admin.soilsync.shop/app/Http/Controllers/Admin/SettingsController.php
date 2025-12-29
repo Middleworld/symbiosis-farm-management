@@ -2302,4 +2302,37 @@ class SettingsController extends Controller
             ]);
         }
     }
+    
+    /**
+     * Test farmOS connection
+     */
+    public function testFarmOSConnection(Request $request)
+    {
+        try {
+            $farmosService = app(\App\Services\FarmOSApi::class);
+            
+            // Try to fetch basic info to test connection
+            $response = $farmosService->makeRequest('GET', '/api');
+            
+            if ($response && isset($response['meta'])) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Connection successful',
+                    'version' => $response['meta']['farm']['name'] ?? 'Unknown',
+                    'auth_method' => config('services.farmos.client_id') ? 'OAuth2' : 'Basic Auth'
+                ]);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Unexpected response from farmOS'
+            ], 500);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
