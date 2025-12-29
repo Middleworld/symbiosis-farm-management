@@ -17,6 +17,7 @@
 ################################################################################
 
 set -e  # Exit on error
+set -o pipefail  # Catch pipe failures
 
 # Colors
 RED='\033[0;31m'
@@ -127,7 +128,7 @@ fi
 
 # Create consumer
 ./vendor/bin/drush sql:query "INSERT INTO consumer (id, uuid, langcode) VALUES (NULL, UUID(), 'en');" 2>/dev/null
-CONSUMER_ID=$(./vendor/bin/drush sql:query "SELECT LAST_INSERT_ID();" | tail -n 1)
+CONSUMER_ID=$(./vendor/bin/drush sql:query "SELECT MAX(id) FROM consumer;" | tail -n 1)
 
 ./vendor/bin/drush sql:query "
 INSERT INTO consumer_field_data (
@@ -140,10 +141,12 @@ INSERT INTO consumer_field_data (
 );" 2>/dev/null
 
 # Add grant types
+DELTA=0
 for GRANT_TYPE in "client_credentials" "password" "refresh_token"; do
     ./vendor/bin/drush sql:query "
     INSERT INTO consumer__grant_types (bundle, deleted, entity_id, revision_id, langcode, delta, grant_types_value)
-    VALUES ('consumer', 0, $CONSUMER_ID, $CONSUMER_ID, 'en', 0, '$GRANT_TYPE');" 2>/dev/null
+    VALUES ('consumer', 0, $CONSUMER_ID, $CONSUMER_ID, 'en', $DELTA, '$GRANT_TYPE');" 2>/dev/null
+    DELTA=$((DELTA + 1))
 done
 
 echo -e "${GREEN}  ✓ Consumer created${NC}"

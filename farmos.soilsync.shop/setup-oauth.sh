@@ -190,7 +190,7 @@ VALUES (NULL, UUID(), 'en');
 " 2>/dev/null
 
 # Get the inserted consumer ID
-CONSUMER_DB_ID=$(./vendor/bin/drush sql:query "SELECT LAST_INSERT_ID();" | tail -n 1)
+CONSUMER_DB_ID=$(./vendor/bin/drush sql:query "SELECT MAX(id) FROM consumer;" | tail -n 1)
 
 # Insert consumer field data
 ./vendor/bin/drush sql:query "
@@ -205,11 +205,13 @@ INSERT INTO consumer_field_data (
 " 2>/dev/null
 
 # Add grant types
+DELTA=0
 for GRANT_TYPE in "client_credentials" "password" "refresh_token"; do
     ./vendor/bin/drush sql:query "
     INSERT INTO consumer__grant_types (bundle, deleted, entity_id, revision_id, langcode, delta, grant_types_value)
-    VALUES ('consumer', 0, $CONSUMER_DB_ID, $CONSUMER_DB_ID, 'en', 0, '$GRANT_TYPE');
+    VALUES ('consumer', 0, $CONSUMER_DB_ID, $CONSUMER_DB_ID, 'en', $DELTA, '$GRANT_TYPE');
     " 2>/dev/null
+    DELTA=$((DELTA + 1))
 done
 
 echo -e "${GREEN}✓${NC} OAuth consumer created"
