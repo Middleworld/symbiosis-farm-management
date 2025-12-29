@@ -18,7 +18,7 @@
                 
                 <div class="mb-3">
                     <strong>OAuth Authentication:</strong>
-                    @if(config('services.farmos.client_id') && config('services.farmos.client_secret'))
+                    @if(config('farmos.client_id') && config('farmos.client_secret'))
                         <span class="badge bg-success"><i class="fas fa-check-circle"></i> OAuth configured</span>
                     @else
                         <span class="badge bg-warning"><i class="fas fa-exclamation-triangle"></i> OAuth not configured</span>

@@ -201,6 +201,33 @@ php artisan migrate        # Laravel tables only
 
 ## farmOS Integration Specifics
 
+### OAuth2 Setup Documentation
+**For new installations:** See `docs/FARMOS_OAUTH_SETUP_COMPLETE.md` for complete OAuth2 setup guide.
+
+**Quick reference:** See `docs/FARMOS_OAUTH_QUICKSTART.md` for 5-minute setup checklist.
+
+**Critical OAuth Setup Requirements:**
+1. **RSA Keys** (Most common failure point):
+   - Generate keys: `openssl genrsa -out keys/private.key 2048 && openssl rsa -in keys/private.key -pubout -out keys/public.key`
+   - Set permissions: `chmod 640 keys/private.key && chown www-data:www-data keys/`
+   - Configure in farmOS: `drush config:set simple_oauth.settings private_key ../keys/private.key -y`
+
+2. **OAuth Consumer** (via farmOS UI):
+   - Visit `/admin/config/services/consumer/add`
+   - Grant types: Client Credentials + Password + Refresh Token
+   - Scope: `farm_manager` or leave empty
+   - Copy Client ID and Secret immediately
+
+3. **Laravel Configuration**:
+   - Use variable names: `FARMOS_OAUTH_CLIENT_ID` and `FARMOS_OAUTH_CLIENT_SECRET` (with `OAUTH_` prefix)
+   - NOT `FARMOS_CLIENT_ID` - wrong variable name causes authentication failures
+   - Clear config cache after changes: `php artisan config:clear`
+
+4. **Database Connection** (optional but 100x faster for reads):
+   - farmOS 3.x uses **MySQL** (not PostgreSQL)
+   - Get credentials from farmOS `web/sites/default/settings.php`
+   - Configure in `config/database.php` with `'driver' => 'mysql'`
+
 ### OAuth2 Authentication Flow
 1. `FarmOSAuthService::getInstance()` maintains singleton
 2. Token cached for 3600s, auto-refreshes

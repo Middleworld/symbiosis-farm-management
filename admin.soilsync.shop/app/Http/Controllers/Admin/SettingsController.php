@@ -2316,19 +2316,26 @@ class SettingsController extends Controller
         // Test API Connection
         try {
             $farmosService = app(\App\Services\FarmOSApi::class);
-            $response = $farmosService->makeRequest('GET', '/api');
             
-            if ($response && isset($response['meta'])) {
+            // Authenticate first
+            if (!$farmosService->authenticate()) {
+                throw new \Exception('Authentication failed');
+            }
+            
+            // Try to get plant types as a simple test
+            $plantTypes = $farmosService->getPlantTypes();
+            
+            if ($plantTypes) {
                 $results['api'] = [
                     'status' => 'success',
                     'message' => 'API connection successful',
-                    'version' => $response['meta']['farm']['name'] ?? 'Unknown',
+                    'plant_types' => count($plantTypes),
                     'auth_method' => config('services.farmos.client_id') ? 'OAuth2' : 'Basic Auth'
                 ];
             } else {
                 $results['api'] = [
                     'status' => 'error',
-                    'message' => 'Unexpected API response'
+                    'message' => 'No data returned from API'
                 ];
             }
         } catch (\Exception $e) {
@@ -2347,8 +2354,8 @@ class SettingsController extends Controller
                 ->count();
             
             $bedCount = DB::connection('farmos')
-                ->table('asset__field_land_type')
-                ->where('field_land_type_value', 'bed')
+                ->table('asset__land_type')
+                ->where('land_type_value', 'bed')
                 ->count();
             
             $results['database'] = [

@@ -1,29 +1,78 @@
-# farmOS OAuth Setup for Admin Suite Integration
+# farmOS OAuth Setup for Laravel Admin Integration
 
-This guide fills in the missing steps so farmOS can issue OAuth tokens for the Middle World Farms admin suite. Follow each section in order.
+## Quick Setup Checklist (5 Minutes)
+
+For setting up a new farmOS instance with Laravel admin integration, follow these steps in order:
+
+### ⚡ Fast Track Setup
+
+```bash
+# 1. Navigate to farmOS directory
+cd /var/www/vhosts/yoursite.com/farmos.yoursite.com
+
+# 2. Generate RSA key pair for OAuth (CRITICAL - Most common issue!)
+mkdir -p keys
+openssl genrsa -out keys/private.key 2048
+openssl rsa -in keys/private.key -pubout -out keys/public.key
+chmod 640 keys/private.key
+chmod 644 keys/public.key
+chown -R www-data:www-data keys/  # Or your web server user
+
+# 3. Configure simple_oauth to use keys
+./vendor/bin/drush config:set simple_oauth.settings public_key ../keys/public.key -y
+./vendor/bin/drush config:set simple_oauth.settings private_key ../keys/private.key -y
+
+# 4. Clear farmOS cache
+./vendor/bin/drush cache:rebuild
+
+# 5. Create OAuth consumer via UI (easier than Drush)
+# Visit: https://farmos.yoursite.com/admin/config/services/consumer/add
+```
+
+### 📋 OAuth Consumer Settings (UI Method)
+
+**Navigate to:** `/admin/config/services/consumer/add`
+
+| Field | Value |
+|-------|-------|
+| **Label** | `Laravel Admin` (or your site name) |
+| **User** | Select user with `farm_manager` role |
+| **Grant Types** | ✅ Client Credentials<br>✅ Password<br>✅ Refresh Token |
+| **Scopes** | `farm_manager` (or leave empty for full access) |
+| **Redirect URI** | `https://admin.yoursite.com/oauth/callback` |
+| **Confidential** | ✅ Yes |
+| **Token Expiration** | `3600` (1 hour) |
+
+**After saving, note:**
+- **Client ID** (long alphanumeric string)
+- **Client Secret** (enter a strong password - save it!)
+
+---
+
+## Detailed Setup Guide
+
+This guide covers complete OAuth setup so farmOS can issue tokens for Laravel admin integration.
 
 ---
 
 ## 1. Enable Required Modules
 
-Ensure these modules are enabled in farmOS:
-- `simple_oauth`
-- `key`
-- (optional) `oauth2_client` if you want a UI for testing tokens
+Modules needed (usually already enabled in farmOS 3.x):
+- `simple_oauth` - OAuth 2.0 server
+- `simple_oauth_static_scope` - Scope management
+- `simple_oauth_password_grant` - Password grant type
 
 ```bash
 # From your farmOS server
 cd /path/to/farmos
 
-# Enable required OAuth modules
-drush en simple_oauth key -y
+# Enable OAuth modules if not already enabled
+./vendor/bin/drush en simple_oauth simple_oauth_static_scope simple_oauth_password_grant -y
 ```
-
-> **Tip:** If you plan to test token flows via the UI, also enable `oauth2_client`.
 
 ---
 
-## 2. Create an OAuth Client
+## 2. Generate RSA Keys (CRITICAL STEP)
 
 Use Drush to create a client that matches your admin application.
 

@@ -170,6 +170,7 @@ return [
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
             'prefix' => '',
+            'prefix' => '',
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
@@ -198,17 +199,18 @@ return [
             ]) : [],
         ],
 
-        // farmOS Database Connection
-        'farmos' => [
-            'driver' => 'mysql',
+        // farmOS Database Connection (DUPLICATE - should be removed)
+        // NOTE: This is a duplicate of the farmos connection above (line 162)
+        // Keeping for backward compatibility but the first one should be used
+        'farmos_legacy' => [
+            'driver' => 'pgsql',
             'host' => env('FARMOS_DB_HOST', '127.0.0.1'),
-            'port' => env('FARMOS_DB_PORT', '3306'),
+            'port' => env('FARMOS_DB_PORT', '5432'),
             'database' => env('FARMOS_DB_DATABASE', 'farmos'),
             'username' => env('FARMOS_DB_USERNAME', 'root'),
             'password' => env('FARMOS_DB_PASSWORD', ''),
-            'unix_socket' => env('FARMOS_DB_SOCKET', ''),
-            'charset' => 'utf8mb4',
-            'collation' => 'utf8mb4_unicode_ci',
+            'charset' => 'utf8',
+            'prefix' => '',
             'prefix' => '',
             'prefix_indexes' => true,
             'strict' => false,
