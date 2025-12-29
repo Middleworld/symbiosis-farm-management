@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: farm-delivery-app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - farm-delivery
+    depends_on:
+      - database
+      - redis
+
+  webserver:
+    image: nginx:alpine
+    container_name: farm-delivery-webserver
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/:/etc/nginx/conf.d/
+    networks:
+      - farm-delivery
+    depends_on:
+      - app
+
+  database:
+    image: mysql:8.0
+    container_name: farm-delivery-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: farm_delivery
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_USER: farm_user
+      MYSQL_PASSWORD: farm_password
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - farm-delivery
+
+  redis:
+    image: redis:alpine
+    container_name: farm-delivery-redis
+    restart: unless-stopped
+    networks:
+      - farm-delivery
+
+volumes:
+  db_data:
+
+networks:
+  farm-delivery:
+    driver: bridge

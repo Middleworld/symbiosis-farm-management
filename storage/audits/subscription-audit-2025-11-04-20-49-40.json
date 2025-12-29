@@ -1,0 +1,30 @@
+{
+    "timestamp": "2025-11-04T20:49:40.191253Z",
+    "data": {
+        "total_subscriptions": 18,
+        "with_scheduling": 18,
+        "broken_count": 0,
+        "broken_subscriptions": [],
+        "estimated_loss": 0,
+        "affected_customers": 0,
+        "audit_date": "2025-11-04 20:49:40"
+    },
+    "analysis": {
+        "success": false,
+        "error": "API request failed: 404"
+    },
+    "recommendations": [
+        {
+            "priority": "MEDIUM",
+            "action": "Implement monitoring system",
+            "description": "Set up daily subscription audits with AI analysis",
+            "impact": "Prevent future revenue loss"
+        },
+        {
+            "priority": "LOW",
+            "action": "Review WooCommerce Subscriptions plugin",
+            "description": "Check for updates and configuration issues",
+            "impact": "Improve system reliability"
+        }
+    ]
+}
