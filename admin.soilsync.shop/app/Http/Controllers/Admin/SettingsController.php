@@ -2492,4 +2492,292 @@ class SettingsController extends Controller
             ], 500);
         }
     }
+    
+    /**
+     * Update weather API keys in .env file
+     */
+    public function updateWeatherSettings(Request $request)
+    {
+        try {
+            $envFile = base_path('.env');
+            
+            if (!file_exists($envFile)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '.env file not found'
+                ], 404);
+            }
+            
+            // Read current .env
+            $envContent = file_get_contents($envFile);
+            
+            // Map of form fields to ENV keys
+            $envMappings = [
+                'farm_latitude' => 'FARM_LATITUDE',
+                'farm_longitude' => 'FARM_LONGITUDE',
+                'weatherapi_key' => 'WEATHERAPI_KEY',
+                'openweather_api_key' => 'OPENWEATHER_API_KEY',
+                'met_office_api_key' => 'MET_OFFICE_API_KEY',
+                'met_office_land_observations' => 'MET_OFFICE_LAND_OBSERVATIONS_KEY',
+                'met_office_site_specific' => 'MET_OFFICE_SITE_SPECIFIC_KEY',
+                'met_office_atmospheric' => 'MET_OFFICE_ATMOSPHERIC_KEY',
+                'met_office_map_images' => 'MET_OFFICE_MAP_IMAGES_KEY',
+            ];
+            
+            foreach ($envMappings as $formField => $envKey) {
+                $value = $request->input($formField, '');
+                
+                // Check if key exists in .env
+                if (preg_match("/^{$envKey}=.*/m", $envContent)) {
+                    // Update existing key
+                    $envContent = preg_replace(
+                        "/^{$envKey}=.*/m",
+                        "{$envKey}={$value}",
+                        $envContent
+                    );
+                } else {
+                    // Append new key
+                    $envContent .= "\n{$envKey}={$value}";
+                }
+            }
+            
+            // Write back to .env
+            file_put_contents($envFile, $envContent);
+            
+            // Clear config cache to reload new values
+            \Artisan::call('config:clear');
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Weather settings saved successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to update weather settings', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save settings: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Test weather API connection
+     */
+    public function testWeatherAPI(Request $request)
+    {
+        try {
+            $provider = $request->input('provider');
+            $apiKey = $request->input('api_key');
+            $latitude = $request->input('latitude');
+            $longitude = $request->input('longitude');
+            
+            if (!$apiKey || !$latitude || !$longitude) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Missing required parameters'
+                ], 400);
+            }
+            
+            if ($provider === 'weatherapi') {
+                // Test WeatherAPI.com
+                $response = Http::timeout(10)->get('https://api.weatherapi.com/v1/current.json', [
+                    'key' => $apiKey,
+                    'q' => "{$latitude},{$longitude}"
+                ]);
+                
+                if ($response->successful()) {
+                    $data = $response->json();
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'WeatherAPI.com connection successful!',
+                        'temperature' => $data['current']['temp_c'] ?? null,
+                        'location' => $data['location']['name'] ?? null
+                    ]);
+                }
+                
+            } elseif ($provider === 'openweather') {
+                // Test OpenWeather
+                $response = Http::timeout(10)->get('https://api.openweathermap.org/data/2.5/weather', [
+                    'appid' => $apiKey,
+                    'lat' => $latitude,
+                    'lon' => $longitude,
+                    'units' => 'metric'
+                ]);
+                
+                if ($response->successful()) {
+                    $data = $response->json();
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'OpenWeather connection successful!',
+                        'temperature' => $data['main']['temp'] ?? null,
+                        'location' => $data['name'] ?? null
+                    ]);
+                }
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'API connection failed: ' . ($response->body() ?? 'Unknown error')
+            ], 500);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Connection error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Update communications settings (Email, SMS, VoIP, CRM) in .env file
+     */
+    public function updateCommunicationsSettings(Request $request)
+    {
+        try {
+            $envFile = base_path('.env');
+            
+            if (!file_exists($envFile)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '.env file not found'
+                ], 404);
+            }
+            
+            // Read current .env
+            $envContent = file_get_contents($envFile);
+            
+            // Map of form fields to ENV keys
+            $envMappings = [
+                // Email
+                'mail_from_address' => 'MAIL_FROM_ADDRESS',
+                'mail_from_name' => 'MAIL_FROM_NAME',
+                
+                // SMS Provider
+                'sms_provider' => 'SMS_PROVIDER',
+                
+                // Twilio
+                'twilio_account_sid' => 'TWILIO_ACCOUNT_SID',
+                'twilio_auth_token' => 'TWILIO_AUTH_TOKEN',
+                'twilio_from_number' => 'TWILIO_FROM_NUMBER',
+                
+                // Vonage
+                'vonage_api_key' => 'VONAGE_API_KEY',
+                'vonage_api_secret' => 'VONAGE_API_SECRET',
+                'vonage_from_number' => 'VONAGE_FROM_NUMBER',
+                
+                // Plivo
+                'plivo_auth_id' => 'PLIVO_AUTH_ID',
+                'plivo_auth_token' => 'PLIVO_AUTH_TOKEN',
+                'plivo_from_number' => 'PLIVO_FROM_NUMBER',
+                
+                // MessageBird
+                'messagebird_access_key' => 'MESSAGEBIRD_ACCESS_KEY',
+                'messagebird_from_number' => 'MESSAGEBIRD_FROM_NUMBER',
+                
+                // ClickSend
+                'clicksend_username' => 'CLICKSEND_USERNAME',
+                'clicksend_api_key' => 'CLICKSEND_API_KEY',
+                'clicksend_from_number' => 'CLICKSEND_FROM_NUMBER',
+                
+                // 3CX
+                'threecx_api_url' => 'THREECX_API_URL',
+                'threecx_api_token' => 'THREECX_API_TOKEN',
+                'threecx_extension' => 'THREECX_EXTENSION',
+                
+                // RingCentral
+                'ringcentral_client_id' => 'RINGCENTRAL_CLIENT_ID',
+                'ringcentral_client_secret' => 'RINGCENTRAL_CLIENT_SECRET',
+                'ringcentral_jwt_token' => 'RINGCENTRAL_JWT_TOKEN',
+                'ringcentral_server_url' => 'RINGCENTRAL_SERVER_URL',
+                
+                // 8x8
+                'eightx8_api_key' => 'EIGHTX8_API_KEY',
+                'eightx8_api_secret' => 'EIGHTX8_API_SECRET',
+                'eightx8_phone_number' => 'EIGHTX8_PHONE_NUMBER',
+                
+                // Aircall
+                'aircall_api_id' => 'AIRCALL_API_ID',
+                'aircall_api_token' => 'AIRCALL_API_TOKEN',
+            ];
+            
+            foreach ($envMappings as $formField => $envKey) {
+                if ($request->has($formField)) {
+                    $value = $request->input($formField, '');
+                    
+                    // Check if key exists in .env
+                    if (preg_match("/^{$envKey}=.*/m", $envContent)) {
+                        // Update existing key
+                        $envContent = preg_replace(
+                            "/^{$envKey}=.*/m",
+                            "{$envKey}={$value}",
+                            $envContent
+                        );
+                    } else {
+                        // Append new key
+                        $envContent .= "\n{$envKey}={$value}";
+                    }
+                }
+            }
+            
+            // Handle checkboxes (they're not sent if unchecked)
+            $checkboxSettings = [
+                'email_notifications' => 'EMAIL_NOTIFICATIONS_ENABLED'
+            ];
+            
+            foreach ($checkboxSettings as $formField => $envKey) {
+                $value = $request->has($formField) ? 'true' : 'false';
+                
+                if (preg_match("/^{$envKey}=.*/m", $envContent)) {
+                    $envContent = preg_replace(
+                        "/^{$envKey}=.*/m",
+                        "{$envKey}={$value}",
+                        $envContent
+                    );
+                } else {
+                    $envContent .= "\n{$envKey}={$value}";
+                }
+            }
+            
+            // Write back to .env
+            file_put_contents($envFile, $envContent);
+            
+            // Save non-env settings to database
+            if ($request->has('email_notifications')) {
+                Setting::updateOrCreate(
+                    ['key' => 'email_notifications'],
+                    ['value' => $request->has('email_notifications') ? '1' : '0']
+                );
+            }
+            
+            // Also save 3CX CRM URL to database (not in .env)
+            if ($request->has('threecx_crm_url')) {
+                Setting::updateOrCreate(
+                    ['key' => 'threecx_crm_url'],
+                    ['value' => $request->input('threecx_crm_url', '')]
+                );
+            }
+            
+            // Clear config cache
+            \Artisan::call('config:clear');
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Communications settings saved successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to update communications settings', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save settings: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
