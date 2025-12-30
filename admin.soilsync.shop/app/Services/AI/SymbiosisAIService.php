@@ -13,8 +13,9 @@ class SymbiosisAIService
 
     public function __construct()
     {
-        $this->apiKey = null; // Not needed for local Ollama
-        $this->baseUrl = 'http://localhost:8005/api'; // Using Phi-3 3B model on port 8005
+        $this->apiKey = null; // Not needed for local service
+        // Configurable AI service URL (shared across all customers)
+        $this->baseUrl = env('AI_SERVICE_URL', 'http://localhost:8005');
     }
 
     /**
@@ -31,8 +32,9 @@ class SymbiosisAIService
             Log::info('Checking AI service health', ['url' => $this->baseUrl]);
             
             // Try to connect to AI service with short timeout
-            // Check root endpoint instead of /tags (works for both Ollama and custom service)
-            $response = Http::timeout(3)->get(rtrim($this->baseUrl, '/api'));
+            // Use /health endpoint for proper status check
+            $timeout = (int) env('AI_SERVICE_HEALTH_TIMEOUT', 3);
+            $response = Http::timeout($timeout)->get($this->baseUrl . '/health');
             
             $available = $response->successful();
             
@@ -211,24 +213,17 @@ class SymbiosisAIService
             $baseUrl = $options['base_url'] ?? $this->baseUrl;
             $model = $options['model'] ?? 'phi3:latest';
             
-            // Use longer timeout for Mistral 7B (CPU-only, needs 90+ seconds)
-            $timeout = ($model === 'mistral:7b') ? 180 : 120;
+            // Use configurable timeout (default 90s for CPU-only processing)
+            $timeout = (int) env('AI_SERVICE_TIMEOUT', 90);
             
-            $response = Http::timeout($timeout)->post($baseUrl . '/generate', [
-                'model' => $model,
-                'prompt' => $prompt,
-                'stream' => false,
-                'options' => [
-                    'temperature' => $options['temperature'] ?? 0.3,
-                    'num_predict' => $options['max_tokens'] ?? 500,
-                    'top_p' => 0.9,
-                    'top_k' => 40,
-                ]
+            // Use /ask endpoint for custom Holistic AI service
+            $response = Http::timeout($timeout)->post($baseUrl . '/ask', [
+                'question' => $prompt,
+                'context' => 'farm_management',
             ]);
 
-            Log::info('Ollama API request', [
-                'url' => $baseUrl . '/generate',
-                'model' => $model,
+            Log::info('AI service request', [
+                'url' => $baseUrl . '/ask',
                 'prompt_length' => strlen($prompt)
             ]);
 
@@ -238,7 +233,7 @@ class SymbiosisAIService
                     'choices' => [
                         [
                             'message' => [
-                                'content' => $data['response'] ?? 'No response generated.'
+                                'content' => $data['answer'] ?? 'No response generated.'
                             ]
                         ]
                     ]

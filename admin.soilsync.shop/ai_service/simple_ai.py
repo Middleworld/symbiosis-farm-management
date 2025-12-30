@@ -35,6 +35,16 @@ async def root():
         "status": "simple_mode"
     }
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for service monitoring"""
+    return {
+        "status": "healthy",
+        "service": "Holistic Agricultural AI - Symbiosis",
+        "version": "1.0.0",
+        "mode": "simple_ai"
+    }
+
 @app.post("/ask")
 async def ask_simple(payload: Dict):
     """Main ask endpoint - tries Ollama first, then falls back to smart responses"""

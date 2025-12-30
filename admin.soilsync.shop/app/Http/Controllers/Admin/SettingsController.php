@@ -135,7 +135,8 @@ class SettingsController extends Controller
         // Get branding settings
         $branding = BrandSetting::active();
         
-        return view('admin.settings.index', compact('settings', 'auditResults', 'auditStats', 'auditRunning', 'auditProgress', 'ragRunning', 'ragProgress', 'queuedRagFiles', 'branding'));
+        return view('admin.settings.index', compact('settings', 'auditResults', 'auditStats', 'auditRunning', 'auditProgress', 'ragRunning', 'ragProgress', 'queuedRagFiles', 'branding'))
+            ->with('showAiSettings', env('SHOW_AI_SETTINGS', false));
     }
     
     /**
@@ -328,26 +329,33 @@ class SettingsController extends Controller
         // API keys are now managed in .env only - not stored in database
         // Self-hosters edit .env directly, hosted customers have it configured by admin
         
-        // Add AI settings (non-encrypted)
-        $aiSettings = [
-            'ollama_primary_url' => $request->ollama_primary_url,
-            'ollama_primary_model' => $request->ollama_primary_model,
-            'ollama_primary_timeout' => $request->ollama_primary_timeout,
-            'ollama_primary_enabled' => $request->has('ollama_primary_enabled') ? 1 : 0,
-            'ollama_processing_url' => $request->ollama_processing_url,
-            'ollama_processing_model' => $request->ollama_processing_model,
-            'ollama_processing_timeout' => $request->ollama_processing_timeout,
-            'ollama_processing_enabled' => $request->has('ollama_processing_enabled') ? 1 : 0,
-            'ollama_rag_url' => $request->ollama_rag_url,
-            'ollama_rag_model' => $request->ollama_rag_model,
-            'ollama_rag_timeout' => $request->ollama_rag_timeout,
-            'ollama_rag_enabled' => $request->has('ollama_rag_enabled') ? 1 : 0,
-            'ai_chatbot_enabled' => $request->has('ai_chatbot_enabled') ? 1 : 0,
-            'ai_succession_planner' => $request->has('ai_succession_planner') ? 1 : 0,
-            'ai_harvest_planning' => $request->has('ai_harvest_planning') ? 1 : 0,
-            'ai_crop_recommendations' => $request->has('ai_crop_recommendations') ? 1 : 0,
-            'ai_data_analysis' => $request->has('ai_data_analysis') ? 1 : 0,
-        ];
+        // NOTE: AI settings are managed via .env file (AI_SERVICE_URL, AI_SERVICE_TIMEOUT)
+        // and are NOT exposed to customers since all customers share the same AI service on port 8005.
+        // Legacy Ollama settings below are preserved for backward compatibility but only shown if SHOW_AI_SETTINGS=true.
+        
+        // Add AI settings (non-encrypted) - ONLY if SHOW_AI_SETTINGS is enabled (production admin only)
+        $aiSettings = [];
+        if (env('SHOW_AI_SETTINGS', false)) {
+            $aiSettings = [
+                'ollama_primary_url' => $request->ollama_primary_url,
+                'ollama_primary_model' => $request->ollama_primary_model,
+                'ollama_primary_timeout' => $request->ollama_primary_timeout,
+                'ollama_primary_enabled' => $request->has('ollama_primary_enabled') ? 1 : 0,
+                'ollama_processing_url' => $request->ollama_processing_url,
+                'ollama_processing_model' => $request->ollama_processing_model,
+                'ollama_processing_timeout' => $request->ollama_processing_timeout,
+                'ollama_processing_enabled' => $request->has('ollama_processing_enabled') ? 1 : 0,
+                'ollama_rag_url' => $request->ollama_rag_url,
+                'ollama_rag_model' => $request->ollama_rag_model,
+                'ollama_rag_timeout' => $request->ollama_rag_timeout,
+                'ollama_rag_enabled' => $request->has('ollama_rag_enabled') ? 1 : 0,
+                'ai_chatbot_enabled' => $request->has('ai_chatbot_enabled') ? 1 : 0,
+                'ai_succession_planner' => $request->has('ai_succession_planner') ? 1 : 0,
+                'ai_harvest_planning' => $request->has('ai_harvest_planning') ? 1 : 0,
+                'ai_crop_recommendations' => $request->has('ai_crop_recommendations') ? 1 : 0,
+                'ai_data_analysis' => $request->has('ai_data_analysis') ? 1 : 0,
+            ];
+        }
         
         foreach ($aiSettings as $key => $value) {
             if ($value !== null) {
@@ -2313,7 +2321,7 @@ class SettingsController extends Controller
             'database' => ['status' => 'untested', 'message' => ''],
         ];
         
-        // Test API Connection
+        // Test API Connection (authentication test only - reads use direct DB)
         try {
             $farmosService = app(\App\Services\FarmOSApi::class);
             
@@ -2322,20 +2330,22 @@ class SettingsController extends Controller
                 throw new \Exception('Authentication failed');
             }
             
-            // Try to get plant types as a simple test
-            $plantTypes = $farmosService->getPlantTypes();
+            // For variety count, use direct DB query (fast)
+            $farmOSQuery = app(\App\Services\FarmOSQueryService::class);
+            $plantTypes = $farmOSQuery->getPlantVarieties();
             
             if ($plantTypes) {
                 $results['api'] = [
                     'status' => 'success',
-                    'message' => 'API connection successful',
-                    'plant_types' => count($plantTypes),
-                    'auth_method' => config('services.farmos.client_id') ? 'OAuth2' : 'Basic Auth'
+                    'message' => 'API authentication successful',
+                    'plant_types' => $plantTypes->count(),
+                    'auth_method' => config('services.farmos.client_id') ? 'OAuth2' : 'Basic Auth',
+                    'note' => 'Data queried directly from farmOS database (fast)'
                 ];
             } else {
                 $results['api'] = [
                     'status' => 'error',
-                    'message' => 'No data returned from API'
+                    'message' => 'No data returned from database'
                 ];
             }
         } catch (\Exception $e) {
@@ -2379,5 +2389,107 @@ class SettingsController extends Controller
             'message' => $overallSuccess ? 'farmOS connection verified' : 'farmOS connection failed',
             'results' => $results
         ], $overallSuccess ? 200 : 500);
+    }
+    
+    /**
+     * Get AI service status (for customer settings page)
+     */
+    public function getAIStatus()
+    {
+        try {
+            $aiService = app(\App\Services\AI\SymbiosisAIService::class);
+            $startTime = microtime(true);
+            $available = $aiService->isOllamaAvailable();
+            $responseTime = round((microtime(true) - $startTime) * 1000);
+            
+            return response()->json([
+                'available' => $available,
+                'response_time' => $responseTime,
+                'service_url' => env('AI_SERVICE_URL', 'http://localhost:8005/api'),
+                'timestamp' => now()->toIso8601String()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'available' => false,
+                'error' => $e->getMessage(),
+                'timestamp' => now()->toIso8601String()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Test AI chatbot (for customer settings page)
+     * Simple test - logs are automatically captured for hosted customers
+     */
+    public function testAIChatbot(Request $request)
+    {
+        try {
+            $aiService = app(\App\Services\AI\SymbiosisAIService::class);
+            
+            // Test message
+            $testMessages = [
+                ['role' => 'system', 'content' => 'You are a helpful farm management assistant.'],
+                ['role' => 'user', 'content' => 'Hello, this is a connection test. Please respond with "AI chatbot is working correctly."']
+            ];
+            
+            $startTime = microtime(true);
+            $response = $aiService->chat($testMessages, ['max_tokens' => 50]);
+            $responseTime = round((microtime(true) - $startTime) * 1000);
+            
+            $aiResponse = $response['choices'][0]['message']['content'] ?? 'No response';
+            
+            // Log test (for hosted customers, you'll see this in central logs)
+            Log::info('AI Chatbot Test', [
+                'customer' => auth()->user()->email ?? 'unknown',
+                'app_url' => env('APP_URL'),
+                'response_time' => $responseTime,
+                'success' => true,
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => $aiResponse,
+                'response_time' => $responseTime,
+            ]);
+            
+        } catch (\Exception $e) {
+            // Log failure (for hosted customers, you'll see this in central logs)
+            Log::error('AI Chatbot Test Failed', [
+                'customer' => auth()->user()->email ?? 'unknown',
+                'app_url' => env('APP_URL'),
+                'error' => $e->getMessage(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'AI service connection failed: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+    
+    /**
+     * Toggle AI features on/off for customer
+     */
+    public function toggleAI(Request $request)
+    {
+        try {
+            $enabled = $request->input('enabled', false);
+            
+            Setting::updateOrCreate(
+                ['key' => 'ai_enabled'],
+                ['value' => $enabled ? '1' : '0']
+            );
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'AI settings updated',
+                'enabled' => $enabled
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update AI settings: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

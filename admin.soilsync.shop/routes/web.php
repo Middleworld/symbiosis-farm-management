@@ -272,6 +272,11 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
     // Connection test routes
     Route::post('/farmos/test-connection', [App\Http\Controllers\Admin\SettingsController::class, 'testFarmOSConnection'])->name('admin.farmos.test-connection');
     
+    // AI service test routes (for customer settings page)
+    Route::get('/ai/status', [App\Http\Controllers\Admin\SettingsController::class, 'getAIStatus'])->name('admin.ai.status');
+    Route::post('/ai/test', [App\Http\Controllers\Admin\SettingsController::class, 'testAIChatbot'])->name('admin.ai.test');
+    Route::post('/settings/ai-toggle', [App\Http\Controllers\Admin\SettingsController::class, 'toggleAI'])->name('admin.settings.ai-toggle');
+    
     // Server monitoring routes for IONOS I/O throttling detection
     Route::get('/settings/server-metrics', [App\Http\Controllers\Admin\SettingsController::class, 'serverMetrics'])->name('admin.settings.server-metrics');
     Route::post('/settings/test-io-speed', [App\Http\Controllers\Admin\SettingsController::class, 'testIOSpeed'])->name('admin.settings.test-io-speed');
