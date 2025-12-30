@@ -284,6 +284,9 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
     // Communications settings routes (Email, SMS, VoIP, CRM)
     Route::post('/settings/update-communications', [App\Http\Controllers\Admin\SettingsController::class, 'updateCommunicationsSettings'])->name('admin.settings.update-communications');
     
+    // Payment settings routes (Stripe, MWF)
+    Route::post('/settings/update-payments', [App\Http\Controllers\Admin\SettingsController::class, 'updatePaymentSettings'])->name('admin.settings.update-payments');
+    
     // Server monitoring routes for IONOS I/O throttling detection
     Route::get('/settings/server-metrics', [App\Http\Controllers\Admin\SettingsController::class, 'serverMetrics'])->name('admin.settings.server-metrics');
     Route::post('/settings/test-io-speed', [App\Http\Controllers\Admin\SettingsController::class, 'testIOSpeed'])->name('admin.settings.test-io-speed');

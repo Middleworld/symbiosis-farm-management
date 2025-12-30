@@ -2780,4 +2780,90 @@ class SettingsController extends Controller
             ], 500);
         }
     }
+    
+    /**
+     * Update payment settings (Stripe, MWF) in .env file
+     */
+    public function updatePaymentSettings(Request $request)
+    {
+        try {
+            $envFile = base_path('.env');
+            
+            if (!file_exists($envFile)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '.env file not found'
+                ], 404);
+            }
+            
+            // Read current .env
+            $envContent = file_get_contents($envFile);
+            
+            // Map of form fields to ENV keys
+            $envMappings = [
+                // Stripe
+                'stripe_key' => 'STRIPE_KEY',
+                'stripe_secret' => 'STRIPE_SECRET',
+                'stripe_webhook_secret' => 'STRIPE_WEBHOOK_SECRET',
+                'stripe_currency' => 'STRIPE_CURRENCY',
+                
+                // MWF
+                'mwf_api_key' => 'MWF_API_KEY',
+                'mwf_api_base_url' => 'MWF_API_BASE_URL',
+            ];
+            
+            foreach ($envMappings as $formField => $envKey) {
+                if ($request->has($formField)) {
+                    $value = $request->input($formField, '');
+                    
+                    // Check if key exists in .env
+                    if (preg_match("/^{$envKey}=.*/m", $envContent)) {
+                        // Update existing key
+                        $envContent = preg_replace(
+                            "/^{$envKey}=.*/m",
+                            "{$envKey}={$value}",
+                            $envContent
+                        );
+                    } else {
+                        // Append new key
+                        $envContent .= "\n{$envKey}={$value}";
+                    }
+                }
+            }
+            
+            // Handle checkboxes (they're not sent if unchecked)
+            if ($request->has('mwf_logging_enabled')) {
+                Setting::updateOrCreate(
+                    ['key' => 'mwf_logging_enabled'],
+                    ['value' => '1']
+                );
+            } else {
+                Setting::updateOrCreate(
+                    ['key' => 'mwf_logging_enabled'],
+                    ['value' => '0']
+                );
+            }
+            
+            // Write back to .env
+            file_put_contents($envFile, $envContent);
+            
+            // Clear config cache
+            \Artisan::call('config:clear');
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment settings saved successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to update payment settings', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save settings: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
