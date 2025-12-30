@@ -435,13 +435,19 @@ class SettingsController extends Controller
             
             // Handle logo uploads
             if ($request->hasFile('brand_logo_main')) {
-                $brandData['logo_path'] = $request->file('brand_logo_main')->store('brand/logos', 'public');
+                $filename = time() . '_' . $request->file('brand_logo_main')->getClientOriginalName();
+                $request->file('brand_logo_main')->move(public_path('brand/logos'), $filename);
+                $brandData['logo_path'] = 'brand/logos/' . $filename;
             }
             if ($request->hasFile('brand_logo_small')) {
-                $brandData['logo_small_path'] = $request->file('brand_logo_small')->store('brand/logos', 'public');
+                $filename = time() . '_small_' . $request->file('brand_logo_small')->getClientOriginalName();
+                $request->file('brand_logo_small')->move(public_path('brand/logos'), $filename);
+                $brandData['logo_small_path'] = 'brand/logos/' . $filename;
             }
             if ($request->hasFile('brand_logo_white')) {
-                $brandData['logo_white_path'] = $request->file('brand_logo_white')->store('brand/logos', 'public');
+                $filename = time() . '_white_' . $request->file('brand_logo_white')->getClientOriginalName();
+                $request->file('brand_logo_white')->move(public_path('brand/logos'), $filename);
+                $brandData['logo_white_path'] = 'brand/logos/' . $filename;
             }
             
             // Get existing branding or create new
@@ -2863,6 +2869,75 @@ class SettingsController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to save settings: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Update branding settings in database
+     */
+    public function updateBrandingSettings(Request $request)
+    {
+        try {
+            $brandData = [
+                'company_name' => $request->brand_company_name,
+                'tagline' => $request->brand_tagline,
+                'primary_color' => $request->brand_primary_color,
+                'secondary_color' => $request->brand_secondary_color,
+                'accent_color' => $request->brand_accent_color,
+                'contact_email' => $request->brand_contact_email,
+                'contact_phone' => $request->brand_contact_phone,
+                'address' => $request->brand_address,
+                'logo_alt_text' => $request->brand_logo_alt_text,
+                'social_links' => [
+                    'facebook' => $request->brand_social_facebook,
+                    'instagram' => $request->brand_social_instagram,
+                    'twitter' => $request->brand_social_twitter,
+                ],
+            ];
+            
+            // Handle logo uploads
+            if ($request->hasFile('brand_logo_main')) {
+                $filename = time() . '_' . $request->file('brand_logo_main')->getClientOriginalName();
+                $request->file('brand_logo_main')->move(public_path('brand/logos'), $filename);
+                $brandData['logo_path'] = 'brand/logos/' . $filename;
+            }
+            if ($request->hasFile('brand_logo_small')) {
+                $filename = time() . '_small_' . $request->file('brand_logo_small')->getClientOriginalName();
+                $request->file('brand_logo_small')->move(public_path('brand/logos'), $filename);
+                $brandData['logo_small_path'] = 'brand/logos/' . $filename;
+            }
+            if ($request->hasFile('brand_logo_white')) {
+                $filename = time() . '_white_' . $request->file('brand_logo_white')->getClientOriginalName();
+                $request->file('brand_logo_white')->move(public_path('brand/logos'), $filename);
+                $brandData['logo_white_path'] = 'brand/logos/' . $filename;
+            }
+            
+            // Get existing branding or create new
+            $branding = BrandSetting::active();
+            if ($branding) {
+                $branding->update($brandData);
+            } else {
+                BrandSetting::create(array_merge($brandData, ['is_active' => true]));
+            }
+            
+            // Clear branding cache after update
+            Cache::forget('active_branding');
+            Cache::forget('branding_css_variables');
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Branding settings saved successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to update branding settings', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save branding settings: ' . $e->getMessage()
             ], 500);
         }
     }

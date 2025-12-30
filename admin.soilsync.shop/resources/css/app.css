@@ -3,16 +3,16 @@
 /* CSS Variables */
 :root {
     --sidebar-width: 250px;
-    --sidebar-bg: #213b2e;
-    --sidebar-hover: #2a4837;
-    --sidebar-active: #27ae60;
-    --brand-green: #27ae60;
-    --brand-dark-green: #213b2e;
+    --sidebar-bg: var(--brand-primary, #213b2e);
+    --sidebar-hover: var(--brand-secondary, #2a4837);
+    --sidebar-active: var(--brand-accent, #27ae60);
+    --brand-green: var(--brand-primary, #2d5016);
+    --brand-dark-green: var(--brand-secondary, #5a7c3e);
 }
 
 /* Top Header Styling */
 .top-header {
-    background: linear-gradient(135deg, var(--brand-green) 0%, var(--brand-green) 20%, var(--brand-dark-green) 60%, var(--brand-dark-green) 100%);
+    background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary) 20%, var(--brand-secondary) 60%, var(--brand-secondary) 100%);
     color: white;
     padding: 20px 30px;
     /* Increased padding for larger logo */

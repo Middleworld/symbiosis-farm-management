@@ -5,8 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="format-detection" content="telephone=no">
+    
+    <!-- Dynamic branding CSS variables -->
+    <style>
+        :root {
+            --brand-primary: {{ $branding ? $branding->primary_color : '#2d5016' }};
+            --brand-secondary: {{ $branding ? $branding->secondary_color : '#5a7c3e' }};
+            --brand-accent: {{ $branding ? $branding->accent_color : '#f5c518' }};
+            --brand-text: {{ $branding ? $branding->text_color : '#333333' }};
+            --brand-background: {{ $branding ? $branding->background_color : '#ffffff' }};
+        }
+
+        /* Apply branding colors */
+        .bg-primary { background-color: var(--brand-primary) !important; }
+        .text-primary { color: var(--brand-primary) !important; }
+        .btn-primary { background-color: var(--brand-primary) !important; border-color: var(--brand-primary) !important; }
+        .btn-primary:hover { background-color: var(--brand-secondary) !important; border-color: var(--brand-secondary) !important; }
+        
+        .sidebar { background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary)) !important; }
+    </style>
+    
     @stack('head')
-    <title>@yield('title', 'Symbiosis')</title>
+    <title>@yield('title', $branding ? $branding->company_name : 'Symbiosis')</title>
+    
+    <!-- Favicon -->
+    @if($branding && $branding->logo_small_path)
+        <link rel="icon" type="image/png" href="{{ secure_url($branding->logo_small_path) }}">
+    @else
+        <link rel="icon" type="image/png" href="/favicon.ico">
+    @endif
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <script>
         // Force Font Awesome to use web fonts instead of SVG
@@ -26,7 +54,7 @@
             }
         });
     </script>
-    <link rel="stylesheet" href="/css/global.css">
+    <link rel="stylesheet" href="/css/global.css?v={{ time() }}">
     @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/mwf-api.js'])
     @yield('styles')
     <style>
@@ -68,7 +96,7 @@
         
         .sidebar .sidebar-header {
             padding: 15px 20px 20px;
-            background: linear-gradient(135deg, #27ae60 0%, #213b2e 100%);
+            background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
             text-align: center;
             border-bottom: 1px solid rgba(255,255,255,0.1);
             position: relative;
@@ -115,6 +143,7 @@
             filter: drop-shadow(0 3px 8px rgba(0,0,0,0.3));
             border: 3px solid rgba(255,255,255,0.2);
             transition: all 0.3s ease;
+            background-color: var(--brand-primary);
         }
         
         .logo-container img:hover,
@@ -491,9 +520,14 @@
                 <i class="fas fa-bars"></i>
             </button>
             <div class="logo-container mt-4">
-                <img src="/Middle World Logo Image White - PNG FOR SCREENS.png" alt="Middle World Farms" class="rounded-logo">
+                @if($branding && $branding->logo_path)
+                    <img src="{{ secure_url($branding->logo_path) }}" 
+                         alt="{{ $branding->logo_alt_text ?? $branding->company_name ?? 'Logo' }}" class="rounded-logo">
+                @else
+                    <img src="/Middle World Logo Image White - PNG FOR SCREENS.png" alt="Middle World Farms" class="rounded-logo">
+                @endif
             </div>
-            <h4 class="mb-0 mt-2">Symbiosis</h4>
+            <h4 class="mb-0 mt-2">{{ $branding->company_name ?? 'Symbiosis' }}</h4>
             @php
                 $adminUser = \App\Http\Controllers\Auth\LoginController::getAdminUser();
             @endphp
@@ -874,12 +908,17 @@
                 @hasSection('page-header')
                     @yield('page-header')
                 @else
-                    <h1>Farm Management System</h1>
-                    <p class="lead">Integrated agricultural operations</p>
+                    <h1>{{ $branding ? $branding->company_name : 'Farm Management System' }}</h1>
+                    <p class="lead">{{ $branding ? $branding->tagline : 'Integrated agricultural operations' }}</p>
                 @endif
             </div>
             <div class="header-logo-container">
-                <img src="/Middle_World_Logo_Inverted 350px.png" alt="Middle World Farms" class="header-logo">
+                @if($branding && $branding->logo_path)
+                    <img src="{{ secure_url($branding->logo_path) }}" 
+                         alt="{{ $branding->logo_alt_text ?? $branding->company_name ?? 'Logo' }}" class="header-logo">
+                @else
+                    <img src="/Middle_World_Logo_Inverted 350px.png" alt="Middle World Farms" class="header-logo">
+                @endif
             </div>
         </div>
     </div>
