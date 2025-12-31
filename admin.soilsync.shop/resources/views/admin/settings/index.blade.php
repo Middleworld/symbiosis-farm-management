@@ -227,11 +227,6 @@
                 <div id="section-branding" class="accordion-collapse collapse" data-bs-parent="#settingsAccordion">
                     <div class="accordion-body">
                         @include('admin.settings.sections.branding')
-                        <div class="section-save-btn">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Save Branding Settings
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -276,23 +271,6 @@
                 </div>
             </div>
 
-        </div>
-
-        <!-- Global Save Button -->
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <button type="submit" class="btn btn-lg btn-success">
-                            <i class="fas fa-save"></i> Save All Settings
-                        </button>
-                        <a href="{{ route('admin.settings.reset') }}" class="btn btn-lg btn-outline-danger ms-2" 
-                           onclick="return confirm('Are you sure you want to reset all settings to defaults?')">
-                            <i class="fas fa-undo"></i> Reset to Defaults
-                        </a>
-                    </div>
-                </div>
-            </div>
         </div>
 
     </form>
