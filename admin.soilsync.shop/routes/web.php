@@ -14,6 +14,16 @@ Route::get('/', function () {
     return redirect('/admin');
 });
 
+// SSO routes
+Route::get('/sso/login', [App\Http\Controllers\SsoController::class, 'login'])->name('sso.login');
+Route::post('/sso/authenticate', [App\Http\Controllers\SsoController::class, 'authenticate'])->name('sso.authenticate');
+Route::get('/sso/logout', [App\Http\Controllers\SsoController::class, 'logout'])->name('sso.logout');
+
+// Route for Passport redirect to login
+Route::get('/login', function () {
+    return redirect('/admin/login');
+})->name('login');
+
 // Authentication routes
 Route::prefix('admin')->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('admin.login.form');
@@ -286,6 +296,9 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
     
     // Payment settings routes (Stripe, MWF)
     Route::post('/settings/update-payments', [App\Http\Controllers\Admin\SettingsController::class, 'updatePaymentSettings'])->name('admin.settings.update-payments');
+    
+    // Branding API endpoint for external integrations (WordPress, etc.)
+    Route::get('/api/branding/active', [App\Http\Controllers\Admin\SettingsController::class, 'getActiveBranding'])->name('admin.api.branding.active');
     
     // Server monitoring routes for IONOS I/O throttling detection
     Route::get('/settings/server-metrics', [App\Http\Controllers\Admin\SettingsController::class, 'serverMetrics'])->name('admin.settings.server-metrics');
