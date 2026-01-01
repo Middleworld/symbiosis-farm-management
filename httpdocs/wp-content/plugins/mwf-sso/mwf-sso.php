@@ -329,7 +329,10 @@ class MWF_SSO {
             error_log('SSO: Logout request completed with status: ' . wp_remote_retrieve_response_code($response));
         }
 
-        // WordPress will continue with its normal logout process
+        // After logout, redirect to WordPress homepage to prevent redirect loops
+        // This ensures users don't get stuck in FarmOS -> SSO -> FarmOS loops
+        wp_redirect(home_url());
+        exit;
     }
 }
 

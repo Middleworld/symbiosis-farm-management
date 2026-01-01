@@ -14,10 +14,17 @@ Route::get('/', function () {
     return redirect('/admin');
 });
 
+// Dashboard redirect for convenience
+Route::get('/dashboard', function () {
+    return redirect('/admin');
+});
+
 // SSO routes
 Route::get('/sso/login', [App\Http\Controllers\SsoController::class, 'login'])->name('sso.login');
 Route::post('/sso/authenticate', [App\Http\Controllers\SsoController::class, 'authenticate'])->name('sso.authenticate');
 Route::get('/sso/logout', [App\Http\Controllers\SsoController::class, 'logout'])->name('sso.logout');
+Route::get('/sso/farmos-tokens', [App\Http\Controllers\SsoController::class, 'getFarmOSTokens'])->name('sso.farmos.tokens');
+Route::get('/sso/dashboard', [App\Http\Controllers\SsoController::class, 'dashboard'])->name('sso.dashboard');
 
 // Route for Passport redirect to login
 Route::get('/login', function () {

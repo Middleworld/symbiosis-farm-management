@@ -7,6 +7,7 @@ use App\Services\WpApiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Exception;
 
 class LoginController extends Controller
@@ -79,6 +80,16 @@ class LoginController extends Controller
                 $isAdmin = isset($user['is_admin']) && $user['is_admin'];
                 
                 if ($isPosStaff && !$isAdmin) {
+                    // Authenticate with Laravel Auth for OAuth compatibility
+                    $laravelUser = \App\Models\User::firstOrCreate(
+                        ['email' => $user['email']],
+                        [
+                            'name' => $user['name'],
+                            'password' => bcrypt($user['password']),
+                        ]
+                    );
+                    Auth::login($laravelUser);
+                    
                     // POS-only staff - redirect to POS interface
                     // Regenerate session to ensure it persists through proxy
                     Session::regenerate();
@@ -103,6 +114,19 @@ class LoginController extends Controller
                     'login_time' => now(),
                     'ip_address' => $request->ip()
                 ]);
+
+                // Authenticate with Laravel Auth for OAuth compatibility
+                $laravelUser = \App\Models\User::firstOrCreate(
+                    ['email' => $user['email']],
+                    [
+                        'name' => $user['name'],
+                        'password' => bcrypt($user['password']),
+                    ]
+                );
+                Auth::login($laravelUser);
+
+                // Regenerate session to ensure CSRF token is fresh
+                // Session::regenerate(); // Removed to avoid CSRF issues
 
                 // Authenticate admin with WordPress automatically using email mapping
                 $wordpressEmail = $this->getWordPressEmailForAdmin($user['email']);
@@ -183,19 +207,20 @@ class LoginController extends Controller
             Log::info('POS staff logout', [
                 'email' => $user['email'] ?? 'unknown',
                 'role' => $user['role'] ?? 'unknown',
-                'session_duration' => $user['login_time'] ? 
+                'session_duration' => $user && isset($user['login_time']) && $user['login_time'] ? 
                     now()->diffInMinutes($user['login_time']) . ' minutes' : 'unknown'
             ]);
         } else {
             Log::info('Admin logout', [
                 'email' => $adminUser['email'] ?? 'unknown',
                 'wp_integrated' => $wpAuthenticated,
-                'session_duration' => $adminUser['login_time'] ? 
+                'session_duration' => $adminUser && isset($adminUser['login_time']) && $adminUser['login_time'] ? 
                     now()->diffInMinutes($adminUser['login_time']) . ' minutes' : 'unknown'
             ]);
         }
 
         // Clear all sessions
+        Auth::logout();
         Session::forget('authenticated');
         Session::forget('user');
         Session::forget('admin_authenticated');
