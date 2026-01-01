@@ -865,12 +865,12 @@
                 <i class="fas fa-chevron-down section-toggle"></i>
             </div>
             <div class="nav-section-items" data-section-items="external">
-                <a href="https://middleworldfarms.org" target="_blank" class="nav-link">
+                <a href="{{ config('services.customer_site.url', 'https://middleworldfarms.org') }}" target="_blank" class="nav-link">
                     <i class="fas fa-external-link-alt"></i>
                     <span>Visit Website</span>
                 </a>
                 
-                <a href="https://middleworldfarms.org/wp-admin" target="_blank" class="nav-link">
+                <a href="{{ config('services.customer_site.url', 'https://middleworldfarms.org') }}/wp-admin" target="_blank" class="nav-link">
                     <i class="fab fa-wordpress"></i>
                     <span>WordPress Admin</span>
                 </a>

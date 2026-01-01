@@ -1573,6 +1573,33 @@ Only needed if FarmOS varieties have changed
                 </div>
             </div>
 
+            <!-- Crop Plan Integration Section -->
+            <div class="planning-card">
+                <div class="planning-section">
+                    <h3>
+                        <i class="fas fa-clipboard-list section-icon"></i>
+                        Crop Plan Integration (Optional)
+                    </h3>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <label for="cropPlanId" class="form-label">farmOS Crop Plan ID</label>
+                            <input type="number" class="form-control" id="cropPlanId" name="cropPlanId" 
+                                   placeholder="e.g., 123" min="1" step="1">
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                If you've created a Crop Plan in farmOS (<a href="https://farmos.soilsync.shop/plan/add/crop" target="_blank">create one here</a>), 
+                                enter its ID to automatically link quick forms and create planting records.
+                            </small>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="button" class="btn btn-outline-secondary w-100" onclick="testCropPlanLink()">
+                                <i class="fas fa-link"></i> Test Link
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="planning-card">
                 <!-- Step 1: Crop Selection from farmOS -->
                 <div class="planning-section">
@@ -5999,7 +6026,9 @@ Calculate for ${contextPayload.planning_year}.`;
             pane.appendChild(info);
 
             // Generate URLs for all quick form types
+            // IMPORTANT: Add plan_id parameter if available so farmOS links the quick form to the crop plan
             const baseUrl = window.location.origin + '/admin/farmos';
+            const planId = p.plan_id || window.cropPlanId || ''; // Get plan ID from planting or global var
             const quickFormUrls = {
                 seeding: baseUrl + '/quick/seeding?' + new URLSearchParams({
                     crop_name: p.crop_name || '',
@@ -6008,7 +6037,8 @@ Calculate for ${contextPayload.planning_year}.`;
                     quantity: p.quantity || '',
                     succession_number: p.succession_id || 1,
                     seeding_date: p.seeding_date || '',
-                    season: p.season || ''
+                    season: p.season || '',
+                    plan: planId // CRITICAL: Links quick form to crop plan for automatic planting record creation
                 }).toString(),
                 transplanting: baseUrl + '/quick/transplant?' + new URLSearchParams({
                     crop_name: p.crop_name || '',
@@ -6017,7 +6047,8 @@ Calculate for ${contextPayload.planning_year}.`;
                     quantity: p.quantity || '',
                     succession_number: p.succession_id || 1,
                     transplant_date: p.transplant_date || '',
-                    season: p.season || ''
+                    season: p.season || '',
+                    plan: planId // CRITICAL: Links quick form to crop plan for automatic planting record creation
                 }).toString(),
                 harvest: baseUrl + '/quick/harvest?' + new URLSearchParams({
                     crop_name: p.crop_name || '',
@@ -6026,7 +6057,8 @@ Calculate for ${contextPayload.planning_year}.`;
                     quantity: p.quantity || '',
                     succession_number: p.succession_id || 1,
                     harvest_date: p.harvest_date || '',
-                    season: p.season || ''
+                    season: p.season || '',
+                    plan: planId // CRITICAL: Links quick form to crop plan for automatic planting record creation
                 }).toString()
             };
 
@@ -11252,6 +11284,62 @@ Plantings:`;
                 askHolisticAI(fullPrompt, 'modification_request');
             }
         }
+    }
+    
+    // ===== CROP PLAN INTEGRATION =====
+    
+    /**
+     * Initialize crop plan ID from input field
+     */
+    function initializeCropPlanId() {
+        const planInput = document.getElementById('cropPlanId');
+        if (planInput) {
+            planInput.addEventListener('change', function() {
+                window.cropPlanId = this.value || '';
+                console.log('🔗 Crop Plan ID set to:', window.cropPlanId);
+                if (window.cropPlanId) {
+                    showToast(`Linked to Crop Plan #${window.cropPlanId}`, 'success');
+                }
+            });
+            
+            // Set initial value if exists
+            if (planInput.value) {
+                window.cropPlanId = planInput.value;
+                console.log('🔗 Initial Crop Plan ID:', window.cropPlanId);
+            }
+        }
+    }
+    
+    /**
+     * Test crop plan link - opens farmOS crop plan page
+     */
+    function testCropPlanLink() {
+        const planId = document.getElementById('cropPlanId')?.value;
+        
+        if (!planId) {
+            showToast('Please enter a Crop Plan ID first', 'warning');
+            return;
+        }
+        
+        const farmOSUrl = `https://farmos.soilsync.shop/plan/${planId}`;
+        
+        // Open in new tab
+        const newWindow = window.open(farmOSUrl, '_blank');
+        
+        if (newWindow) {
+            showToast(`Opening Crop Plan #${planId}...`, 'info');
+        } else {
+            showToast('Please allow popups for this site', 'warning');
+            // Fallback: show URL
+            alert(`Open this URL in a new tab:\n${farmOSUrl}`);
+        }
+    }
+    
+    // Initialize crop plan ID handler on page load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeCropPlanId);
+    } else {
+        initializeCropPlanId();
     }
     
 </script>

@@ -52,3 +52,21 @@ admin.soilsync.shop/bootstrap/cache/*.php
 # farmOS specific
 farmos.soilsync.shop/web/sites/default/files/
 farmos.soilsync.shop/web/sites/*/files/private/
+
+# Test/cleanup scripts
+admin.soilsync.shop/cleanup-*.php
+admin.soilsync.shop/test-*.php
+httpdocs/debug-*.php
+httpdocs/force-*.php
+
+# OAuth credentials (sensitive)
+farmos.soilsync.shop/oauth-credentials-*.txt
+
+# FieldKit (separate installation)
+feildkit.soilsync.shop/
+
+# WordPress additional themes/templates (not custom)
+httpdocs/wp-content/themes/blockbase/
+httpdocs/wp-content/themes/twentytwentyfive/templates/archive-product.html
+httpdocs/wp-content/themes/twentytwentyfive/woocommerce/
+httpdocs/wp-content/themes/middleworld-farms/js/

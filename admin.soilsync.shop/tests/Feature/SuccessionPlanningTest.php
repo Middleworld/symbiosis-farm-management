@@ -9,13 +9,13 @@ use Tests\TestCase;
 class SuccessionPlanningTest extends TestCase
 {
     /**
-     * A basic feature test example.
+     * Test that root redirects to admin area (which requires SSO login)
      */
-    public function test_root_redirects_to_admin_login(): void
+    public function test_root_redirects_to_admin_area(): void
     {
         $response = $this->get('/');
 
         $response->assertStatus(302);
-        $response->assertRedirect(route('admin.login.form'));
+        $response->assertRedirect('/admin');
     }
 }

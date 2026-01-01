@@ -18,6 +18,26 @@ Laravel 12 (PHP 8.2+) application for Community Supported Agriculture (CSA) deli
 - **CPU-ONLY SERVER**: No GPU access - all AI processing on CPU requires 60-90s timeouts minimum
 - **ALL FILE CHANGES ARE IMMEDIATELY LIVE**: Test carefully before editing
 
+## Recent Critical Fixes (January 2026)
+
+### SSO Authentication (Laravel → farmOS)
+- **Issue**: OAuth tokens missing required scopes for OpenID Connect
+- **Solution**: Changed `Passport::setDefaultScope([])` to `Passport::setDefaultScope(['openid', 'email', 'profile'])` in `AppServiceProvider.php`
+- **Impact**: farmOS `/api/user` endpoint now accessible with OAuth tokens, SSO login working
+
+### farmOS Map Satellite Layers Disappearing
+- **Root Cause**: `config_update` module was reverting configs to module defaults during cache rebuilds
+- **Solution**: Edit module install configs directly in `web/profiles/farm/modules/*/config/install/farm_map.map_type.*.yml`
+- **Files Modified**: dashboard.yml, asset_list.yml, locations.yml, geofield.yml, default.yml
+- **Added**: `- satellite_layers` to behaviors array in all map type defaults
+- **Result**: Satellite layers now survive `drush cr` - NO MORE PHP SCRIPT NEEDED
+
+### farmOS Crop Planning Module Enabled
+- **Module**: `farm_crop_plan` (version 3.0.0-alpha3)
+- **Features**: Crop planning with timeline visualization, planting records, quick form integration
+- **Routes**: `/plan/add/crop`, `/plan/{id}/timeline/crop/plant_type`, `/plan/{id}/timeline/crop/location`
+- **Integration**: Succession planner now supports `?plan={id}` parameter for automatic crop planting record creation
+
 ## Development Workflow
 
 ### Staging Environment Setup (December 2025)
@@ -280,9 +300,9 @@ php artisan migrate        # Laravel tables only
 ## farmOS Integration Specifics
 
 ### OAuth2 Setup Documentation
-**For new installations:** See `docs/FARMOS_OAUTH_SETUP_COMPLETE.md` for complete OAuth2 setup guide.
+**For new installations:** See `admin.soilsync.shop/docs/FARMOS_OAUTH_SETUP_COMPLETE.md` for complete OAuth2 setup guide.
 
-**Quick reference:** See `docs/FARMOS_OAUTH_QUICKSTART.md` for 5-minute setup checklist.
+**Quick reference:** See `admin.soilsync.shop/docs/FARMOS_OAUTH_QUICKSTART.md` for 5-minute setup checklist.
 
 **Critical OAuth Setup Requirements:**
 1. **RSA Keys** (Most common failure point):
@@ -620,5 +640,5 @@ php artisan vegbox:process-renewals --dry-run
 ## Documentation Links
 
 - Main README: Project setup and features
-- SUCCESSION_PLANNER_README.md: Complete workflow for succession planning
-- CONTRIBUTING.md: Development setup (Docker/traditional)
+- admin.soilsync.shop/docs/SUCCESSION_PLANNER_README.md: Complete workflow for succession planning
+- admin.soilsync.shop/docs/CONTRIBUTING.md: Development setup (Docker/traditional)

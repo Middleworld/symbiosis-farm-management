@@ -285,7 +285,7 @@ async def ingest_biodynamics():
 async def ingest_admin_docs():
     """Ingest all markdown documentation files from docs folder into vector store."""
     try:
-        docs_path = "/opt/sites/admin.soilsync.shop/docs"
+        docs_path = "/var/www/vhosts/soilsync.shop/admin.soilsync.shop/docs"
         md_files = glob.glob(os.path.join(docs_path, "*.md"))
         
         if not md_files:
@@ -668,4 +668,4 @@ def generate_hexagonal_sacred_layout(spacing: float, max_plants: int) -> List[Tu
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8005)

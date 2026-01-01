@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Laravel\Passport\Passport;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\Api\VegboxSubscriptionApiController;
 use App\Http\Controllers\Api\BoxCustomizationApiController;
@@ -20,8 +21,18 @@ use App\Http\Controllers\Api\BrandingController;
 
 // Passport::routes();
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+// OAuth2 userinfo endpoint for OpenID Connect (FarmOS SSO)
+Route::middleware('auth:api')->get('/user', function (Request $request) {
+    $user = $request->user();
+    
+    // Return user info in OpenID Connect format
+    return response()->json([
+        'sub' => (string) $user->id,
+        'name' => $user->name,
+        'email' => $user->email,
+        'email_verified' => true,
+        'preferred_username' => $user->email,
+    ]);
 });
 
 // SSO verification

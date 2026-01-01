@@ -42,11 +42,34 @@ class AdminAuthentication
                 return response()->json(['error' => 'Unauthorized'], 401);
             }
 
-            // Redirect to login with message
-            return redirect(config('app.url') . '/admin/login')->with('error', 'Please log in to access the admin panel.');
+            // Redirect to SSO login with message
+            return redirect(config('app.url') . '/sso/login')->with('error', 'Please log in to access the admin panel.');
         }
 
-        // Simple session check without timeout for now
+        // Check for idle timeout (30 minutes of inactivity)
+        $lastActivity = Session::get('admin_last_activity');
+        $idleTimeout = 30 * 60; // 30 minutes in seconds
+        
+        if ($lastActivity && now()->diffInSeconds($lastActivity) > $idleTimeout) {
+            // Session has been idle too long, force logout
+            Session::forget(['admin_authenticated', 'admin_last_activity']);
+            
+            // Log idle timeout
+            \Log::info('Admin session expired due to idle timeout', [
+                'ip' => $request->ip(),
+                'last_activity' => $lastActivity,
+                'idle_seconds' => now()->diffInSeconds($lastActivity)
+            ]);
+
+            // For AJAX requests, return JSON error
+            if ($request->ajax()) {
+                return response()->json(['error' => 'Session expired due to inactivity'], 401);
+            }
+
+            // Redirect to SSO login with timeout message
+            return redirect(config('app.url') . '/sso/login')->with('error', 'Your session has expired due to inactivity. Please log in again.');
+        }
+
         // Update last activity timestamp
         Session::put('admin_last_activity', now());
 

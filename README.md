@@ -86,9 +86,15 @@ symbiosis-farm-management/
 
 ### farmOS (`farmos.soilsync.shop/`)
 - **Purpose:** Field operations, crop planning, plant variety database
-- **Tech Stack:** Drupal 10.x, farmOS 3.x
+- **Tech Stack:** Drupal 10.x, farmOS 3.x, farm_crop_plan module
 - **Database:** `farmos_demo`
 - **URL:** https://farmos.soilsync.shop
+- **Key Features:** 
+  - Crop planning with timeline visualization
+  - Plant variety taxonomy with growing data
+  - Seeding/transplanting/harvest logs
+  - Quick forms for rapid data entry
+  - SSO integration with Laravel Admin
 
 ### farmOS Field Kit (Coming Soon)
 - **Purpose:** Mobile data collection and offline field work
@@ -106,7 +112,11 @@ WordPress Shop ←→ Laravel Admin ←→ farmOS ←→ Field Kit
 
 ### Key Integrations
 - **WordPress ↔ Laravel:** Product sync, order management, API authentication
-- **Laravel ↔ farmOS:** Plant variety data, planting schedules, harvest tracking
+- **Laravel ↔ farmOS:** 
+  - Plant variety data and growing metadata
+  - Succession planning with crop plan linking
+  - Planting schedules and harvest tracking
+  - SSO authentication (OAuth2/OpenID Connect)
 - **farmOS ↔ Field Kit:** Real-time field observations, offline-first data collection
 
 ## 🗄️ Database Structure

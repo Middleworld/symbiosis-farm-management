@@ -543,5 +543,5 @@ php artisan vegbox:process-renewals --dry-run
 ## Documentation Links
 
 - Main README: Project setup and features
-- SUCCESSION_PLANNER_README.md: Complete workflow for succession planning
-- CONTRIBUTING.md: Development setup (Docker/traditional)
+- docs/SUCCESSION_PLANNER_README.md: Complete workflow for succession planning
+- docs/CONTRIBUTING.md: Development setup (Docker/traditional)

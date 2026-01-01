@@ -113,4 +113,8 @@ return [
         'base_url' => env('COMPANIES_HOUSE_BASE_URL', 'https://api.company-information.service.gov.uk'),
     ],
 
+    'customer_site' => [
+        'url' => env('CUSTOMER_SITE_URL', 'https://middleworldfarms.org'),
+    ],
+
 ];

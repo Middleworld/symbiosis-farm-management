@@ -24,7 +24,7 @@ class ConversationAdminController extends Controller
     {
         // Verify admin authentication
         if (!Session::get('admin_authenticated', false)) {
-            return redirect()->route('admin.login')->with('error', 'Admin authentication required');
+            return redirect()->route('sso.login')->with('error', 'Admin authentication required');
         }
 
         $stats = [
@@ -44,7 +44,7 @@ class ConversationAdminController extends Controller
     public function show($id)
     {
         if (!Session::get('admin_authenticated', false)) {
-            return redirect()->route('admin.login');
+            return redirect()->route('sso.login');
         }
 
         $conversation = Conversation::findOrFail($id);

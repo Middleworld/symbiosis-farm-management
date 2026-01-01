@@ -34,6 +34,18 @@ class AppServiceProvider extends ServiceProvider
         // Register Passport view namespace
         \View::addNamespace('passport', resource_path('views/passport'));
         
+        // Define OAuth scopes for OpenID Connect compatibility
+        Passport::tokensCan([
+            'openid' => 'OpenID Connect authentication',
+            'profile' => 'Access user profile information',
+            'email' => 'Access user email address',
+            'farm_manager' => 'Full access to farm management',
+        ]);
+        
+        // Set default scopes to openid, email, profile if none requested
+        // This ensures OpenID Connect flow always gets required user info access
+        Passport::setDefaultScope(['openid', 'email', 'profile']);
+        
         // Force HTTPS scheme for all URLs
         if (config('app.env') === 'production') {
             \Illuminate\Support\Facades\URL::forceScheme('https');

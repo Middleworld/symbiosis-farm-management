@@ -21,6 +21,9 @@ Route::get('/dashboard', function () {
 
 // SSO routes
 Route::get('/sso/login', [App\Http\Controllers\SsoController::class, 'login'])->name('sso.login');
+Route::get('/sso/authenticate', function () {
+    return redirect('/sso/login');
+});
 Route::post('/sso/authenticate', [App\Http\Controllers\SsoController::class, 'authenticate'])->name('sso.authenticate');
 Route::get('/sso/logout', [App\Http\Controllers\SsoController::class, 'logout'])->name('sso.logout');
 Route::get('/sso/farmos-tokens', [App\Http\Controllers\SsoController::class, 'getFarmOSTokens'])->name('sso.farmos.tokens');
@@ -28,13 +31,11 @@ Route::get('/sso/dashboard', [App\Http\Controllers\SsoController::class, 'dashbo
 
 // Route for Passport redirect to login
 Route::get('/login', function () {
-    return redirect('/admin/login');
+    return redirect('/sso/login');
 })->name('login');
 
 // Authentication routes
 Route::prefix('admin')->group(function () {
-    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('admin.login.form');
-    Route::post('/login', [LoginController::class, 'login'])->name('admin.login');
     Route::post('/logout', [LoginController::class, 'logout'])->name('admin.logout');
 });
 

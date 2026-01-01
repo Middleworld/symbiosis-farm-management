@@ -34,18 +34,22 @@ class SsoController extends Controller
 
         // Prevent redirect loops: if redirecting to FarmOS and user is not authenticated,
         // redirect to WordPress homepage instead to prevent FarmOS -> SSO -> FarmOS loops
-        if (!Auth::check() && str_contains($redirectUrl, 'farmos.soilsync.shop')) {
-            return redirect('https://soilsync.shop');
-        }
+        // COMMENTED OUT: This prevents users from logging in to access FarmOS
+        // if (!Auth::check() && str_contains($redirectUrl, 'farmos.soilsync.shop')) {
+        //     return redirect('https://soilsync.shop');
+        // }
 
-        // Store redirect URL in session if provided
-        if ($request->has('redirect')) {
+        // Store redirect URL in session if provided and valid
+        if ($request->has('redirect') && $this->isValidRedirectUrl($request->get('redirect'))) {
             session(['sso_redirect_url' => $request->get('redirect')]);
         }
 
-        // If already authenticated, redirect back with JWT token
+        // If already authenticated, show dashboard instead of immediate redirect to prevent loops
         if (Auth::check()) {
-            return $this->redirectBackWithJwt();
+            return view('sso.dashboard', [
+                'user' => Auth::user(),
+                'redirect' => session('sso_redirect_url')
+            ]);
         }
 
         // Show login form
@@ -59,25 +63,60 @@ class SsoController extends Controller
         $credentials = $request->only('email', 'password');
 
         if (Auth::attempt($credentials)) {
-            $request->session()->regenerate();
-            
+            // Set admin authentication flag for admin middleware first
+            session(['admin_authenticated' => true]);
+
             // Also authenticate with farmOS and store tokens in session
             $this->authenticateWithFarmOS();
 
-            // Set admin authentication flag for admin middleware
-            session(['admin_authenticated' => true]);
+            // Regenerate session after setting up authentication
+            $request->session()->regenerate();
 
-            // Show post-login dashboard instead of immediate redirect
-            return view('sso.dashboard', [
-                'user' => Auth::user(),
-                'redirect' => session('sso_redirect_url')
-            ]);
+            // Redirect to dashboard instead of returning view to prevent refresh issues
+            return redirect()->route('sso.dashboard');
         }
 
         return back()->withErrors([
             'email' => 'Invalid credentials.',
         ]);
-    }    private function authenticateWithFarmOS()
+    }    /**
+     * Validate redirect URL to prevent open redirect attacks
+     */
+    private function isValidRedirectUrl(string $url): bool
+    {
+        // Only allow relative URLs or URLs within our trusted domains
+        $allowedHosts = [
+            'soilsync.shop',
+            'admin.soilsync.shop',
+            'farmos.soilsync.shop',
+            'fieldkit.soilsync.shop',
+            'feildkit.soilsync.shop', // With typo as configured
+            'middleworldfarms.org',
+            'admin.middleworldfarms.org'
+        ];
+
+        // Allow relative URLs (starting with /)
+        if (str_starts_with($url, '/')) {
+            return true;
+        }
+
+        // Parse URL and check host
+        $parsedUrl = parse_url($url);
+        if (!$parsedUrl || !isset($parsedUrl['host'])) {
+            return false;
+        }
+
+        // Check if host is in allowed list
+        foreach ($allowedHosts as $allowedHost) {
+            if (str_contains($parsedUrl['host'], $allowedHost)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function authenticateWithFarmOS()
     {
         try {
             $authService = FarmOSAuthService::getInstance();
@@ -158,8 +197,11 @@ class SsoController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         
-        // Return a simple response for the background logout request from WordPress
-        return response('Logged out', 200);
+        // Clear admin authentication flag
+        session()->forget('admin_authenticated');
+        
+        // Redirect to login page with logout indicator
+        return redirect('/sso/login?after_logout=1');
     }
 
     /**

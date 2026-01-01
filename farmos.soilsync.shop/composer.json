@@ -24,7 +24,8 @@
         "drupal/jsonapi_schema": "^1.0",
         "phpoffice/phpspreadsheet": "^5.0",
         "drupal/jsonapi_menu_items": "^1.2",
-        "drupal/core": "^10.4"
+        "drupal/core": "^10.4",
+        "drupal/openid_connect": "^1.4"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,

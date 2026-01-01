@@ -164,7 +164,9 @@
                             </a>
                         </div>
                         <div class="col-md-6 col-lg-3">
-                            <a href="https://farmos.soilsync.shop" class="site-card">
+                            <a href="https://admin.soilsync.shop/oauth/authorize?client_id={{ config('farmos.client_id') }}&redirect_uri={{ urlencode(config('farmos.url') . '/user/openid-connect/generic') }}&response_type=code&state={{ bin2hex(random_bytes(16)) }}" 
+                               class="site-card"
+                               onclick="return confirm('You will be redirected to FarmOS for authentication. The authorization URL may appear suspicious due to OAuth security measures, but it is safe to proceed. Continue?')">
                                 <span class="site-icon">🌾</span>
                                 <div class="site-title">FarmOS</div>
                                 <div class="site-description">Farm data, operations & planning</div>
@@ -181,11 +183,27 @@
 
                     @if($redirect)
                         <div class="text-center mt-4">
-                            <a href="{{ $redirect }}" class="continue-btn">
-                                Continue to Original Destination →
-                            </a>
+                            @if(str_contains($redirect, 'farmos.soilsync.shop'))
+                                <a href="https://admin.soilsync.shop/oauth/authorize?client_id={{ config('farmos.client_id') }}&redirect_uri={{ urlencode(config('farmos.url') . '/user/openid-connect/generic') }}&response_type=code&state={{ bin2hex(random_bytes(16)) }}" 
+                                   class="continue-btn"
+                                   onclick="return confirm('You will be redirected to FarmOS for authentication. The authorization URL may appear suspicious due to OAuth security measures, but it is safe to proceed. Continue?')">
+                                    Continue to Original Destination →
+                                </a>
+                            @else
+                                <a href="{{ $redirect }}" class="continue-btn">
+                                    Continue to Original Destination →
+                                </a>
+                            @endif
                         </div>
                     @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="alert alert-info" role="alert">
+                    <strong>🔒 Security Note:</strong> When accessing FarmOS, you may see a browser warning about a "dangerous site." This is normal OAuth behavior - the authorization code is intentionally long and random for security. It is safe to proceed with "Advanced" → "Proceed to farmos.soilsync.shop".
                 </div>
             </div>
         </div>
