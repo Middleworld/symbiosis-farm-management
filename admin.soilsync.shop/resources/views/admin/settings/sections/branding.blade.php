@@ -144,7 +144,7 @@
                         <div class="input-group">
                             <input type="color" class="form-control form-control-color" id="brand_primary_color" name="brand_primary_color" 
                                    value="{{ $branding->primary_color ?? '#2d5016' }}">
-                            <input type="text" class="form-control" value="{{ $branding->primary_color ?? '#2d5016' }}" readonly>
+                            <input type="text" class="form-control" value="{{ $branding->primary_color ?? '#2d5016' }}" placeholder="#2d5016" maxlength="7">
                         </div>
                     </div>
                     <div class="mb-3">
@@ -152,7 +152,7 @@
                         <div class="input-group">
                             <input type="color" class="form-control form-control-color" id="brand_secondary_color" name="brand_secondary_color" 
                                    value="{{ $branding->secondary_color ?? '#5a7c3e' }}">
-                            <input type="text" class="form-control" value="{{ $branding->secondary_color ?? '#5a7c3e' }}" readonly>
+                            <input type="text" class="form-control" value="{{ $branding->secondary_color ?? '#5a7c3e' }}" placeholder="#5a7c3e" maxlength="7">
                         </div>
                     </div>
                     <div class="mb-3">
@@ -160,7 +160,7 @@
                         <div class="input-group">
                             <input type="color" class="form-control form-control-color" id="brand_accent_color" name="brand_accent_color" 
                                    value="{{ $branding->accent_color ?? '#f5c518' }}">
-                            <input type="text" class="form-control" value="{{ $branding->accent_color ?? '#f5c518' }}" readonly>
+                            <input type="text" class="form-control" value="{{ $branding->accent_color ?? '#f5c518' }}" placeholder="#f5c518" maxlength="7">
                         </div>
                     </div>
                     <div class="mb-3">
@@ -168,7 +168,7 @@
                         <div class="input-group">
                             <input type="color" class="form-control form-control-color" id="brand_text_color" name="brand_text_color" 
                                    value="{{ $branding->text_color ?? '#1a1a1a' }}">
-                            <input type="text" class="form-control" value="{{ $branding->text_color ?? '#1a1a1a' }}" readonly>
+                            <input type="text" class="form-control" value="{{ $branding->text_color ?? '#1a1a1a' }}" placeholder="#1a1a1a" maxlength="7">
                         </div>
                         <small class="form-text text-muted">Color for text elements on colored backgrounds</small>
                     </div>
@@ -177,7 +177,7 @@
                         <div class="input-group">
                             <input type="color" class="form-control form-control-color" id="brand_sidebar_text_color" name="brand_sidebar_text_color" 
                                    value="{{ $branding->sidebar_text_color ?? '#ffffff' }}">
-                            <input type="text" class="form-control" value="{{ $branding->sidebar_text_color ?? '#ffffff' }}" readonly>
+                            <input type="text" class="form-control" value="{{ $branding->sidebar_text_color ?? '#ffffff' }}" placeholder="#ffffff" maxlength="7">
                         </div>
                         <small class="form-text text-muted">Color for text in the sidebar navigation</small>
                     </div>
@@ -198,7 +198,7 @@
                         <div class="input-group">
                             <input type="color" class="form-control form-control-color" id="brand_background_color" name="brand_background_color" 
                                    value="{{ $branding->background_color ?? '#ffffff' }}">
-                            <input type="text" class="form-control" value="{{ $branding->background_color ?? '#ffffff' }}" readonly>
+                            <input type="text" class="form-control" value="{{ $branding->background_color ?? '#ffffff' }}" placeholder="#ffffff" maxlength="7">
                         </div>
                     </div>
                     <div class="mb-3">
@@ -206,7 +206,7 @@
                         <div class="input-group">
                             <input type="color" class="form-control form-control-color" id="brand_border_color" name="brand_border_color" 
                                    value="{{ $branding->border_color ?? '#dee2e6' }}">
-                            <input type="text" class="form-control" value="{{ $branding->border_color ?? '#dee2e6' }}" readonly>
+                            <input type="text" class="form-control" value="{{ $branding->border_color ?? '#dee2e6' }}" placeholder="#dee2e6" maxlength="7">
                         </div>
                     </div>
                     <div class="row">
@@ -215,7 +215,7 @@
                             <div class="input-group">
                                 <input type="color" class="form-control form-control-color" id="brand_success_color" name="brand_success_color" 
                                        value="{{ $branding->success_color ?? '#28a745' }}">
-                                <input type="text" class="form-control" value="{{ $branding->success_color ?? '#28a745' }}" readonly>
+                                <input type="text" class="form-control" value="{{ $branding->success_color ?? '#28a745' }}" placeholder="#28a745" maxlength="7">
                             </div>
                         </div>
                         <div class="col-md-4 mb-3">
@@ -223,7 +223,7 @@
                             <div class="input-group">
                                 <input type="color" class="form-control form-control-color" id="brand_warning_color" name="brand_warning_color" 
                                        value="{{ $branding->warning_color ?? '#ffc107' }}">
-                                <input type="text" class="form-control" value="{{ $branding->warning_color ?? '#ffc107' }}" readonly>
+                                <input type="text" class="form-control" value="{{ $branding->warning_color ?? '#ffc107' }}" placeholder="#ffc107" maxlength="7">
                             </div>
                         </div>
                         <div class="col-md-4 mb-3">
@@ -231,7 +231,7 @@
                             <div class="input-group">
                                 <input type="color" class="form-control form-control-color" id="brand_danger_color" name="brand_danger_color" 
                                        value="{{ $branding->danger_color ?? '#dc3545' }}">
-                                <input type="text" class="form-control" value="{{ $branding->danger_color ?? '#dc3545' }}" readonly>
+                                <input type="text" class="form-control" value="{{ $branding->danger_color ?? '#dc3545' }}" placeholder="#dc3545" maxlength="7">
                             </div>
                         </div>
                     </div>

@@ -18,3 +18,60 @@ Tags: custom, branding, agriculture, csa
  */
 
 /* Custom CSS Variables will be injected here from Laravel API */
+
+/* Apply branding colors to theme elements */
+body {
+    font-family: var(--mwf-font-body, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+    color: var(--mwf-text, #000000);
+    background-color: var(--mwf-background, #ffffff);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--mwf-font-heading, 'Inter', system-ui, sans-serif);
+}
+
+/* Links and buttons */
+a {
+    color: var(--mwf-primary, #2271b1);
+}
+
+a:hover {
+    color: var(--mwf-accent, #135e96);
+}
+
+/* Primary buttons */
+.wp-block-button__link,
+.wp-element-button,
+button[type="submit"],
+input[type="submit"] {
+    background-color: var(--mwf-primary, #2271b1);
+    border-color: var(--mwf-primary, #2271b1);
+    color: var(--mwf-sidebar-text, #ffffff);
+}
+
+.wp-block-button__link:hover,
+.wp-element-button:hover,
+button[type="submit"]:hover,
+input[type="submit"]:hover {
+    background-color: var(--mwf-accent, #135e96);
+    border-color: var(--mwf-accent, #135e96);
+}
+
+/* Header and navigation */
+.wp-site-blocks header,
+.site-header,
+.wp-block-navigation {
+    background-color: var(--mwf-sidebar-bg, #1d2327);
+}
+
+.wp-block-navigation a,
+.site-header a {
+    color: var(--mwf-sidebar-text, #ffffff);
+}
+
+/* Site title */
+.wp-block-site-title a,
+.site-title a {
+    color: var(--mwf-primary, #2271b1);
+    font-family: var(--mwf-font-heading, 'Inter', system-ui, sans-serif);
+}

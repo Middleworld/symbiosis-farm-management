@@ -305,6 +305,9 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
     // Payment settings routes (Stripe, MWF)
     Route::post('/settings/update-payments', [App\Http\Controllers\Admin\SettingsController::class, 'updatePaymentSettings'])->name('admin.settings.update-payments');
     
+    // Branding settings routes
+    Route::post('/settings/update-branding', [App\Http\Controllers\Admin\SettingsController::class, 'updateBrandingSettings'])->name('admin.settings.update-branding');
+    
     // Branding API endpoint for external integrations (WordPress, etc.)
     Route::get('/api/branding/active', [App\Http\Controllers\Admin\SettingsController::class, 'getActiveBranding'])->name('admin.api.branding.active');
     
