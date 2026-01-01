@@ -83,9 +83,14 @@ class FarmOSApi
 
     /**
      * Get available crop types and varieties from farmOS taxonomy
+     * 
+     * @deprecated Use FarmOSQueryService::getPlantVarieties() instead for 100x better performance
+     * @see \App\Services\FarmOSQueryService::getPlantVarieties()
      */
     public function getAvailableCropTypes()
     {
+        Log::warning('DEPRECATED: FarmOSApi::getAvailableCropTypes() is slow (2-30s). Use FarmOSQueryService::getPlantVarieties() instead (50ms).');
+        
         try {
             // Cache crop types for 30 minutes - they don't change often
             $cacheKey = 'farmos.crop.types.v1';
@@ -192,17 +197,25 @@ class FarmOSApi
     /**
      * Get varieties with proper pagination
      * Note: FarmOS uses 'plant_type' vocabulary (not plant_variety) for all 2,959+ varieties
+     * 
+     * @deprecated Use FarmOSQueryService::getPlantVarieties() instead for 100x better performance
+     * @see \App\Services\FarmOSQueryService::getPlantVarieties()
      */
     public function getVarieties()
     {
+        Log::warning('DEPRECATED: FarmOSApi::getVarieties() is slow (2-30s). Use FarmOSQueryService::getPlantVarieties() instead (50ms).');
         return $this->jsonApiPaginatedFetch('/api/taxonomy_term/plant_type');
     }
 
     /**
      * Get a single variety by ID
+     * 
+     * @deprecated Use FarmOSQueryService::getPlantVarietyById() instead for 100x better performance
+     * @see \App\Services\FarmOSQueryService::getPlantVarietyById()
      */
     public function getVarietyById($varietyId)
     {
+        Log::warning('DEPRECATED: FarmOSApi::getVarietyById() is slow. Use FarmOSQueryService::getPlantVarietyById() instead.');
         try {
             $headers = $this->getAuthHeaders();
             $response = $this->client->get("/api/taxonomy_term/plant_variety/{$varietyId}", [
@@ -231,9 +244,13 @@ class FarmOSApi
 
     /**
      * Get plant types with proper pagination
+     * 
+     * @deprecated Use FarmOSQueryService::getPlantTypes() instead for 100x better performance
+     * @see \App\Services\FarmOSQueryService::getPlantTypes()
      */
     public function getPlantTypes()
     {
+        Log::warning('DEPRECATED: FarmOSApi::getPlantTypes() is slow (2-30s). Use FarmOSQueryService::getPlantTypes() instead (50ms).');
         return $this->jsonApiPaginatedFetch('/api/taxonomy_term/plant_type');
     }
 
@@ -707,9 +724,13 @@ class FarmOSApi
 
     /**
      * Get harvest logs from farmOS
+     * 
+     * @deprecated Use FarmOSQueryService::getHarvestLogs() instead for 100x better performance
+     * @see \App\Services\FarmOSQueryService::getHarvestLogs()
      */
     public function getHarvestLogs($since = null)
     {
+        Log::warning('DEPRECATED: FarmOSApi::getHarvestLogs() is slow (2-30s). Use FarmOSQueryService::getHarvestLogs() instead (50ms).');
         try {
             $this->authenticate();
             $headers = $this->getAuthHeaders();

@@ -54,6 +54,11 @@ docs/
 │   ├── BACKUP_RECOVERY.md
 │   └── SECURITY.md
 │
+├── FARMOS_FIELD_KIT_INSTALLATION.md     # FarmOS Field Kit setup
+├── SSO_IMPLEMENTATION_GUIDE.md          # SSO authentication guide
+├── SUCCESSION_PLANNER_README.md         # Succession planning workflow
+├── SUBSCRIPTION_TESTING_GUIDE.md        # Subscription testing procedures
+│
 └── internal/             # Internal/development notes
     └── *.md              # Implementation notes, status reports
 ```
@@ -63,10 +68,12 @@ docs/
 ### By Feature
 - **Subscription Management**: [User Manual](user-manual/SUBSCRIPTION_MANAGEMENT.md) | [API Reference](developer/api/SUBSCRIPTION_API.md)
 - **Delivery Routes**: [User Manual](user-manual/DELIVERY_MANAGEMENT.md)
-- **FarmOS Integration**: [Developer Guide](developer/integrations/FARMOS.md)
-- **Crop Planning**: [User Manual](user-manual/SUCCESSION_PLANNING.md)
+- **FarmOS Integration**: [Developer Guide](developer/integrations/FARMOS.md) | [Field Kit](FARMOS_FIELD_KIT_INSTALLATION.md)
+- **Crop Planning**: [User Manual](user-manual/SUCCESSION_PLANNING.md) | [Succession Planner](SUCCESSION_PLANNER_README.md)
 - **Task System**: [User Manual](user-manual/TASK_SYSTEM.md)
 - **CRM Integration**: [User Manual](user-manual/CRM_USAGE.md) | [Developer Guide](developer/integrations/3CX.md)
+- **SSO Authentication**: [Implementation Guide](SSO_IMPLEMENTATION_GUIDE.md)
+- **Subscription Testing**: [Testing Guide](SUBSCRIPTION_TESTING_GUIDE.md)
 
 ### By Audience
 

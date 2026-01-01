@@ -17,15 +17,44 @@ if (!defined('ABSPATH')) {
 function middleworld_farms_enqueue_styles() {
     // Parent theme stylesheet
     wp_enqueue_style('parent-style', get_template_directory_uri() . '/style.css');
-    
+
     // Child theme stylesheet
     wp_enqueue_style('child-style',
         get_stylesheet_directory_uri() . '/style.css',
         array('parent-style'),
         wp_get_theme()->get('Version')
     );
+
+    // Swiper carousel styles
+    wp_enqueue_style('swiper-css',
+        'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css',
+        array(),
+        '11.0.0'
+    );
 }
 add_action('wp_enqueue_scripts', 'middleworld_farms_enqueue_styles');
+
+/**
+ * Enqueue scripts
+ */
+function middleworld_farms_enqueue_scripts() {
+    // Swiper carousel script
+    wp_enqueue_script('swiper-js',
+        'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js',
+        array(),
+        '11.0.0',
+        true
+    );
+
+    // Custom carousel initialization
+    wp_enqueue_script('vegbox-carousel',
+        get_stylesheet_directory_uri() . '/js/vegbox-carousel.js',
+        array('swiper-js'),
+        wp_get_theme()->get('Version'),
+        true
+    );
+}
+add_action('wp_enqueue_scripts', 'middleworld_farms_enqueue_scripts');
 
 /**
  * Fetch branding data from Laravel API

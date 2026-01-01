@@ -6,24 +6,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="format-detection" content="telephone=no">
     
-    <!-- Dynamic branding CSS variables -->
-    <style>
-        :root {
-            --brand-primary: {{ $branding ? $branding->primary_color : '#2d5016' }};
-            --brand-secondary: {{ $branding ? $branding->secondary_color : '#5a7c3e' }};
-            --brand-accent: {{ $branding ? $branding->accent_color : '#f5c518' }};
-            --brand-text: {{ $branding ? $branding->text_color : '#333333' }};
-            --brand-background: {{ $branding ? $branding->background_color : '#ffffff' }};
-        }
-
-        /* Apply branding colors */
-        .bg-primary { background-color: var(--brand-primary) !important; }
-        .text-primary { color: var(--brand-primary) !important; }
-        .btn-primary { background-color: var(--brand-primary) !important; border-color: var(--brand-primary) !important; }
-        .btn-primary:hover { background-color: var(--brand-secondary) !important; border-color: var(--brand-secondary) !important; }
-        
-        .sidebar { background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary)) !important; }
-    </style>
+    <!-- Dynamic branding CSS variables and custom styles -->
+    {!! $brandingCss ?? '' !!}
     
     @stack('head')
     <title>@yield('title', $branding ? $branding->company_name : 'Symbiosis')</title>
@@ -146,11 +130,25 @@
             background-color: var(--brand-primary);
         }
         
+        .sidebar-logo {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
         .logo-container img:hover,
         .rounded-logo:hover {
             transform: scale(1.05);
             filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
             border-color: rgba(255,255,255,0.3);
+        }
+        
+        .sidebar-logo:hover {
+            transform: scale(1.1);
+            filter: drop-shadow(0 3px 8px rgba(0,0,0,0.3));
         }
         
         .sidebar.collapsed .logo-container {
@@ -186,7 +184,7 @@
             margin: 0;
             font-size: 1.2rem;
             transition: all 0.3s ease;
-            color: white;
+            color: var(--brand-sidebar-text, white);
             text-shadow: 0 1px 2px rgba(0,0,0,0.3);
             font-weight: 600;
         }
@@ -196,7 +194,7 @@
         }
         
         .sidebar .nav-link {
-            color: #bdc3c7;
+            color: var(--brand-sidebar-text, #bdc3c7);
             padding: 15px 20px;
             display: flex;
             align-items: center;
@@ -207,12 +205,12 @@
         
         .sidebar .nav-link:hover {
             background: var(--sidebar-hover);
-            color: white;
+            color: var(--brand-sidebar-text, white);
         }
         
         .sidebar .nav-link.active {
             background: var(--sidebar-active);
-            color: white;
+            color: var(--brand-sidebar-text, white);
         }
         
         .sidebar .nav-link i {
@@ -251,7 +249,7 @@
             font-size: 0.8rem;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: #7f8c8d;
+            color: var(--brand-sidebar-text, #7f8c8d);
             border-bottom: 1px solid #34495e;
             margin-bottom: 5px;
         }
@@ -520,11 +518,14 @@
                 <i class="fas fa-bars"></i>
             </button>
             <div class="logo-container mt-4">
-                @if($branding && $branding->logo_path)
+                @if($branding && $branding->logo_small_path)
+                    <img src="{{ secure_url($branding->logo_small_path) }}" 
+                         alt="{{ $branding->logo_alt_text ?? $branding->company_name ?? 'Logo' }}" class="sidebar-logo">
+                @elseif($branding && $branding->logo_path)
                     <img src="{{ secure_url($branding->logo_path) }}" 
-                         alt="{{ $branding->logo_alt_text ?? $branding->company_name ?? 'Logo' }}" class="rounded-logo">
+                         alt="{{ $branding->logo_alt_text ?? $branding->company_name ?? 'Logo' }}" class="sidebar-logo">
                 @else
-                    <img src="/Middle World Logo Image White - PNG FOR SCREENS.png" alt="Middle World Farms" class="rounded-logo">
+                    <img src="/Middle World Logo Image White - PNG FOR SCREENS.png" alt="Middle World Farms" class="sidebar-logo">
                 @endif
             </div>
             <h4 class="mb-0 mt-2">{{ $branding->company_name ?? 'Symbiosis' }}</h4>

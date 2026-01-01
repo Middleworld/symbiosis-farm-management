@@ -422,6 +422,8 @@ class SettingsController extends Controller
                 'primary_color' => $request->brand_primary_color,
                 'secondary_color' => $request->brand_secondary_color,
                 'accent_color' => $request->brand_accent_color,
+                'text_color' => $request->brand_text_color,
+                'sidebar_text_color' => $request->brand_sidebar_text_color,
                 'contact_email' => $request->brand_contact_email,
                 'contact_phone' => $request->brand_contact_phone,
                 'address' => $request->brand_address,
@@ -2874,6 +2876,29 @@ class SettingsController extends Controller
     }
     
     /**
+     * Get active branding data for external integrations (WordPress, etc.)
+     */
+    public function getActiveBranding(Request $request)
+    {
+        try {
+            $branding = BrandSetting::active();
+            
+            return response()->json([
+                'success' => true,
+                'data' => $branding->toApiArray()
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Failed to fetch active branding: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch branding data'
+            ], 500);
+        }
+    }
+
+    /**
      * Update branding settings in database
      */
     public function updateBrandingSettings(Request $request)
@@ -2885,10 +2910,23 @@ class SettingsController extends Controller
                 'primary_color' => $request->brand_primary_color,
                 'secondary_color' => $request->brand_secondary_color,
                 'accent_color' => $request->brand_accent_color,
+                'text_color' => $request->brand_text_color,
+                'sidebar_text_color' => $request->brand_sidebar_text_color,
+                'background_color' => $request->brand_background_color,
+                'border_color' => $request->brand_border_color,
+                'success_color' => $request->brand_success_color,
+                'warning_color' => $request->brand_warning_color,
+                'danger_color' => $request->brand_danger_color,
                 'contact_email' => $request->brand_contact_email,
                 'contact_phone' => $request->brand_contact_phone,
                 'address' => $request->brand_address,
                 'logo_alt_text' => $request->brand_logo_alt_text,
+                'custom_css' => $request->brand_custom_css,
+                'theme_preset' => $request->brand_theme_preset,
+                'fonts' => [
+                    'heading' => $request->brand_font_heading,
+                    'body' => $request->brand_font_body,
+                ],
                 'social_links' => [
                     'facebook' => $request->brand_social_facebook,
                     'instagram' => $request->brand_social_instagram,

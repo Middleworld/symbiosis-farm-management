@@ -232,4 +232,14 @@ class FarmOSAuthService
             ];
         }
     }
+
+    /**
+     * Logout by clearing cached tokens
+     */
+    public function logout()
+    {
+        Cache::forget(self::TOKEN_CACHE_KEY);
+        Cache::forget(self::EXPIRY_CACHE_KEY);
+        Log::info('FarmOS tokens cleared from cache (logout)');
+    }
 }

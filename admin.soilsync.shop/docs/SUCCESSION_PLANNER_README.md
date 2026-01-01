@@ -193,4 +193,30 @@ User Input → JavaScript Validation → AI Processing → Backend Calculation �
 - **Template Reuse**: Saved planning configurations
 - **Mobile Responsive**: Works on all devices
 
+## 🔧 **Recent Improvements (December 2025)**
+
+### **Bed Occupancy Integration**
+- **Real-Time Data**: Fetches live bed occupancy from farmOS
+- **Timeline Visualization**: Shows existing plantings on timeline
+- **Conflict Prevention**: Prevents double-booking of beds
+- **Pagination Support**: Handles large bed datasets (100+ beds)
+
+### **Timeline Display Fixes**
+- **Block Organization**: Intelligent bed grouping by farm blocks
+- **Visual Separators**: Hedgerow indicators between blocks
+- **Date Header Cleanup**: Removed duplicate month labels
+- **Bed Filtering**: Excludes block header entries from bed lists
+
+### **API Enhancements**
+- **Bed Occupancy Endpoint**: `GET /admin/farmos/succession-planning/bed-occupancy`
+- **Pagination Handling**: Full pagination for large datasets
+- **Error Resilience**: Graceful handling of API timeouts
+- **Data Caching**: Optimized API calls with smart caching
+
+### **UI/UX Improvements**
+- **Loading States**: Better feedback during data fetching
+- **Error Messages**: Clear error communication
+- **Responsive Design**: Improved mobile timeline interaction
+- **Performance**: Faster timeline rendering with large datasets
+
 This comprehensive workflow transforms complex succession planning from an error-prone manual process into an intelligent, data-driven system that integrates seamlessly with farmOS operations.

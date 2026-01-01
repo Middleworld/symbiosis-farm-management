@@ -126,9 +126,11 @@ class ImportWooSubscriptions extends Command
      */
     protected function getWooCommerceSubscriptions()
     {
+        $prefix = config('database.connections.wordpress.prefix', '');
+
         return DB::connection('wordpress')
-            ->select('
-                SELECT 
+            ->select("
+                SELECT
                     p.ID as subscription_id,
                     p.post_status,
                     p.post_date,
@@ -142,23 +144,21 @@ class ImportWooSubscriptions extends Command
                     pm_billing_period.meta_value as billing_period,
                     pm_billing_interval.meta_value as billing_interval,
                     pm_order_total.meta_value as order_total
-                FROM D6sPMX_posts p
-                LEFT JOIN D6sPMX_postmeta pm_customer ON p.ID = pm_customer.post_id AND pm_customer.meta_key = "_customer_user"
-                LEFT JOIN D6sPMX_postmeta pm_status ON p.ID = pm_status.post_id AND pm_status.meta_key = "_status"
-                LEFT JOIN D6sPMX_postmeta pm_start ON p.ID = pm_start.post_id AND pm_start.meta_key = "_schedule_start"
-                LEFT JOIN D6sPMX_postmeta pm_next ON p.ID = pm_next.post_id AND pm_next.meta_key = "_schedule_next_payment"
-                LEFT JOIN D6sPMX_postmeta pm_end ON p.ID = pm_end.post_id AND pm_end.meta_key = "_schedule_end"
-                LEFT JOIN D6sPMX_postmeta pm_trial_end ON p.ID = pm_trial_end.post_id AND pm_trial_end.meta_key = "_schedule_trial_end"
-                LEFT JOIN D6sPMX_postmeta pm_billing_period ON p.ID = pm_billing_period.post_id AND pm_billing_period.meta_key = "_billing_period"
-                LEFT JOIN D6sPMX_postmeta pm_billing_interval ON p.ID = pm_billing_interval.post_id AND pm_billing_interval.meta_key = "_billing_interval"
-                LEFT JOIN D6sPMX_postmeta pm_order_total ON p.ID = pm_order_total.post_id AND pm_order_total.meta_key = "_order_total"
-                WHERE p.post_type = "shop_subscription"
-                AND p.post_status IN ("wc-active", "wc-pending", "wc-on-hold", "wc-cancelled", "wc-expired")
+                FROM {$prefix}posts p
+                LEFT JOIN {$prefix}postmeta pm_customer ON p.ID = pm_customer.post_id AND pm_customer.meta_key = '_customer_user'
+                LEFT JOIN {$prefix}postmeta pm_status ON p.ID = pm_status.post_id AND pm_status.meta_key = '_status'
+                LEFT JOIN {$prefix}postmeta pm_start ON p.ID = pm_start.post_id AND pm_start.meta_key = '_schedule_start'
+                LEFT JOIN {$prefix}postmeta pm_next ON p.ID = pm_next.post_id AND pm_next.meta_key = '_schedule_next_payment'
+                LEFT JOIN {$prefix}postmeta pm_end ON p.ID = pm_end.post_id AND pm_end.meta_key = '_schedule_end'
+                LEFT JOIN {$prefix}postmeta pm_trial_end ON p.ID = pm_trial_end.post_id AND pm_trial_end.meta_key = '_schedule_trial_end'
+                LEFT JOIN {$prefix}postmeta pm_billing_period ON p.ID = pm_billing_period.post_id AND pm_billing_period.meta_key = '_billing_period'
+                LEFT JOIN {$prefix}postmeta pm_billing_interval ON p.ID = pm_billing_interval.post_id AND pm_billing_interval.meta_key = '_billing_interval'
+                LEFT JOIN {$prefix}postmeta pm_order_total ON p.ID = pm_order_total.post_id AND pm_order_total.meta_key = '_order_total'
+                WHERE p.post_type = 'shop_subscription'
+                AND p.post_status IN ('wc-active', 'wc-pending', 'wc-on-hold', 'wc-cancelled', 'wc-expired')
                 ORDER BY p.ID DESC
-            ');
-    }
-
-    /**
+            ");
+    }    /**
      * Ensure default plan exists
      */
     protected function ensureDefaultPlan($isDryRun)

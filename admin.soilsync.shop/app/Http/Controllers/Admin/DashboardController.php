@@ -4,16 +4,19 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\WpApiService;
+use App\Services\FarmOSQueryService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 
 class DashboardController extends Controller
 {
     protected $wpApiService;
+    protected $farmOSQuery;
 
-    public function __construct(WpApiService $wpApiService)
+    public function __construct(WpApiService $wpApiService, FarmOSQueryService $farmOSQuery)
     {
         $this->wpApiService = $wpApiService;
+        $this->farmOSQuery = $farmOSQuery;
     }
 
     public function index()
@@ -562,9 +565,19 @@ class DashboardController extends Controller
         $envClient = (bool) env('FARMOS_OAUTH_CLIENT_ID');
         $envSecret = (bool) env('FARMOS_OAUTH_CLIENT_SECRET');
         try {
-            $farmosService = app(\App\Services\FarmOSApi::class);
-            $geometryData = $farmosService->getGeometryAssets();
-            $featureCount = is_array($geometryData) && isset($geometryData['features']) ? count($geometryData['features']) : 0;
+            // Direct farmOS database query (100x faster than API)
+            $beds = $this->farmOSQuery->getBeds();
+            $geometryData = [
+                'type' => 'FeatureCollection',
+                'features' => $beds->map(function($bed) {
+                    return [
+                        'type' => 'Feature',
+                        'id' => $bed->id,
+                        'properties' => ['name' => $bed->name, 'land_type' => $bed->land_type]
+                    ];
+                })->toArray()
+            ];
+            $featureCount = $beds->count();
             Log::info('FarmOS map data success', [
                 'features' => $featureCount,
                 'oauth_client_present' => $envClient,

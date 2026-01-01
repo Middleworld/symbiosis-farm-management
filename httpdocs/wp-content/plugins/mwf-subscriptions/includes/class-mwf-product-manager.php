@@ -25,15 +25,31 @@ class MWF_Product_Manager {
     private static $instance = null;
     
     /**
-     * Product IDs to manage
-     * @var array
+     * Dynamically find subscription products
+     * Products are identified by having _is_vegbox_subscription = 'yes'
+     *
+     * @return array Array of product IDs
      */
-    private $product_ids = [
-        226084, // Single Person
-        226083, // Couple's
-        226081, // Small Family
-        226082  // Large Family
-    ];
+    public function get_subscription_product_ids() {
+        $args = array(
+            'post_type' => 'product',
+            'post_status' => 'publish',
+            'meta_query' => array(
+                array(
+                    'key' => '_is_vegbox_subscription',
+                    'value' => 'yes',
+                    'compare' => '='
+                )
+            ),
+            'posts_per_page' => -1,
+            'fields' => 'ids',
+            'orderby' => 'menu_order',
+            'order' => 'ASC'
+        );
+
+        $product_ids = get_posts($args);
+        return $product_ids ?: array();
+    }
     
     /**
      * Get singleton instance
@@ -54,6 +70,7 @@ class MWF_Product_Manager {
         add_action('admin_menu', [$this, 'add_admin_menu']);
         add_action('wp_ajax_mwf_sync_subscription_product', [$this, 'ajax_sync_product']);
         add_action('wp_ajax_mwf_sync_all_subscription_products', [$this, 'ajax_sync_all']);
+        add_action('wp_ajax_mwf_save_plan_id', [$this, 'ajax_save_plan_id']);
     }
     
     /**
@@ -78,7 +95,18 @@ class MWF_Product_Manager {
         <div class="wrap">
             <h1><?php echo esc_html__('Subscription Product Management', 'mwf-subscriptions'); ?></h1>
             
-            <p><?php echo esc_html__('Manage and sync variable subscription products. Click "Sync" to repair product variations and update metadata.', 'mwf-subscriptions'); ?></p>
+            <p><?php echo esc_html__('Manage subscription products that have the "_is_vegbox_subscription" meta field set to "yes". Configure plan IDs and sync product variations.', 'mwf-subscriptions'); ?></p>
+            
+            <div class="mwf-admin-notice">
+                <p><strong><?php echo esc_html__('How to add subscription products:', 'mwf-subscriptions'); ?></strong></p>
+                <ol>
+                    <li><?php echo esc_html__('Create or edit a WooCommerce product', 'mwf-subscriptions'); ?></li>
+                    <li><?php echo esc_html__('Add custom field "_is_vegbox_subscription" with value "yes"', 'mwf-subscriptions'); ?></li>
+                    <li><?php echo esc_html__('Set product type to "variable-subscription"', 'mwf-subscriptions'); ?></li>
+                    <li><?php echo esc_html__('Add custom field "_vegbox_plan_id" with a unique plan ID', 'mwf-subscriptions'); ?></li>
+                    <li><?php echo esc_html__('Create product variations for subscription options', 'mwf-subscriptions'); ?></li>
+                </ol>
+            </div>
             
             <div class="mwf-product-manager">
                 <table class="wp-list-table widefat fixed striped">
@@ -86,13 +114,17 @@ class MWF_Product_Manager {
                         <tr>
                             <th><?php echo esc_html__('Product ID', 'mwf-subscriptions'); ?></th>
                             <th><?php echo esc_html__('Product Name', 'mwf-subscriptions'); ?></th>
+                            <th><?php echo esc_html__('Plan ID', 'mwf-subscriptions'); ?></th>
                             <th><?php echo esc_html__('Type', 'mwf-subscriptions'); ?></th>
                             <th><?php echo esc_html__('Variations', 'mwf-subscriptions'); ?></th>
                             <th><?php echo esc_html__('Actions', 'mwf-subscriptions'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($this->product_ids as $product_id): ?>
+                        <?php
+                        $subscription_product_ids = $this->get_subscription_product_ids();
+                        foreach ($subscription_product_ids as $product_id):
+                        ?>
                             <?php
                             $product = wc_get_product($product_id);
                             if (!$product) {
@@ -113,6 +145,21 @@ class MWF_Product_Manager {
                                             <?php echo esc_html($product->get_name()); ?>
                                         </a>
                                     </strong>
+                                </td>
+                                <td>
+                                    <?php
+                                    $plan_id = get_post_meta($product_id, '_vegbox_plan_id', true);
+                                    ?>
+                                    <input type="number" 
+                                           class="mwf-plan-id-input" 
+                                           data-product-id="<?php echo esc_attr($product_id); ?>" 
+                                           value="<?php echo esc_attr($plan_id); ?>" 
+                                           placeholder="<?php echo esc_attr__('Enter plan ID', 'mwf-subscriptions'); ?>"
+                                           min="1" 
+                                           style="width: 80px;">
+                                    <button type="button" class="button button-small mwf-save-plan-id" data-product-id="<?php echo esc_attr($product_id); ?>">
+                                        <?php echo esc_html__('Save', 'mwf-subscriptions'); ?>
+                                    </button>
                                 </td>
                                 <td>
                                     <span class="product-type-badge">
@@ -151,6 +198,19 @@ class MWF_Product_Manager {
                 background: #fff;
                 padding: 20px;
                 margin-top: 20px;
+            }
+            .mwf-admin-notice {
+                background: #fff3cd;
+                border: 1px solid #ffeaa7;
+                border-radius: 4px;
+                padding: 15px;
+                margin: 20px 0;
+            }
+            .mwf-admin-notice ol {
+                margin: 10px 0 0 20px;
+            }
+            .mwf-admin-notice li {
+                margin: 5px 0;
             }
             .product-type-badge {
                 background: #2271b1;
@@ -227,7 +287,7 @@ class MWF_Product_Manager {
                 var $button = $(this);
                 var $spinner = $button.next('.spinner');
                 
-                if (!confirm('<?php echo esc_js(__('This will sync all 4 subscription products. Continue?', 'mwf-subscriptions')); ?>')) {
+                if (!confirm('<?php echo esc_js(__('This will sync all subscription products. Continue?', 'mwf-subscriptions')); ?>')) {
                     return;
                 }
                 
@@ -259,6 +319,47 @@ class MWF_Product_Manager {
                     }
                 });
             });
+            
+            // Save plan ID
+            $('.mwf-save-plan-id').on('click', function() {
+                var $button = $(this);
+                var $input = $button.prev('.mwf-plan-id-input');
+                var productId = $button.data('product-id');
+                var planId = $input.val().trim();
+                
+                $button.prop('disabled', true);
+                $button.text('<?php echo esc_js(__('Saving...', 'mwf-subscriptions')); ?>');
+                
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'mwf_save_plan_id',
+                        product_id: productId,
+                        plan_id: planId,
+                        nonce: '<?php echo wp_create_nonce('mwf_save_plan_id'); ?>'
+                    },
+                    success: function(response) {
+                        $button.prop('disabled', false);
+                        $button.text('<?php echo esc_js(__('Save', 'mwf-subscriptions')); ?>');
+                        
+                        if (response.success) {
+                            // Show success indication
+                            $button.css('background-color', '#46b450').text('<?php echo esc_js(__('Saved', 'mwf-subscriptions')); ?>');
+                            setTimeout(function() {
+                                $button.css('background-color', '').text('<?php echo esc_js(__('Save', 'mwf-subscriptions')); ?>');
+                            }, 2000);
+                        } else {
+                            alert('<?php echo esc_js(__('Error saving plan ID:', 'mwf-subscriptions')); ?> ' + (response.data || 'Unknown error'));
+                        }
+                    },
+                    error: function() {
+                        $button.prop('disabled', false);
+                        $button.text('<?php echo esc_js(__('Save', 'mwf-subscriptions')); ?>');
+                        alert('<?php echo esc_js(__('AJAX error occurred', 'mwf-subscriptions')); ?>');
+                    }
+                });
+            });
         });
         </script>
         <?php
@@ -277,7 +378,8 @@ class MWF_Product_Manager {
         
         $product_id = isset($_POST['product_id']) ? intval($_POST['product_id']) : 0;
         
-        if (!$product_id || !in_array($product_id, $this->product_ids)) {
+        $subscription_product_ids = $this->get_subscription_product_ids();
+        if (!$product_id || !in_array($product_id, $subscription_product_ids)) {
             wp_send_json_error('Invalid product ID');
             return;
         }
@@ -305,7 +407,8 @@ class MWF_Product_Manager {
         $synced = 0;
         $errors = [];
         
-        foreach ($this->product_ids as $product_id) {
+        $subscription_product_ids = $this->get_subscription_product_ids();
+        foreach ($subscription_product_ids as $product_id) {
             $result = $this->sync_product($product_id);
             if ($result['success']) {
                 $synced++;
@@ -321,6 +424,44 @@ class MWF_Product_Manager {
         } else {
             wp_send_json_error(implode("\n", $errors));
         }
+    }
+    
+    /**
+     * AJAX handler for saving plan ID
+     */
+    public function ajax_save_plan_id() {
+        check_ajax_referer('mwf_save_plan_id', 'nonce');
+        
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error('Permission denied');
+            return;
+        }
+        
+        $product_id = isset($_POST['product_id']) ? intval($_POST['product_id']) : 0;
+        $plan_id = isset($_POST['plan_id']) ? intval($_POST['plan_id']) : 0;
+        
+        if (!$product_id) {
+            wp_send_json_error('Invalid product ID');
+            return;
+        }
+        
+        // Verify this is a subscription product
+        $subscription_product_ids = $this->get_subscription_product_ids();
+        if (!in_array($product_id, $subscription_product_ids)) {
+            wp_send_json_error('Product is not a subscription product');
+            return;
+        }
+        
+        // Save or delete the plan ID
+        if ($plan_id > 0) {
+            update_post_meta($product_id, '_vegbox_plan_id', $plan_id);
+        } else {
+            delete_post_meta($product_id, '_vegbox_plan_id');
+        }
+        
+        wp_send_json_success([
+            'message' => __('Plan ID saved successfully', 'mwf-subscriptions')
+        ]);
     }
     
     /**

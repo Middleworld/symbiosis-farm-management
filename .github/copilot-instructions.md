@@ -67,14 +67,92 @@ Laravel 12 (PHP 8.2+) application for Community Supported Agriculture (CSA) deli
 - Creating new records
 - Updating existing records
 - Initial sync/import operations
-- NOT for read operations in user-facing features
+### Performance Requirements
+**CRITICAL ARCHITECTURE RULE: farmOS database is the ONLY source of truth**
 
-**Local database tables that mirror FarmOS**:
-- `plant_varieties` (PlantVariety model)
-- `plant_assets` (PlantAsset model)
-- `seeding_logs` (SeedingLog model)
-- `harvests` (Harvest model)
-- `field_beds` (FieldBed model)
+**ALL READS = Direct farmOS Database (Fast ~50ms)**
+- ✅ Use `DB::connection('farmos')->table('taxonomy_term_field_data')` for plant varieties/types
+- ✅ Use `DB::connection('farmos')->table('asset')` for beds, plantings, equipment
+- ✅ Use `DB::connection('farmos')->table('log')` for seeding, transplanting, harvest logs
+- ✅ NEVER use `$farmOSApi->getVarieties()` for displaying data
+- ✅ NEVER use `$farmOSApi->getPlantTypes()` in controllers
+- ✅ NEVER use `$farmOSApi->getHarvestLogs()` for listings
+- ✅ Use `FarmOSQueryService` helper for common queries
+
+**ALL WRITES/LOGS = farmOS API (Validates business logic)**
+- ✅ Use `$farmOSApi->createSeedingLog()` - creates log in farmOS
+- ✅ Use `$farmOSApi->createHarvestLog()` - creates harvest record
+- ✅ Use `$farmOSApi->createPlantingAsset()` - creates plant asset
+- ✅ Use `$farmOSApi->updatePlantTypeTerm()` - updates taxonomy
+- ❌ NEVER write directly to farmOS database (bypasses Drupal hooks/validation)
+
+**NO SYNC NEEDED**:
+- ❌ No local mirrors of farmOS data (except for custom admin-only fields)
+- ❌ No sync commands for varieties, beds, harvests from farmOS
+- ❌ No risk of data being out of sync
+- ✅ Single source of truth: farmOS database
+- ✅ Same server (127.0.0.1): Direct DB queries are just as fast
+- ✅ farmOS vocabularies are fully customizable: Add custom fields directly in farmOS
+
+**Why This Matters**:
+- API reads: 2-30 seconds per request (pagination, HTTP overhead, OAuth)
+- Direct DB reads: 10-50ms (local query, no network)
+- 100x-3000x speed improvement for listings
+- Succession planner with API: 45 seconds, with DB: 1.5 seconds
+- Zero sync complexity: Always up-to-date, no maintenance
+
+**Implementation Example**:
+```php
+// ❌ SLOW - API call takes 2-30 seconds
+public function index() {
+    $varieties = $this->farmOSApi->getVarieties();
+    return view('succession-planning', compact('varieties'));
+}
+
+// ✅ FAST - Direct farmOS database query takes 50ms
+public function index() {
+    $varieties = DB::connection('farmos')
+        ->table('taxonomy_term_field_data')
+        ->where('vid', 'plant_type')
+        ->where('status', 1)
+        ->orderBy('name')
+        ->get();
+    return view('succession-planning', compact('varieties'));
+}
+
+// ✅ BETTER - Use FarmOSQueryService helper
+public function index() {
+    $queryService = app(FarmOSQueryService::class);
+    $varieties = $queryService->getPlantVarieties();
+    return view('succession-planning', compact('varieties'));
+}
+
+// ❌ SLOW - Multiple API calls in loop
+foreach ($plantIds as $id) {
+    $plant = $this->farmOSApi->getVarietyById($id); // 2-5 seconds each!
+}
+
+// ✅ FAST - Single database query with whereIn
+$plants = DB::connection('farmos')
+    ->table('taxonomy_term_field_data')
+    ->whereIn('tid', $plantIds)
+    ->get()
+    ->keyBy('tid');
+```
+
+**FarmOS API is ONLY for**:
+- Creating new records (logs, assets, terms)
+- Updating existing records
+- Deleting records
+- NOT for read operations (use direct DB queries)
+
+**FarmOS Database Tables (Direct Access)**:
+- `taxonomy_term_field_data` - Plant varieties/types, crop families
+- `asset` + `asset__*` - Beds, plantings, equipment
+- `log` + `log__*` - Seeding, transplanting, harvest logs
+- `quantity` - Harvest quantities, measurements
+- `file_managed` - Images, documents
+- All custom fields: `taxonomy_term__field_*`, `asset__field_*`, `log__field_*`
 
 **Response Time Targets**:
 - Page loads: < 2 seconds

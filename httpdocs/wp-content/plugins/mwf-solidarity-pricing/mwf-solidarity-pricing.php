@@ -47,6 +47,15 @@ class MWF_Solidarity_Pricing {
         // Register shortcode for homepage section
         add_shortcode('mwf_solidarity_section', [$this, 'render_homepage_section']);
         
+        // WooCommerce integration for solidarity pricing
+        add_action('woocommerce_after_variations_table', [$this, 'render_solidarity_slider'], 5);
+        add_filter('woocommerce_add_cart_item_data', [$this, 'add_custom_price_to_cart'], 10, 3);
+        add_filter('woocommerce_get_item_data', [$this, 'display_custom_price_in_cart'], 10, 2);
+        add_action('woocommerce_before_calculate_totals', [$this, 'apply_custom_price_to_cart_item'], 10, 1);
+        
+        // Remove solidarity level dropdown - pricing handled by slider
+        add_filter('woocommerce_product_get_attributes', [$this, 'remove_solidarity_attribute'], 10, 2);
+        
         // Admin settings
         add_action('admin_menu', [$this, 'add_admin_menu']);
         add_action('admin_init', [$this, 'register_settings']);
@@ -374,6 +383,195 @@ class MWF_Solidarity_Pricing {
         ob_start();
         include MWF_SOLIDARITY_PLUGIN_DIR . 'templates/homepage-section.php';
         return ob_get_clean();
+    }
+    
+    /**
+     * Render solidarity price slider on product pages
+     */
+    public function render_solidarity_slider() {
+        global $product;
+        
+        // Get product from global or from the loop
+        if (!$product) {
+            $product = wc_get_product(get_the_ID());
+        }
+        
+        // Only show on veg box products
+        if (!$product || !$product->is_type('variable')) {
+            return;
+        }
+        
+        // Check if this is a veg box product (has frequency/payment attributes or is in veg box category)
+        $attributes = $product->get_attributes();
+        $has_frequency = isset($attributes['pa_frequency']) || isset($attributes['frequency']);
+        $has_payment_schedule = isset($attributes['pa_payment-schedule']) || isset($attributes['payment-schedule']);
+        $has_subscription = isset($attributes['pa_subscription']) || isset($attributes['subscription']);
+
+        // Check if product is in vegetable boxes category or has veg box in title/SKU
+        $is_veg_box = false;
+        $categories = wp_get_post_terms($product->get_id(), 'product_cat', ['fields' => 'names']);
+        if (in_array('Vegetable Boxes', $categories) || stripos($product->get_name(), 'veg') !== false || stripos($product->get_sku(), 'veg') !== false) {
+            $is_veg_box = true;
+        }
+
+        if (!$has_frequency && !$has_payment_schedule && !$has_subscription && !$is_veg_box) {
+            return;
+        }
+        
+        // Get pricing data
+        $pricing = $this->get_product_pricing($product);
+        
+        ?>
+        <div class="mwf-solidarity-slider-wrapper">
+            <div class="mwf-solidarity-slider-header">
+                <h3 class="mwf-solidarity-slider-title">💚 Choose Your Price 🌱</h3>
+                <p class="mwf-solidarity-slider-subtitle">Pay what you can afford - everyone gets the same quality</p>
+            </div>
+            
+            <div class="mwf-solidarity-price-display">
+                <div class="mwf-solidarity-price-amount" id="mwf-custom-price-display">£<?php echo number_format($pricing['standard'], 2); ?></div>
+                <span class="mwf-solidarity-price-label">
+                    <span class="zone-icon">🌱</span> 
+                    <span class="zone-text">Standard Price</span>
+                </span>
+            </div>
+            
+            <div class="mwf-solidarity-slider-container">
+                <input 
+                    type="range" 
+                    class="mwf-solidarity-slider" 
+                    id="mwf-solidarity-slider"
+                    min="<?php echo $pricing['min']; ?>" 
+                    max="<?php echo $pricing['max']; ?>" 
+                    step="0.50" 
+                    value="<?php echo $pricing['standard']; ?>"
+                    data-standard="<?php echo $pricing['standard']; ?>"
+                    data-break-even="<?php echo $pricing['break_even']; ?>"
+                />
+                
+                <div class="mwf-solidarity-slider-labels">
+                    <div class="mwf-slider-label">
+                        <span class="mwf-slider-label-icon">💚</span>
+                        <span class="mwf-slider-label-text">Solidarity</span>
+                        <span class="mwf-slider-label-price">£<?php echo number_format($pricing['min'], 2); ?></span>
+                    </div>
+                    <div class="mwf-slider-label">
+                        <span class="mwf-slider-label-icon">🌱</span>
+                        <span class="mwf-slider-label-text">Standard</span>
+                        <span class="mwf-slider-label-price">£<?php echo number_format($pricing['standard'], 2); ?></span>
+                    </div>
+                    <div class="mwf-slider-label">
+                        <span class="mwf-slider-label-icon">🌳</span>
+                        <span class="mwf-slider-label-text">Supporter</span>
+                        <span class="mwf-slider-label-price">£<?php echo number_format($pricing['max'], 2); ?></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mwf-solidarity-price-impact">
+                <span class="mwf-price-impact-icon">✓</span>
+                <span class="mwf-price-impact-text">Fair wage for farmers</span>
+            </div>
+            
+            <!-- Hidden input to store custom price -->
+            <input type="hidden" name="mwf_custom_price" id="mwf-custom-price" value="<?php echo $pricing['standard']; ?>" />
+        </div>
+        <?php
+    }
+    
+    /**
+     * Get pricing data for a product
+     */
+    private function get_product_pricing($product) {
+        // Get base price from product variations
+        $variations = $product->get_available_variations();
+        $standard_price = 15; // Default
+        
+        // Find standard weekly price
+        foreach ($variations as $variation) {
+            $attributes = $variation['attributes'];
+            // Look for standard price - weekly payment schedule and weekly frequency
+            $payment_schedule = isset($attributes['attribute_pa_payment-schedule']) ? $attributes['attribute_pa_payment-schedule'] : 
+                               (isset($attributes['attribute_payment-schedule']) ? $attributes['attribute_payment-schedule'] : '');
+            $frequency = isset($attributes['attribute_pa_frequency']) ? $attributes['attribute_pa_frequency'] : 
+                        (isset($attributes['attribute_frequency']) ? $attributes['attribute_frequency'] : '');
+            
+            if ($payment_schedule === 'weekly' && $frequency === 'weekly') {
+                $standard_price = $variation['display_price'];
+                break;
+            }
+        }        // Calculate pricing range
+        $min_price = round($standard_price * 0.7, 2); // 70% of standard
+        $max_price = round($standard_price * 2.0, 2); // 200% of standard
+        $break_even = round($standard_price * 0.8, 2); // Approximate break-even
+        
+        return [
+            'min' => $min_price,
+            'standard' => $standard_price,
+            'max' => $max_price,
+            'break_even' => $break_even
+        ];
+    }
+    
+    /**
+     * Remove solidarity level attribute from product display
+     */
+    public function remove_solidarity_attribute($attributes, $product) {
+        // Check if this is a veg box product
+        $has_frequency = isset($attributes['pa_frequency']) || isset($attributes['frequency']);
+        $has_payment_schedule = isset($attributes['pa_payment-schedule']) || isset($attributes['payment-schedule']);
+        $has_subscription = isset($attributes['pa_subscription']) || isset($attributes['subscription']);
+
+        // Check if product is in vegetable boxes category or has veg box in title/SKU
+        $is_veg_box = false;
+        $categories = wp_get_post_terms($product->get_id(), 'product_cat', ['fields' => 'names']);
+        if (in_array('Vegetable Boxes', $categories) || stripos($product->get_name(), 'veg') !== false || stripos($product->get_sku(), 'veg') !== false) {
+            $is_veg_box = true;
+        }
+
+        if ($product->is_type('variable') && ($has_frequency || $has_payment_schedule || $has_subscription || $is_veg_box)) {
+            unset($attributes['pa_solidarity_level']);
+            unset($attributes['solidarity_level']);
+        }
+        return $attributes;
+    }
+    
+    /**
+     * Add custom price to cart item data
+     */
+    public function add_custom_price_to_cart($cart_item_data, $product_id, $variation_id) {
+        if (isset($_POST['mwf_custom_price']) && !empty($_POST['mwf_custom_price'])) {
+            $cart_item_data['mwf_custom_price'] = floatval($_POST['mwf_custom_price']);
+        }
+        return $cart_item_data;
+    }
+    
+    /**
+     * Display custom price in cart
+     */
+    public function display_custom_price_in_cart($item_data, $cart_item) {
+        if (isset($cart_item['mwf_custom_price'])) {
+            $item_data[] = array(
+                'name' => 'Your Price',
+                'value' => '£' . number_format($cart_item['mwf_custom_price'], 2)
+            );
+        }
+        return $item_data;
+    }
+    
+    /**
+     * Apply custom price to cart item
+     */
+    public function apply_custom_price_to_cart_item($cart) {
+        if (is_admin() && !defined('DOING_AJAX')) {
+            return;
+        }
+        
+        foreach ($cart->get_cart() as $cart_item_key => $cart_item) {
+            if (isset($cart_item['mwf_custom_price'])) {
+                $cart_item['data']->set_price($cart_item['mwf_custom_price']);
+            }
+        }
     }
 }
 

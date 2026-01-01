@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\FarmOSApi;
+use App\Services\FarmOSQueryService;
 use App\Models\HarvestLog;
 use App\Models\StockItem;
 use App\Models\CropPlan;
@@ -14,10 +15,12 @@ use Carbon\Carbon;
 class FarmOSDataController extends Controller
 {
     protected $farmOSApi;
+    protected $farmOSQuery;
 
-    public function __construct(FarmOSApi $farmOSApi)
+    public function __construct(FarmOSApi $farmOSApi, FarmOSQueryService $farmOSQuery)
     {
         $this->farmOSApi = $farmOSApi;
+        $this->farmOSQuery = $farmOSQuery;
         
         // Debug: Verify service is properly injected
         if (!method_exists($this->farmOSApi, 'getCropPlanningData')) {
@@ -37,9 +40,9 @@ class FarmOSDataController extends Controller
             Log::info('FarmOS Controller Debug - Service class: ' . get_class($this->farmOSApi));
             Log::info('FarmOS Controller Debug - getCropPlanningData method exists: ' . (method_exists($this->farmOSApi, 'getCropPlanningData') ? 'Yes' : 'No'));
             
-            // Get real farmOS data
-            $farmOSCropPlans = $this->farmOSApi->getCropPlanningData();
-            $farmOSHarvests = $this->farmOSApi->getHarvestLogs();
+            // Get real farmOS data (direct DB queries - fast)
+            $farmOSCropPlans = $this->farmOSQuery->getPlantings()->toArray();
+            $farmOSHarvests = $this->farmOSQuery->getHarvestLogs(null, null, ['with_quantities' => true])->toArray();
             
             // Use farmOS data for statistics
             $cropPlans = collect($farmOSCropPlans);
@@ -144,31 +147,27 @@ class FarmOSDataController extends Controller
     public function harvests(Request $request)
     {
         try {
-            // Get real farmOS harvest logs
-            $farmOSHarvests = $this->farmOSApi->getHarvestLogs();
+            // Get real farmOS harvest logs (direct DB query - fast)
+            $farmOSHarvests = $this->farmOSQuery->getHarvestLogs(null, null, ['with_quantities' => true]);
             
             // Convert to collection for filtering
-            $harvestLogs = collect();
-            if (isset($farmOSHarvests['data']) && is_array($farmOSHarvests['data'])) {
-                foreach ($farmOSHarvests['data'] as $harvestData) {
-                    $harvestLogs->push((object)[
-                        'id' => $harvestData['id'],
-                        'farmos_id' => $harvestData['id'],
-                        'crop_name' => $this->extractCropName($harvestData),
-                        'crop_type' => $this->extractCropType($harvestData),
-                        'quantity' => $this->extractQuantity($harvestData),
-                        'units' => $this->extractUnits($harvestData),
-                        'harvest_date' => \Carbon\Carbon::parse($harvestData['attributes']['timestamp'] ?? now()),
-                        'location' => $this->extractLocation($harvestData),
-                        'notes' => $harvestData['attributes']['notes']['value'] ?? '',
-                        'status' => $harvestData['attributes']['status'] ?? 'done',
-                        'synced_to_stock' => false, // farmOS logs aren't synced to local stock
-                        'farmos_data' => $harvestData,
-                        'formatted_quantity' => $this->extractQuantity($harvestData) . ' ' . $this->extractUnits($harvestData),
-                        'is_today' => \Carbon\Carbon::parse($harvestData['attributes']['timestamp'] ?? now())->isToday()
-                    ]);
-                }
-            }
+            $harvestLogs = $farmOSHarvests->map(function($harvest) {
+                return (object)[
+                    'id' => $harvest->id,
+                    'farmos_id' => $harvest->id,
+                    'crop_name' => $harvest->name ?? 'Unknown',
+                    'crop_type' => 'harvest', // Type from log table
+                    'quantity' => $harvest->quantity_value ?? 0,
+                    'units' => $harvest->quantity_measure ?? 'kg',
+                    'harvest_date' => Carbon::createFromTimestamp($harvest->timestamp),
+                    'location' => 'Unknown', // Would need join to asset table
+                    'notes' => $harvest->notes ?? '',
+                    'status' => $harvest->status ?? 'done',
+                    'synced_to_stock' => false, // farmOS logs aren't synced to local stock
+                    'formatted_quantity' => ($harvest->quantity_value ?? 0) . ' ' . ($harvest->quantity_measure ?? 'kg'),
+                    'is_today' => Carbon::createFromTimestamp($harvest->timestamp)->isToday()
+                ];
+            });
 
             // Apply filters
             if ($request->filled('crop_type')) {
@@ -190,8 +189,9 @@ class FarmOSDataController extends Controller
             // Sort by harvest date descending
             $harvestLogs = $harvestLogs->sortByDesc('harvest_date');
 
-            // Get unique crop types for filter dropdown (from farmOS)
-            $cropTypes = $this->farmOSApi->getAvailableCropTypes();
+            // Get unique crop types for filter dropdown (direct DB query - fast)
+            $cropTypes = $this->farmOSQuery->getPlantVarieties(['active_only' => true]);
+            $cropTypes = ['types' => $cropTypes->map(fn($v) => ['id' => $v->tid, 'name' => $v->name])->toArray()];
 
             $farmosBaseUrl = config('farmos.url', 'https://farmos.middleworldfarms.org');
             $usingFarmOSData = true;
@@ -266,9 +266,11 @@ class FarmOSDataController extends Controller
     {
         try {
             // For now, stock management still uses local database since farmOS doesn't have a direct stock API
-            // But we'll get crop types and locations from farmOS for consistency
-            $farmOSCropTypes = $this->farmOSApi->getAvailableCropTypes();
-            $farmOSLocations = $this->farmOSApi->getAvailableLocations();
+            // But we'll get crop types and locations from farmOS for consistency (direct DB - fast)
+            $varieties = $this->farmOSQuery->getPlantVarieties(['active_only' => true]);
+            $farmOSCropTypes = ['types' => $varieties->map(fn($v) => ['id' => $v->tid, 'name' => $v->name])->toArray()];
+            $beds = $this->farmOSQuery->getBeds();
+            $farmOSLocations = $beds->map(fn($b) => ['id' => $b->id, 'name' => $b->name])->toArray();
 
             $query = StockItem::query();
 
@@ -434,10 +436,12 @@ class FarmOSDataController extends Controller
     public function cropPlans(Request $request)
     {
         try {
-            // Get real farmOS data instead of local database
-            $farmOSCropPlans = $this->farmOSApi->getCropPlanningData();
-            $farmOSCropTypes = $this->farmOSApi->getAvailableCropTypes();
-            $farmOSLocations = $this->farmOSApi->getAvailableLocations();
+            // Get real farmOS data (direct DB queries - fast)
+            $farmOSCropPlans = $this->farmOSQuery->getPlantings()->toArray();
+            $varieties = $this->farmOSQuery->getPlantVarieties(['active_only' => true]);
+            $farmOSCropTypes = ['types' => $varieties->map(fn($v) => ['id' => $v->tid, 'name' => $v->name])->toArray()];
+            $beds = $this->farmOSQuery->getBeds();
+            $farmOSLocations = $beds->map(fn($b) => ['id' => $b->id, 'name' => $b->name])->toArray();
 
             // Convert farmOS data to collection for easier filtering
             $cropPlans = collect($farmOSCropPlans);
@@ -659,14 +663,13 @@ class FarmOSDataController extends Controller
     {
         try {
             $since = HarvestLog::max('updated_at') ?? Carbon::now()->subDays(30);
-            $farmOSHarvests = $this->farmOSApi->getHarvestLogs($since->toISOString());
+            // Direct DB query - fast
+            $farmOSHarvests = $this->farmOSQuery->getHarvestLogs($since->format('Y-m-d'), null, ['with_quantities' => true]);
 
             $synced = 0;
-            if (isset($farmOSHarvests['data'])) {
-                foreach ($farmOSHarvests['data'] as $harvestData) {
-                    $this->processHarvestLog($harvestData);
-                    $synced++;
-                }
+            foreach ($farmOSHarvests as $harvestData) {
+                $this->processHarvestLog($harvestData);
+                $synced++;
             }
 
             return response()->json([
@@ -837,27 +840,23 @@ class FarmOSDataController extends Controller
     public function plantingChart(Request $request)
     {
         try {
-            // Get farmOS land assets (your actual farm structure)
-            $geometryAssets = $this->farmOSApi->getGeometryAssets();
-            $cropPlans = $this->farmOSApi->getCropPlanningData();
-            $cropTypesData = $this->farmOSApi->getAvailableCropTypes();
+            // Get farmOS data (direct DB queries - fast)
+            $beds = $this->farmOSQuery->getBeds();
+            $plantings = $this->farmOSQuery->getPlantings();
+            $varieties = $this->farmOSQuery->getPlantVarieties(['active_only' => true]);
             
             // Extract simple crop type names for the filter dropdown
-            $cropTypes = [];
-            if (isset($cropTypesData['types'])) {
-                foreach ($cropTypesData['types'] as $type) {
-                    $cropTypes[] = $type['name'] ?? $type['label'] ?? 'Unknown';
-                }
-            }
+            $cropTypes = $varieties->pluck('name')->toArray();
             
             // Debug: Log the data we're getting
-            Log::info('Planting Chart Debug - Geometry Assets Count: ' . count($geometryAssets['features'] ?? []));
-            Log::info('Planting Chart Debug - Crop Plans Count: ' . count($cropPlans));
+            Log::info('Planting Chart Debug - Beds Count: ' . $beds->count());
+            Log::info('Planting Chart Debug - Plantings Count: ' . $plantings->count());
             Log::info('Planting Chart Debug - Crop Types: ', $cropTypes);
             
             // Transform land assets into chart data showing your actual blocks and beds
-            $chartData = $this->transformLandAssetsToChart($geometryAssets, $cropPlans);
-            $locations = $this->extractLocationsFromAssets($geometryAssets);
+            $geometryAssets = ['features' => $beds->toArray()];
+            $chartData = $this->transformLandAssetsToChart($geometryAssets, $plantings->toArray());
+            $locations = $beds->pluck('name', 'id')->toArray();
             
             $usingFarmOSData = true;
             

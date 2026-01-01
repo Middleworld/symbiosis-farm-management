@@ -32,6 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'webhooks/*',
             'pos/*',
             'admin/companies-house/accounts/generate',
+            'oauth*',
+            'admin/login',
         ]);
         
         // Define a POS middleware group without CSRF protection

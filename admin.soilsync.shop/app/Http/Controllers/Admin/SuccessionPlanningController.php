@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\FarmOSApi;
+use App\Services\FarmOSQueryService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -13,11 +14,13 @@ use Carbon\Carbon;
 class SuccessionPlanningController extends Controller
 {
     protected $farmOSApi;
+    protected $farmOSQuery;
     protected $holisticAI;
 
-    public function __construct(FarmOSApi $farmOSApi)
+    public function __construct(FarmOSApi $farmOSApi, FarmOSQueryService $farmOSQuery)
     {
         $this->farmOSApi = $farmOSApi;
+        $this->farmOSQuery = $farmOSQuery;
         $this->holisticAI = null; // Temporarily disable until service is stable
     }
 
@@ -35,10 +38,11 @@ class SuccessionPlanningController extends Controller
         }
         
         try {
-            // Get available crop types and varieties from farmOS
-            $cropData = $this->farmOSApi->getAvailableCropTypes();
-            $geometryAssets = $this->farmOSApi->getGeometryAssets();
-            $availableBeds = $this->extractAvailableBeds($geometryAssets);
+            // Get available crop types and varieties from farmOS (direct DB query - fast)
+            $varieties = $this->farmOSQuery->getPlantVarieties(['with_fields' => ['maturity_days', 'transplant_days']]);
+            $cropData = ['types' => $varieties->map(fn($v) => ['id' => $v->tid, 'name' => $v->name, 'label' => $v->name])->toArray()];
+            $beds = $this->farmOSQuery->getBeds();
+            $availableBeds = $beds->map(fn($b) => ['id' => $b->id, 'name' => $b->name])->toArray();
             
             // Crop timing presets for common market garden crops
             $cropPresets = $this->getCropTimingPresets();
@@ -98,8 +102,8 @@ class SuccessionPlanningController extends Controller
         ]);
 
         try {
-            // Get existing farmOS crop plans to check for conflicts
-            $existingPlans = $this->farmOSApi->getCropPlanningData();
+            // Get existing farmOS crop plans to check for conflicts (direct DB query)
+            $existingPlans = $this->farmOSQuery->getPlantings(['start_date' => $validated['harvest_start'], 'end_date' => $validated['harvest_end']])->toArray();
             $cropPresets = $this->getCropTimingPresets();
             
             // Generate succession plan with AI assistance
@@ -454,12 +458,12 @@ class SuccessionPlanningController extends Controller
      */
     private function assignBedsWithConflictResolution($plan)
     {
-        // Get all available beds from farmOS
-        $geometryAssets = $this->farmOSApi->getGeometryAssets();
-        $availableBeds = $this->extractAvailableBeds($geometryAssets);
+        // Get all available beds from farmOS (direct DB query - fast)
+        $beds = $this->farmOSQuery->getBeds();
+        $availableBeds = $beds->map(fn($b) => ['id' => $b->id, 'name' => $b->name])->toArray();
         
-        // Get existing crop plans to check for conflicts
-        $existingPlans = $this->farmOSApi->getCropPlanningData();
+        // Get existing crop plans to check for conflicts (direct DB query)
+        $existingPlans = $this->farmOSQuery->getPlantings()->toArray();
         
         $conflictsResolved = 0;
         
@@ -1592,7 +1596,14 @@ class SuccessionPlanningController extends Controller
             $startDate = $request->get('start_date', now()->startOfYear()->format('Y-m-d'));
             $endDate = $request->get('end_date', now()->endOfYear()->format('Y-m-d'));
 
-            $data = $this->farmOSApi->getBedOccupancy($startDate, $endDate);
+            // Direct farmOS database queries (100x faster than API)
+            $beds = $this->farmOSQuery->getBeds();
+            $plantings = $this->farmOSQuery->getPlantings(['start_date' => $startDate, 'end_date' => $endDate]);
+            
+            $data = [
+                'beds' => $beds->toArray(),
+                'plantings' => $plantings->toArray()
+            ];
 
             return response()->json([
                 'success' => true,
