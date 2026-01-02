@@ -53,6 +53,22 @@ function middleworld_farms_enqueue_scripts() {
         wp_get_theme()->get('Version'),
         true
     );
+    
+    // WooCommerce variation enhancement (only on product pages)
+    if (is_product()) {
+        wp_enqueue_style('woocommerce-variations',
+            get_stylesheet_directory_uri() . '/css/woocommerce-variations.css',
+            array(),
+            wp_get_theme()->get('Version')
+        );
+        
+        wp_enqueue_script('woocommerce-variations-js',
+            get_stylesheet_directory_uri() . '/js/woocommerce-variations.js',
+            array('jquery', 'wc-add-to-cart-variation'),
+            wp_get_theme()->get('Version'),
+            true
+        );
+    }
 }
 add_action('wp_enqueue_scripts', 'middleworld_farms_enqueue_scripts');
 

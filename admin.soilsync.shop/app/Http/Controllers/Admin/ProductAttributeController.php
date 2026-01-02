@@ -189,17 +189,17 @@ class ProductAttributeController extends Controller
     {
         try {
             if ($attribute->woo_id) {
-                // Update existing
+                // Update existing attribute
                 $existing = DB::connection('wordpress')->select(
-                    'SELECT t.term_id FROM demo_wp_terms t JOIN demo_wp_term_taxonomy tt ON t.term_id = tt.term_id WHERE tt.taxonomy = ? AND t.term_id = ?',
-                    ['pa_' . $attribute->slug, $attribute->woo_id]
+                    'SELECT attribute_id FROM demo_wp_woocommerce_attribute_taxonomies WHERE attribute_id = ?',
+                    [$attribute->woo_id]
                 );
 
                 if (count($existing) > 0) {
                     // Update existing
                     DB::connection('wordpress')->update(
-                        'UPDATE demo_wp_terms SET name = ?, slug = ? WHERE term_id = ?',
-                        [$attribute->name, $attribute->slug, $attribute->woo_id]
+                        'UPDATE demo_wp_woocommerce_attribute_taxonomies SET attribute_label = ?, attribute_name = ?, attribute_type = ?, attribute_orderby = ? WHERE attribute_id = ?',
+                        [$attribute->name, $attribute->slug, $attribute->type, 'menu_order', $attribute->woo_id]
                     );
                 } else {
                     // WooCommerce record missing, recreate
@@ -208,6 +208,11 @@ class ProductAttributeController extends Controller
             } else {
                 // Create new
                 $this->createAttributeInDatabase($attribute);
+            }
+            
+            // Sync attribute terms/options
+            if ($attribute->is_taxonomy && !empty($attribute->options)) {
+                $this->syncAttributeTerms($attribute);
             }
         } catch (\Exception $e) {
             \Log::error('Failed to sync product attribute to WooCommerce: ' . $e->getMessage());
@@ -219,22 +224,50 @@ class ProductAttributeController extends Controller
      */
     private function createAttributeInDatabase($attribute)
     {
-        // Insert into WordPress terms
+        // First, create the attribute in WooCommerce attribute taxonomies table
         DB::connection('wordpress')->insert(
-            'INSERT INTO demo_wp_terms (name, slug, term_group) VALUES (?, ?, 0)',
-            [$attribute->name, $attribute->slug]
+            'INSERT INTO demo_wp_woocommerce_attribute_taxonomies (attribute_name, attribute_label, attribute_type, attribute_orderby, attribute_public) VALUES (?, ?, ?, ?, ?)',
+            [$attribute->slug, $attribute->name, $attribute->type, 'menu_order', 0]
         );
 
-        // Get the inserted term ID
-        $termId = DB::connection('wordpress')->select('SELECT LAST_INSERT_ID() as id')[0]->id;
-
-        // Insert into term_taxonomy
-        DB::connection('wordpress')->insert(
-            'INSERT INTO demo_wp_term_taxonomy (term_id, taxonomy, description, parent, count) VALUES (?, ?, ?, 0, 0)',
-            [$termId, 'pa_' . $attribute->slug, '', 0]
-        );
+        // Get the inserted attribute ID
+        $attributeId = DB::connection('wordpress')->select('SELECT LAST_INSERT_ID() as id')[0]->id;
 
         // Update Laravel record with WooCommerce ID
-        $attribute->update(['woo_id' => $termId]);
+        $attribute->update(['woo_id' => $attributeId]);
+    }
+    
+    /**
+     * Sync attribute terms (options) to WooCommerce taxonomy
+     */
+    private function syncAttributeTerms($attribute)
+    {
+        $taxonomy = 'pa_' . $attribute->slug;
+        
+        foreach ($attribute->options as $option) {
+            $slug = \Str::slug(strtolower($option));
+            
+            // Check if term exists
+            $existing = DB::connection('wordpress')->select(
+                'SELECT t.term_id FROM demo_wp_terms t JOIN demo_wp_term_taxonomy tt ON t.term_id = tt.term_id WHERE tt.taxonomy = ? AND t.slug = ?',
+                [$taxonomy, $slug]
+            );
+            
+            if (count($existing) === 0) {
+                // Create new term
+                DB::connection('wordpress')->insert(
+                    'INSERT INTO demo_wp_terms (name, slug, term_group) VALUES (?, ?, 0)',
+                    [$option, $slug]
+                );
+                
+                $termId = DB::connection('wordpress')->select('SELECT LAST_INSERT_ID() as id')[0]->id;
+                
+                // Create term taxonomy entry
+                DB::connection('wordpress')->insert(
+                    'INSERT INTO demo_wp_term_taxonomy (term_id, taxonomy, description, parent, count) VALUES (?, ?, ?, 0, 0)',
+                    [$termId, $taxonomy, '']
+                );
+            }
+        }
     }
 }
