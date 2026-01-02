@@ -126,7 +126,7 @@
                         <div class="col-md-6 mb-3">
                             <label for="mwf_api_base_url" class="form-label">MWF API Base URL</label>
                             <input type="url" class="form-control" id="mwf_api_base_url" name="mwf_api_base_url" 
-                                   value="{{ env('MWF_API_BASE_URL', '') }}" placeholder="https://api.middleworldfarms.org">
+                                   value="{{ env('MWF_API_BASE_URL', '') }}" placeholder="https://api.example-farm.com">
                         </div>
                     </div>
                     

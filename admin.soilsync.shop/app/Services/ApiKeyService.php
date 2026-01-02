@@ -32,7 +32,7 @@ class ApiKeyService
     public static function getFarmOsCredentials(): array
     {
         return [
-            'url' => env('FARMOS_URL', 'https://farmos.middleworldfarms.org'),
+            'url' => env('FARMOS_URL', config('farmos.url', 'https://farmos.example-farm.com')),
             'username' => self::get('farmos_username') ?: env('FARMOS_USERNAME', 'admin'),
             'password' => self::get('farmos_password') ?: env('FARMOS_PASSWORD', ''),
             'client_id' => self::get('farmos_oauth_client_id') ?: env('FARMOS_OAUTH_CLIENT_ID', ''),
@@ -48,7 +48,7 @@ class ApiKeyService
     public static function getWooCommerceCredentials(): array
     {
         return [
-            'url' => env('WOOCOMMERCE_URL', 'https://middleworldfarms.org/'),
+            'url' => env('WOOCOMMERCE_URL', config('services.customer_site.url', 'https://example-farm.com/')),
             'consumer_key' => self::get('woocommerce_consumer_key') ?: env('WOOCOMMERCE_CONSUMER_KEY', ''),
             'consumer_secret' => self::get('woocommerce_consumer_secret') ?: env('WOOCOMMERCE_CONSUMER_SECRET', ''),
         ];

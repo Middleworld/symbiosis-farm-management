@@ -57,7 +57,7 @@ class SubscriptionCancelled extends Notification implements ShouldQueue
 
         if ($this->wasAutomatic) {
             $message->line('If this was unintentional, you can reactivate your subscription at any time.')
-                ->action('Reactivate Subscription', 'https://middleworldfarms.org/my-account/');
+                ->action('Reactivate Subscription', config('services.customer_site.url') . '/my-account/');
         } else {
             $message->line('You can reactivate your subscription at any time from your account.');
         }

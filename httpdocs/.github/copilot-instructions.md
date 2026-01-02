@@ -13,7 +13,7 @@ Laravel 12 (PHP 8.2+) application for Community Supported Agriculture (CSA) deli
 - **Subscription transition**: Parallel WooCommerce/Vegbox systems during migration
 
 ## ⚠️ Critical Environment Warnings
-- **LIVE PRODUCTION SITE**: URL `https://admin.middleworldfarms.org:8444/admin/` (port 8444, NOT 8000)
+- **LIVE PRODUCTION SITE**: URL configured via `APP_URL` environment variable
 - **DO NOT START DEV SERVERS**: Site is already live via production configuration
 - **CPU-ONLY SERVER**: No GPU access - all AI processing on CPU requires 60-90s timeouts minimum
 - **ALL FILE CHANGES ARE IMMEDIATELY LIVE**: Test carefully before editing
@@ -24,7 +24,7 @@ Laravel 12 (PHP 8.2+) application for Community Supported Agriculture (CSA) deli
 **CRITICAL**: Development must occur in staging environment (`admin.soilsync.shop`) on `demo` branch, NOT directly in production.
 
 #### Environment Configuration
-- **Production**: `admin.middleworldfarms.org` (master branch) - LIVE SITE
+- **Production**: `admin.your-domain.com` (master branch) - LIVE SITE
 - **Staging**: `admin.soilsync.shop` (demo branch) - DEVELOPMENT ENVIRONMENT
 
 #### Development Process
@@ -376,7 +376,7 @@ php artisan vegbox:process-renewals --dry-run
 - **Retry delays**: `SUBSCRIPTION_RETRY_DELAYS="2,4,6"` (days between attempts)
 
 ### Customer Portal Integration
-**Current State**: Customers access subscriptions via **WooCommerce My Account** (`https://middleworldfarms.org/my-account/`), not a native Laravel portal.
+**Current State**: Customers access subscriptions via **WooCommerce My Account** (`https://your-domain.com/my-account/`), not a native Laravel portal.
 
 **Admin-to-Customer Workflow**:
 - **User Switching**: Admin can impersonate customers via delivery schedule interface

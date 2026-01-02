@@ -79,11 +79,12 @@ class CustomBackup extends Command
         $site = $this->option('site');
 
         // Map full site keys to shorter identifiers for filenames
+        // EXAMPLE: Update these mappings for your domains
         $siteMapping = [
-            'admin.middleworldfarms.org' => 'admin',
-            'farmos.middleworldfarms.org' => 'farmos',
-            'middleworldfarms.org' => 'middleworldfarms',
-            'middleworld.farm' => 'middleworld',
+            'admin.example-farm.com' => 'admin',
+            'farmos.example-farm.com' => 'farmos',
+            'example-farm.com' => 'customer',
+            // Add your own domain mappings here
         ];
 
         $filenameSite = $siteMapping[$site] ?? $site;

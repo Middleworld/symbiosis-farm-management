@@ -166,7 +166,7 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 
 ## 📞 Support
 
-- 📧 **Email**: hello@middleworldfarms.org
+- 📧 **Email**: hello@example-farm.com
 - 🐛 **Issues**: [GitHub Issues](https://github.com/middleworldfarms/farm-delivery-system/issues)
 - 📖 **Discussions**: [GitHub Discussions](https://github.com/middleworldfarms/farm-delivery-system/discussions)
 

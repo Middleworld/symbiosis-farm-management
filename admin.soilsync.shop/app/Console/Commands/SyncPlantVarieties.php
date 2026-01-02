@@ -594,7 +594,7 @@ class SyncPlantVarieties extends Command
             $imageFileId = $relationships['image']['data'][0]['id'] ?? null;
             if ($imageFileId) {
                 // Construct farmOS file URL
-                $imageUrl = rtrim($this->baseUrl ?? config('services.farmos.url', 'https://farmos.middleworldfarms.org'), '/') . 
+                $imageUrl = rtrim($this->baseUrl ?? config('services.farmos.url', 'https://farmos.example-farm.com'), '/') . 
                            '/api/file/file/' . $imageFileId;
             }
         }

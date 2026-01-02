@@ -212,7 +212,7 @@ class MonitorSubscriptionHealth extends Command
      */
     private function sendHealthAlert(array $issues): void
     {
-        $adminEmail = env('ADMIN_EMAIL', 'middleworldfarms@gmail.com');
+        $adminEmail = env('ADMIN_EMAIL', config('mail.from.address', 'admin@example-farm.com'));
         
         Log::warning('Subscription health check found issues', [
             'issues' => $issues,

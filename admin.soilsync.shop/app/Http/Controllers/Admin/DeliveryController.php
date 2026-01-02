@@ -2045,7 +2045,7 @@ class DeliveryController extends Controller
             
             // Add management options
             $analysis['management_options'] = [
-                'view_in_woocommerce' => "https://middleworldfarms.org/wp-admin/edit.php?post_type=shop_subscription",
+                'view_in_woocommerce' => config('services.customer_site.url') . "/wp-admin/edit.php?post_type=shop_subscription",
                 'customer_search' => "Search for: {$email}",
                 'actions_available' => [
                     'Cancel excess subscriptions',

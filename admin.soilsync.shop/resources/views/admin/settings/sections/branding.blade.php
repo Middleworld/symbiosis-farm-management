@@ -327,7 +327,7 @@
                     <div class="mb-3">
                         <label for="brand_contact_email" class="form-label"><strong>Contact Email</strong></label>
                         <input type="email" class="form-control" id="brand_contact_email" name="brand_contact_email" 
-                               value="{{ $branding->contact_email ?? '' }}" placeholder="info@middleworldfarms.org">
+                               value="{{ $branding->contact_email ?? '' }}" placeholder="info@example-farm.com">
                     </div>
                     <div class="mb-3">
                         <label for="brand_contact_phone" class="form-label"><strong>Contact Phone</strong></label>

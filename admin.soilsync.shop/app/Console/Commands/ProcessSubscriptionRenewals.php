@@ -431,7 +431,7 @@ class ProcessSubscriptionRenewals extends Command
     {
         try {
             // Get admin user (you can configure this in .env or use a specific admin email)
-            $adminEmail = env('ADMIN_EMAIL', 'middleworldfarms@gmail.com');
+            $adminEmail = env('ADMIN_EMAIL', config('mail.from.address', 'admin@example-farm.com'));
             $adminUser = User::where('email', $adminEmail)->first();
 
             if ($adminUser) {

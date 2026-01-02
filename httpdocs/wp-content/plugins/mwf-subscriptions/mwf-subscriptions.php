@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: MWF Custom Subscriptions
- * Plugin URI: https://middleworldfarms.org
+ * Plugin URI: https://example-farm.com
  * Description: Custom subscription management powered by Laravel backend. Replaces WooCommerce Subscriptions addon.
  * Version: 1.1.0
  * Author: Middle World Farms
- * Author URI: https://middleworldfarms.org
+ * Author URI: https://example-farm.com
  * Requires at least: 6.0
  * Requires PHP: 8.0
  * WC requires at least: 8.0
@@ -23,7 +23,8 @@ if (!defined('ABSPATH')) {
 define('MWF_SUBS_VERSION', '1.1.0');
 define('MWF_SUBS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('MWF_SUBS_PLUGIN_URL', plugin_dir_url(__FILE__));
-define('MWF_SUBS_API_URL', 'https://admin.middleworldfarms.org:8444/api/subscriptions');
+// Default API URL - can be overridden in plugin settings
+define('MWF_SUBS_API_URL', get_option('mwf_api_url', 'https://admin.example-farm.com/api/subscriptions'));
 define('MWF_SUBS_API_KEY', 'Ffsh8yhsuZEGySvLrP0DihCDDwhPwk4h');
 
 // Load core dependencies

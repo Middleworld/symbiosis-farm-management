@@ -130,7 +130,7 @@ class WooCommerceOrderService
         DB::connection('wordpress')->table('posts')
             ->where('ID', $orderId)
             ->update([
-                'guid' => sprintf('https://middleworldfarms.org/?post_type=shop_order&#038;p=%d', $orderId)
+                'guid' => sprintf(config('services.customer_site.url') . '/?post_type=shop_order&#038;p=%d', $orderId)
             ]);
 
         return $orderId;

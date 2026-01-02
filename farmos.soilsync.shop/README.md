@@ -25,8 +25,8 @@ This FarmOS installation provides comprehensive farm management capabilities inc
 
 Integrates with the MWF ecosystem:
 
-- **WordPress Main Site**: Customer-facing website at `middleworldfarms.org`
-- **Laravel Admin**: Backend management at `middleworldfarms.org/admin`
+- **WordPress Main Site**: Customer-facing website at `your-domain.com`
+- **Laravel Admin**: Backend management at `your-domain.com/admin`
 - **POS System**: Self-serve shop for on-site sales
 
 ## 📁 Project Structure
@@ -103,7 +103,7 @@ $databases['default']['default'] = [
 ];
 
 // API base URL for cross-system integration
-$config['farmos_api']['base_url'] = 'https://middleworldfarms.org/farmos';
+$config['farmos_api']['base_url'] = 'https://your-domain.com/farmos';
 ```
 
 ## 📚 Documentation

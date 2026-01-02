@@ -15,7 +15,7 @@ class FarmOSQuickFormService
     public function __construct()
     {
         // Use reverse proxy URL for Quick Forms to avoid CORS issues
-        $this->farmOSBaseUrl = config('app.url', 'https://admin.middleworldfarms.org') . '/farmos';
+        $this->farmOSBaseUrl = config('app.url', config('services.farmos.url')) . '/farmos';
         $this->authToken = session('farmos_token'); // Get from session
     }
 
@@ -34,7 +34,7 @@ class FarmOSQuickFormService
     protected function getQuickFormBaseUrl(string $logType): string
     {
         // Simplified: always use FarmOS native forms
-        $farmOSBase = config('services.farmos.url', 'https://farmos.middleworldfarms.org');
+        $farmOSBase = config('services.farmos.url', 'https://farmos.example-farm.com');
         return $farmOSBase . '/quick/' . $logType;
     }
 
@@ -53,7 +53,7 @@ class FarmOSQuickFormService
     public function generateAllFormUrls(array $successionData): array
     {
         // Generate URLs for our Laravel quick forms with pre-filled parameters
-        $baseUrl = config('app.url', 'https://admin.middleworldfarms.org') . '/admin/farmos';
+        $baseUrl = config('app.url', config('services.farmos.url')) . '/admin/farmos';
 
         $params = [
             'crop_name' => $successionData['crop_name'] ?? '',

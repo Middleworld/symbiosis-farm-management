@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: MWF Team Members
- * Plugin URI: https://middleworldfarms.org
+ * Plugin URI: https://example-farm.com
  * Description: Simple, lightweight team member management with shortcode support
  * Version: 1.0.0
  * Author: Middleworld Farms
- * Author URI: https://middleworldfarms.org
+ * Author URI: https://example-farm.com
  * License: GPL2
  */
 
@@ -91,7 +91,7 @@ class MWF_Team_Members {
             </tr>
             <tr>
                 <th><label for="team_email">Email</label></th>
-                <td><input type="email" id="team_email" name="team_email" value="<?php echo esc_attr($email); ?>" class="regular-text" placeholder="email@middleworldfarms.org"></td>
+                <td><input type="email" id="team_email" name="team_email" value="<?php echo esc_attr($email); ?>" class="regular-text" placeholder="email@example-farm.com"></td>
             </tr>
             <tr>
                 <th><label for="team_phone">Phone</label></th>

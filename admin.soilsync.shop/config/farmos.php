@@ -11,7 +11,7 @@ return [
     |
     */
 
-    'url' => env('FARMOS_URL', 'https://farmos.middleworldfarms.org'),
+    'url' => env('FARMOS_URL', 'https://farmos.example.com'),
     
     'username' => env('FARMOS_USERNAME'),
     

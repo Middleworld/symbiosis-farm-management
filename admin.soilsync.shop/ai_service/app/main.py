@@ -272,7 +272,10 @@ async def sync_openfarm_data():
 async def ingest_biodynamics():
     """Ingest biodynamic_principles_core.txt into local vector store for retrieval."""
     try:
-        source_path = "/opt/sites/admin.middleworldfarms.org/ai_service/biodynamic_principles_core.txt"
+        # Try environment variable first, fallback to default
+        import os
+        app_dir = os.getenv('APP_DIR', '/opt/sites/admin.your-domain.com')
+        source_path = f"{app_dir}/ai_service/biodynamic_principles_core.txt"
         with open(source_path, 'r') as f:
             text = f.read()
         chunks = LLMService.chunk_text(text, max_chars=1200, overlap=150)

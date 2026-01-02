@@ -11,7 +11,8 @@ echo ""
 echo "Starting in 5 seconds... (Ctrl+C to cancel)"
 sleep 5
 
-cd /opt/sites/admin.middleworldfarms.org
+APP_DIR="${APP_DIR:-/opt/sites/admin.your-domain.com}"
+cd "$APP_DIR"
 
 # Run audit in background
 nohup php artisan varieties:audit > /tmp/variety-audit.log 2>&1 &
@@ -28,7 +29,7 @@ echo "Check status:"
 echo "  ps aux | grep $AUDIT_PID"
 echo ""
 echo "View results:"
-echo "  Visit https://admin.middleworldfarms.org/admin/settings (AI Variety Audit Review section)"
+echo "  Visit https://admin.your-domain.com/admin/settings (AI Variety Audit Review section)"
 echo ""
 echo "Cancel audit:"
 echo "  kill $AUDIT_PID"

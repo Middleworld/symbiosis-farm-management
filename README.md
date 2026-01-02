@@ -235,7 +235,7 @@ See [LICENSE](LICENSE) for details.
 ## 🌍 Project Links
 
 - **Demo Site:** https://soilsync.shop
-- **Production:** https://middleworldfarms.org
+- **Production:** https://your-farm-domain.com
 - **Repository:** https://github.com/Middleworld/symbiosis-farm-management
 - **Documentation:** [Wiki](https://github.com/Middleworld/symbiosis-farm-management/wiki)
 

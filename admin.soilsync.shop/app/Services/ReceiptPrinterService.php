@@ -427,7 +427,7 @@ class ReceiptPrinterService
         $receipt .= "MIDDLEWORLD FARMS\n";
         $receipt .= $commands['double_height_off'];
         $receipt .= "Fresh Organic Produce\n";
-        $receipt .= "www.middleworldfarms.org\n";
+        $receipt .= parse_url(config('services.customer_site.url'), PHP_URL_HOST) . "\n";
         $receipt .= "\n";
 
         // Order details

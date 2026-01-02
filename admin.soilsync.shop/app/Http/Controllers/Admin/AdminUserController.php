@@ -312,7 +312,7 @@ class AdminUserController extends Controller
         // Users must be created manually in FarmOS admin interface
         return [
             'success' => false,
-            'error' => 'FarmOS user creation not implemented - create manually at farmos.middleworldfarms.org/user/register',
+            'error' => 'FarmOS user creation not implemented - create manually at ' . config('farmos.url') . '/user/register',
         ];
     }
 

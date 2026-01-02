@@ -1043,7 +1043,7 @@ class SettingsController extends Controller
     private function getApiKeyDescription(string $key): string
     {
         $descriptions = [
-            'farmos_api_url' => 'FarmOS server URL (e.g., https://farmos.middleworldfarms.org)',
+            'farmos_api_url' => 'FarmOS server URL (e.g., https://farmos.example-farm.com)',
             'farmos_username' => 'FarmOS admin username for API authentication',
             'farmos_password' => 'FarmOS admin password for API authentication',
             'farmos_oauth_client_id' => 'FarmOS OAuth2 client ID for API access',

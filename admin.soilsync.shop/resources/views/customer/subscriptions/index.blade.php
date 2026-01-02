@@ -23,7 +23,7 @@
                         </svg>
                         <h4>No Active Subscriptions</h4>
                         <p class="text-muted">You don't have any subscriptions yet.</p>
-                        <a href="https://middleworldfarms.org/shop" class="btn btn-primary mt-3">
+                        <a href="{{ config('services.customer_site.url') }}/shop" class="btn btn-primary mt-3">
                             Browse Our Vegboxes
                         </a>
                     </div>

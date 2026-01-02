@@ -14,8 +14,8 @@ class WooCommerceIntegrationController extends Controller
 
     public function __construct()
     {
-        $this->mwfApiBaseUrl = env('MWF_API_BASE_URL', 'https://middleworldfarms.org/wp-json/mwf/v1');
-        $this->mwfApiKey = env('MWF_API_KEY', 'Ffsh8yhsuZEGySvLrP0DihCDDwhPwk4h');
+        $this->mwfApiBaseUrl = env('MWF_API_BASE_URL', config('services.customer_site.url') . '/wp-json/mwf/v1');
+        $this->mwfApiKey = config('services.customer_site.api_key', env('MWF_API_KEY'));
     }
 
     /**

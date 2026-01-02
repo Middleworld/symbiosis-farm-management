@@ -47,7 +47,7 @@
                                name="email" 
                                value="{{ old('email') }}" 
                                required
-                               placeholder="e.g., john@middleworldfarms.org">
+                               placeholder="e.g., john@example-farm.com">
                         <small class="text-muted">This will be used for admin panel and FarmOS login</small>
                         @error('email')
                             <div class="invalid-feedback">{{ $message }}</div>

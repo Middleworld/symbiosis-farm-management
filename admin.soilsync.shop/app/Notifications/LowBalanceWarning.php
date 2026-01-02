@@ -53,7 +53,7 @@ class LowBalanceWarning extends Notification implements ShouldQueue
             ->line('Shortfall: £' . number_format($shortfall, 2))
             ->line('Next Renewal Date: ' . $this->subscription->next_billing_at->format('d/m/Y') . ' (' . ($daysUntilRenewal > 0 ? $daysUntilRenewal . ' days' : 'today') . ')')
             ->line('**Please add £' . number_format($shortfall, 2) . ' or more to your account to ensure uninterrupted service.**')
-            ->action('Add Funds Now', 'https://middleworldfarms.org/my-account/')
+            ->action('Add Funds Now', config('services.customer_site.url') . '/my-account/')
             ->line('Thank you for your continued support!');
     }
 

@@ -14,7 +14,7 @@
                     </h1>
                     <p class="text-muted mb-0">Manage AI chatbot configuration and knowledge base</p>
                 </div>
-                <div class="badge bg-info fs-6">Production: admin.middleworldfarms.org</div>
+                <div class="badge bg-info fs-6">Production: {{ config('app.url') }}</div>
             </div>
 
             <!-- System Status Cards -->
@@ -202,7 +202,7 @@
                             
                             <div class="alert alert-info" role="alert">
                                 <i class="fas fa-info-circle me-2"></i>
-                                <strong>Production Environment:</strong> All AI services are configured for admin.middleworldfarms.org
+                                <strong>Production Environment:</strong> All AI services are configured for {{ config('app.url') }}
                             </div>
                         </div>
                     </div>

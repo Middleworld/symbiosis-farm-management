@@ -273,7 +273,7 @@ class DirectDatabaseService
             $adminKey = hash('sha256', $userId . $redirectTo . $secret);
 
             // Create the switch URL using our custom WordPress endpoint
-            $baseUrl = rtrim(env('WOOCOMMERCE_URL', 'https://middleworldfarms.org'), '/');
+            $baseUrl = rtrim(env('WOOCOMMERCE_URL', config('services.customer_site.url', 'https://example-farm.com')), '/');
             $ajaxUrl = $baseUrl . '/wp-admin/admin-ajax.php?' . http_build_query([
                 'action' => 'mwf_generate_plugin_switch_url',
                 'user_id' => $userId,

@@ -21,7 +21,7 @@ class FarmOSApi
 
     public function __construct()
     {
-        $this->baseUrl = Config::get('farmos.url', 'https://farmos.middleworldfarms.org');
+        $this->baseUrl = Config::get('farmos.url', 'https://farmos.example-farm.com');
         
         $this->client = new Client([
             'base_uri' => $this->baseUrl,

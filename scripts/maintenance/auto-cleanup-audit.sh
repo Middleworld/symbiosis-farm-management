@@ -3,7 +3,8 @@
 # Auto-cleanup malformed variety audit entries
 # Runs every 5 minutes via cron to fix spacing JSON and formatting issues
 
-cd /opt/sites/admin.middleworldfarms.org
+APP_DIR="${APP_DIR:-/opt/sites/admin.your-domain.com}"
+cd "$APP_DIR"
 
 php artisan tinker <<'EOF'
 // Fix JSON spacing entries

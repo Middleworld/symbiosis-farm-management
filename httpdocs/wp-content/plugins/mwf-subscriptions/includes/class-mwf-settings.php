@@ -44,7 +44,7 @@ class MWF_Settings {
     public function register_settings() {
         register_setting('mwf_subscriptions_settings', 'mwf_api_url', [
             'type' => 'string',
-            'default' => 'https://admin.middleworldfarms.org:8444/api/subscriptions',
+            'default' => 'https://admin.example-farm.com/api/subscriptions',
             'sanitize_callback' => 'sanitize_url'
         ]);
         
@@ -105,7 +105,7 @@ class MWF_Settings {
                                 <input type="url" 
                                        id="mwf_api_url" 
                                        name="mwf_api_url" 
-                                       value="<?php echo esc_attr(get_option('mwf_api_url', 'https://admin.middleworldfarms.org:8444/api/subscriptions')); ?>" 
+                                       value="<?php echo esc_attr(get_option('mwf_api_url', 'https://admin.example-farm.com/api/subscriptions')); ?>" 
                                        class="regular-text" 
                                        required>
                                 <p class="description">

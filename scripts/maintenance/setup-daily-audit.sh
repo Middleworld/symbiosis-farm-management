@@ -5,8 +5,11 @@
 
 echo "🔧 Setting up daily audit cron job..."
 
+# Configuration
+APP_DIR="${APP_DIR:-/opt/sites/admin.your-domain.com}"
+
 # Define the cron job
-CRON_JOB="0 6 * * * cd /opt/sites/admin.middleworldfarms.org && php artisan audit:daily --send-alerts >> /opt/sites/admin.middleworldfarms.org/storage/logs/daily-audit.log 2>&1"
+CRON_JOB="0 6 * * * cd $APP_DIR && php artisan audit:daily --send-alerts >> $APP_DIR/storage/logs/daily-audit.log 2>&1"
 
 # Check if cron job already exists
 if crontab -l | grep -q "audit:daily"; then
@@ -20,11 +23,11 @@ else
 fi
 
 # Create log directory if it doesn't exist
-mkdir -p /opt/sites/admin.middleworldfarms.org/storage/logs
+mkdir -p "$APP_DIR/storage/logs"
 
 # Test the cron job
 echo "🧪 Testing audit system..."
-cd /opt/sites/admin.middleworldfarms.org
+cd "$APP_DIR"
 php artisan audit:daily --send-alerts
 
 echo ""

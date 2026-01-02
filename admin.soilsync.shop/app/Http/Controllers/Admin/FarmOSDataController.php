@@ -193,7 +193,7 @@ class FarmOSDataController extends Controller
             $cropTypes = $this->farmOSQuery->getPlantVarieties(['active_only' => true]);
             $cropTypes = ['types' => $cropTypes->map(fn($v) => ['id' => $v->tid, 'name' => $v->name])->toArray()];
 
-            $farmosBaseUrl = config('farmos.url', 'https://farmos.middleworldfarms.org');
+            $farmosBaseUrl = config('farmos.url', 'https://farmos.example-farm.com');
             $usingFarmOSData = true;
 
             // Convert to paginated-like structure for view compatibility
@@ -247,7 +247,7 @@ class FarmOSDataController extends Controller
                 ->sort()
                 ->values();
 
-            $farmosBaseUrl = config('farmos.url', 'https://farmos.middleworldfarms.org');
+            $farmosBaseUrl = config('farmos.url', 'https://farmos.example-farm.com');
             $usingFarmOSData = false;
 
             return view('admin.farmos.harvests', compact(

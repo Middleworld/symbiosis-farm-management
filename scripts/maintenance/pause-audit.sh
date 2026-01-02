@@ -31,7 +31,8 @@ if ! ps -p $AUDIT_PID > /dev/null 2>&1; then
     echo ""
     
     # Check for progress file
-    PROGRESS_FILE="/opt/sites/admin.middleworldfarms.org/storage/logs/variety-audit/progress.json"
+    APP_DIR="${APP_DIR:-/opt/sites/admin.your-domain.com}"
+    PROGRESS_FILE="$APP_DIR/storage/logs/variety-audit/progress.json"
     if [ -f "$PROGRESS_FILE" ]; then
         echo "📊 Progress saved:"
         cat "$PROGRESS_FILE" | jq '.'

@@ -186,7 +186,7 @@
                 </div>
                 <div class="card-body">
                     <p class="small mb-2">Contact us for assistance:</p>
-                    <p class="small mb-1"><strong>Email:</strong> info@middleworldfarms.org</p>
+                    <p class="small mb-1"><strong>Email:</strong> {{ config('mail.from.address', 'info@example-farm.com') }}</p>
                     <p class="small mb-0"><strong>Phone:</strong> 01234 567890</p>
                 </div>
             </div>

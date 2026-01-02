@@ -24,7 +24,10 @@ class FastFarmRAG:
     """Lightning-fast farm knowledge retrieval"""
     
     def __init__(self):
-        self.knowledge_file = "/opt/sites/admin.middleworldfarms.org/farm_knowledge.json"
+        # Use environment variable or default path
+        import os
+        app_dir = os.getenv('APP_DIR', '/opt/sites/admin.your-domain.com')
+        self.knowledge_file = f"{app_dir}/farm_knowledge.json"
         self.knowledge_base: List[FarmKnowledge] = []
         self.load_knowledge()
         self.seed_initial_knowledge()

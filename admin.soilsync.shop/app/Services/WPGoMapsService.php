@@ -12,7 +12,7 @@ class WPGoMapsService
 
     public function __construct()
     {
-        $this->baseUrl = config('services.woocommerce.api_url', 'https://middleworldfarms.org');
+        $this->baseUrl = config('services.woocommerce.api_url', config('services.customer_site.url'));
         $this->apiKey = config('services.wordpress.api_key');
     }
 

@@ -29,7 +29,8 @@ else
 fi
 
 # Check for progress file
-PROGRESS_FILE="/opt/sites/admin.middleworldfarms.org/storage/logs/variety-audit/progress.json"
+APP_DIR="${APP_DIR:-/opt/sites/admin.your-domain.com}"
+PROGRESS_FILE="$APP_DIR/storage/logs/variety-audit/progress.json"
 if [ -f "$PROGRESS_FILE" ]; then
     echo "📊 Last Progress Save:"
     echo "---------------------"
@@ -58,7 +59,7 @@ fi
 # Check recent audit results in database
 echo "📦 Recent Audit Results:"
 echo "-----------------------"
-cd /opt/sites/admin.middleworldfarms.org
+cd "$APP_DIR"
 php artisan tinker --execute="
 \$count = App\Models\VarietyAuditResult::count();
 \$pending = App\Models\VarietyAuditResult::where('status', 'pending')->count();

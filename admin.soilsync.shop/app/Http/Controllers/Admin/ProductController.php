@@ -1159,7 +1159,7 @@ class ProductController extends Controller
                 ->value('option_value');
             // Only use if it's a real farm name (not single letter, not admin domain)
             if ($siteName && strlen($siteName) > 2 && 
-                $siteName !== 'admin.middleworldfarms.org' &&
+                parse_url(config('app.url'), PHP_URL_HOST) !== 'admin.example-farm.com' &&
                 !in_array(strtolower($siteName), ['g', 'test', 'demo'])) {
                 $farmName = $siteName;
                 $useDefaultFarm = false;

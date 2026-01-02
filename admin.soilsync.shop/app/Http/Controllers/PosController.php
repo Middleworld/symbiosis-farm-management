@@ -724,7 +724,7 @@ class PosController extends Controller
             // Note: This would normally use WooCommerce REST API
             
             $orderId = rand(1000, 9999);
-            $orderUrl = 'https://middleworldfarms.org/wp-admin/post.php?post=' . $orderId . '&action=edit';
+            $orderUrl = config('services.customer_site.url') . '/wp-admin/post.php?post=' . $orderId . '&action=edit';
             
             return response()->json([
                 'success' => true,

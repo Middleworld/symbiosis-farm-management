@@ -12,8 +12,8 @@ class UserSwitchingService
 
     public function __construct()
     {
-        $this->baseUrl = config('services.wordpress.api_base', 'https://middleworldfarms.org/wp-json/mwf/v1');
-        $this->apiKey = config('services.wordpress.api_key', 'Ffsh8yhsuZEGySvLrP0DihCDDwhPwk4h');
+        $this->baseUrl = config('services.wordpress.api_base', config('services.customer_site.url') . '/wp-json/mwf/v1');
+        $this->apiKey = config('services.customer_site.api_key', env('MWF_API_KEY'));
     }
 
     /**

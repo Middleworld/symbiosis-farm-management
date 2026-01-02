@@ -2,7 +2,7 @@
 
 # ===========================================
 # EMERGENCY BACKUP RECOVERY SCRIPT
-# For when admin.middleworldfarms.org is completely down
+# For when admin site is completely down
 # ===========================================
 
 set -e  # Exit on any error
@@ -12,8 +12,8 @@ echo "================================="
 echo "This script restores the admin site from backup when the web interface is unavailable"
 echo ""
 
-# Configuration
-ADMIN_PATH="/opt/sites/admin.middleworldfarms.org"
+# Configuration - Update for your environment
+ADMIN_PATH="${APP_DIR:-/opt/sites/admin.your-domain.com}"
 BACKUP_DIR="$ADMIN_PATH/storage/app/private/backups"
 LATEST_BACKUP=""
 
@@ -83,7 +83,8 @@ perform_restore() {
     # Create backup of current state (just in case)
     CURRENT_BACKUP="/tmp/admin-emergency-backup-$(date +%Y%m%d-%H%M%S).tar.gz"
     print_status "Creating safety backup of current state..."
-    sudo tar -czf "$CURRENT_BACKUP" -C /opt/sites admin.middleworldfarms.org 2>/dev/null || true
+    SITE_NAME=$(basename "$ADMIN_PATH")
+    sudo tar -czf "$CURRENT_BACKUP" -C "$(dirname "$ADMIN_PATH")" "$SITE_NAME" 2>/dev/null || true
 
     # Extract the backup
     print_status "Extracting backup files..."
@@ -97,14 +98,14 @@ perform_restore() {
     unzip -q "$LATEST_BACKUP" -d "$TEMP_DIR"
 
     # Find the application directory in the backup
-    APP_DIR=$(find "$TEMP_DIR" -name "admin.middleworldfarms.org" -type d | head -1)
+    BACKUP_APP_DIR=$(find "$TEMP_DIR" -type d -name "admin.*" | head -1)
 
-    if [ -z "$APP_DIR" ]; then
+    if [ -z "$BACKUP_APP_DIR" ]; then
         print_error "Could not find application directory in backup"
         exit 1
     fi
 
-    print_status "Found application directory: $APP_DIR"
+    print_status "Found application directory: $BACKUP_APP_DIR"
 
     # Backup current database configuration
     DB_CONFIG_BACKUP="/tmp/database-config-backup-$(date +%Y%m%d-%H%M%S)"
@@ -147,7 +148,7 @@ perform_restore() {
 show_usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
-    echo "Emergency backup recovery script for admin.middleworldfarms.org"
+    echo "Emergency backup recovery script for admin site"
     echo ""
     echo "Options:"
     echo "  --yes, -y    Skip confirmation prompt"
@@ -201,5 +202,5 @@ fi
 perform_restore
 
 print_success "🎉 Emergency recovery completed successfully!"
-print_status "Please test the admin site at https://admin.middleworldfarms.org"
+print_status "Please test the admin site at https://admin.your-domain.com"
 print_status "If everything works, you can remove the safety backup: $CURRENT_BACKUP"

@@ -33,12 +33,12 @@ class LoginController extends Controller
      */
     private function getWordPressEmailForAdmin($adminEmail)
     {
-        // Email mapping for admin users
-        $emailMapping = [
+        // Email mapping for admin users - load from config or use default mapping
+        $emailMapping = config('admin_users.wordpress_email_mapping', [
             'martin@middleworldfarms.org' => 'middleworldfarms@gmail.com',
             // Add more mappings here if needed in the future
-            // 'other-admin@middleworldfarms.org' => 'their-wp-email@domain.com',
-        ];
+            // 'other-admin@example-farm.com' => 'their-wp-email@domain.com',
+        ]);
         
         return $emailMapping[$adminEmail] ?? $adminEmail;
     }
@@ -136,7 +136,7 @@ class LoginController extends Controller
                     // Store WordPress session info
                     Session::put('wp_authenticated', true);
                     Session::put('wp_integration_status', 'authenticated');
-                    Session::put('wp_admin_url', $wpAuthResult['wp_admin_url'] ?? 'https://middleworldfarms.org/wp-admin/');
+                    Session::put('wp_admin_url', $wpAuthResult['wp_admin_url'] ?? config('services.customer_site.url') . '/wp-admin/');
                     Session::put('wp_user', $wpAuthResult['wp_user'] ?? null);
                     Session::put('wp_auth_cookie', $wpAuthResult['wp_auth_cookie'] ?? null);
                     
@@ -161,7 +161,7 @@ class LoginController extends Controller
                     // Store partial session info for manual login
                     Session::put('wp_authenticated', false);
                     Session::put('wp_integration_status', 'failed');
-                    Session::put('wp_admin_url', 'https://middleworldfarms.org/wp-admin/');
+                    Session::put('wp_admin_url', config('services.customer_site.url') . '/wp-admin/');
                 }
 
                 // Log the admin login (always successful)

@@ -46,7 +46,7 @@ class FinalPaymentWarning extends Notification implements ShouldQueue
             ->line("3. Contact your bank if you're having issues")
             ->line("If you wish to cancel your subscription, you can do so in your account. Otherwise, please update your payment method to avoid automatic cancellation.")
             ->action('Update Payment Method Now', url('/my-account/payment-methods'))
-            ->line('Need help? Contact us at middleworldfarms@gmail.com or reply to this email.')
-            ->salutation('Urgent regards, Middleworld Farms Team');
+            ->line('Need help? Contact us at ' . config('subscription.admin_email', config('mail.from.address')) . ' or reply to this email.')
+            ->salutation('Urgent regards, ' . config('app.name', 'Farm Management') . ' Team');
     }
 }

@@ -233,9 +233,9 @@ class UnifiedBackupController extends Controller
 
         // Create mapping from config keys to backup site identifiers
         $siteMapping = [
-            'admin.middleworldfarms.org' => 'admin',
-            'farmos.middleworldfarms.org' => 'farmos',
-            'middleworldfarms.org' => 'middleworldfarms',
+            config('app.url') => 'admin',
+            config('farmos.url', 'https://farmos.example-farm.com') => 'farmos',
+            config('services.customer_site.url', 'https://example-farm.com') => 'customer',
             'middleworld.farm' => 'middleworld',
         ];
 

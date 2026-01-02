@@ -5,8 +5,8 @@
 
 set -e
 
-# Configuration
-PRODUCTION_DIR="/opt/sites/admin.middleworldfarms.org"
+# Configuration - Update these for your environment
+PRODUCTION_DIR="${APP_DIR:-/opt/sites/admin.your-domain.com}"
 STAGING_DIR="/opt/sites/admin.soilsync.shop"
 LOG_FILE="/var/log/symbiosis-update-deployment.log"
 

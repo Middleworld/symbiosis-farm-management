@@ -11,10 +11,11 @@ class CareyOneBackup extends Command
 {
     protected $signature = 'backup:carey-one {--estimate : Show size estimate without creating backup} {--force : Skip confirmation prompt} {--cloud : Upload backup to Google Drive after creation}';
 
-    protected $description = 'Create a smart backup of Carey one site (middleworldfarms.org) excluding WordPress core, WooCommerce, and unnecessary plugins';
+    protected $description = '[EXAMPLE] Backup command from original Middleworld Farms site - customize for your installation';
 
-    private $sitePath = '/var/www/vhosts/middleworldfarms.org/httpdocs';
-    private $siteName = 'middleworldfarms.org';
+    // EXAMPLE PATHS - Update these for your site
+    private $sitePath = '/var/www/vhosts/your-domain.com/httpdocs';
+    private $siteName = 'your-domain.com';
 
     private $excludePatterns = [
         // WordPress core

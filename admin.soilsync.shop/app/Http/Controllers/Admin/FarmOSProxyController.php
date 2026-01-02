@@ -9,7 +9,12 @@ use Illuminate\Support\Facades\Log;
 
 class FarmOSProxyController extends Controller
 {
-    protected $farmOSBaseUrl = 'https://farmos.middleworldfarms.org';
+    protected $farmOSBaseUrl;  // Set dynamically from config
+
+    public function __construct()
+    {
+        $this->farmOSBaseUrl = config('farmos.url', 'https://farmos.example-farm.com');
+    }
 
     /**
      * Proxy FarmOS seeding Quick Form with pre-filled data

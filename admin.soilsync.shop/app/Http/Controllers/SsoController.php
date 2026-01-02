@@ -91,8 +91,8 @@ class SsoController extends Controller
             'farmos.soilsync.shop',
             'fieldkit.soilsync.shop',
             'feildkit.soilsync.shop', // With typo as configured
-            'middleworldfarms.org',
-            'admin.middleworldfarms.org'
+            config('services.customer_site.url', 'example-farm.com'),
+            config('app.url', 'admin.example-farm.com')
         ];
 
         // Allow relative URLs (starting with /)
@@ -126,7 +126,7 @@ class SsoController extends Controller
             session([
                 'farmos_oauth_token' => $token,
                 'farmos_token_expiry' => now()->addMinutes(55)->toDateTimeString(), // Tokens are valid for 1 hour
-                'farmos_host' => config('farmos.url', 'https://farmos.middleworldfarms.org')
+                'farmos_host' => config('farmos.url', 'https://farmos.example-farm.com')
             ]);
             
             \Log::info('FarmOS OAuth token stored in session for SSO');

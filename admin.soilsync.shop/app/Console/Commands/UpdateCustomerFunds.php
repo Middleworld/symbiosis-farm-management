@@ -37,7 +37,7 @@ class UpdateCustomerFunds extends Command
 
         try {
             // Try to update funds via API
-            $apiKey = env('MWF_API_KEY', 'Ffsh8yhsuZEGySvLrP0DihCDDwhPwk4h');
+            $apiKey = config('services.customer_site.api_key', env('MWF_API_KEY'));
             
             $response = Http::withHeaders([
                 'X-WC-API-Key' => $apiKey,

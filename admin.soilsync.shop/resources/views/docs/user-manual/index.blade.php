@@ -131,7 +131,7 @@
                                     <li>Ask the <strong>AI Helper</strong> in the sidebar for instant assistance</li>
                                     <li>Check the relevant feature guide above</li>
                                     <li>Contact your system administrator</li>
-                                    <li>Visit the <a href="https://github.com/middleworldfarms/admin-middleworldfarms/wiki" target="_blank">Wiki</a> for detailed documentation</li>
+                                    <li>Visit the project Wiki for detailed documentation</li>
                                 </ul>
                             </div>
                         </div>

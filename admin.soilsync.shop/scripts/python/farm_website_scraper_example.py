@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
 """
-Middle World Farms Website Scraper
-Extracts farm-specific knowledge from middleworldfarms.org
+Farm Website Scraper Example
+EXAMPLE: Extracts farm-specific knowledge from your farm website
+This is an example based on the original Middleworld Farms implementation.
+Customize this for your own farm's website and knowledge base.
 """
 
 import requests
 from fast_farm_rag import add_farm_knowledge
 
-def scrape_middleworldfarms_knowledge():
-    """Extract Middle World Farms specific knowledge"""
+def scrape_farm_knowledge():
+    """Extract farm-specific knowledge from your website"""
     
-    print("🚜 Scraping Middle World Farms website...")
+    print("🚜 Scraping farm website for knowledge...")
     
-    # Knowledge extracted from middleworldfarms.org
+    # EXAMPLE: Knowledge extracted from original farm website
+    # Replace this with your own farm's information
     farm_knowledge = [
         {
             "topic": "Middle World Farms Mission",

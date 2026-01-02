@@ -48,7 +48,7 @@ MODEL_NAME = "mistral:7b"
 
 # farmOS Configuration (same as before)
 FARMOS_CONFIG = {
-    'url': 'https://farmos.middleworldfarms.org',
+    'url': 'https://farmos.example-farm.com',
     'username': 'admin', 
     'password': 'WdxWWPSTy1asdvWw6BW5',
     'oauth_client_id': 'NyIv5ejXa5xYRLKv0BXjUi-IHn3H2qbQQ3m-h2qp_xY',

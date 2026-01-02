@@ -48,7 +48,7 @@ The deployment system consists of two main scripts:
 
 2. **Deploy to staging**
    ```bash
-   cd /opt/sites/admin.middleworldfarms.org
+   cd ${APP_DIR:-/opt/sites/admin.your-domain.com}
    ./scripts/deployment/deploy.sh staging
    ```
 
@@ -110,7 +110,7 @@ DEPLOY_RUN_TESTS=true
 
 ```
 /opt/sites/
-├── admin.middleworldfarms.org/  # Production
+├── admin.your-domain.com/  # Production
 ├── admin.soilsync.shop/         # Staging
 └── scripts/
     └── deployment/              # Deployment scripts
@@ -177,8 +177,8 @@ grep "SUCCESS\|ERROR" /var/log/symbiosis-deployment.log | tail -10
 3. **Permission issues**
    ```bash
    # Fix permissions
-   chown -R www-data:www-data /opt/sites/admin.middleworldfarms.org
-   chmod -R 755 /opt/sites/admin.middleworldfarms.org/storage
+   chown -R www-data:www-data ${APP_DIR:-/opt/sites/admin.your-domain.com}
+   chmod -R 755 ${APP_DIR:-/opt/sites/admin.your-domain.com}/storage
    ```
 
 ### Rollback Procedure
@@ -188,7 +188,7 @@ If deployment fails:
 ```bash
 # Automatic rollback (built into scripts)
 # Or manual rollback:
-cd /opt/sites/admin.middleworldfarms.org
+cd ${APP_DIR:-/opt/sites/admin.your-domain.com}
 php artisan backup:restore --filename=latest.zip
 git reset --hard HEAD~1
 ```

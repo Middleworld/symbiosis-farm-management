@@ -61,8 +61,8 @@ class SubscriptionPaymentFailed extends Notification implements ShouldQueue
 
         $message->line('Reason: ' . $this->reason)
             ->line('We will automatically retry the payment in the next few days. To avoid interruption of service, please ensure you have sufficient funds in your account.')
-            ->action('Add Funds', 'https://middleworldfarms.org/my-account/')
-            ->line('If you have any questions, please contact us at middleworldfarms@gmail.com');
+            ->action('Add Funds', config('services.customer_site.url') . '/my-account/')
+            ->line('If you have any questions, please contact us at ' . config('subscription.admin_email', config('mail.from.address')));
 
         return $message;
     }

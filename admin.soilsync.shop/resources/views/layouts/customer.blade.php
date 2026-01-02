@@ -97,10 +97,10 @@
                         <a class="nav-link" href="{{ route('customer.subscriptions.index') }}">My Subscriptions</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="https://middleworldfarms.org/shop">Shop</a>
+                        <a class="nav-link" href="{{ config('services.customer_site.url') }}/shop">Shop</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="https://middleworldfarms.org/contact">Contact</a>
+                        <a class="nav-link" href="{{ config('services.customer_site.url') }}/contact">Contact</a>
                     </li>
                     @auth
                     <li class="nav-item dropdown">
@@ -108,7 +108,7 @@
                             {{ Auth::user()->name }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="https://middleworldfarms.org/my-account">My Account</a></li>
+                            <li><a class="dropdown-item" href="{{ config('services.customer_site.url') }}/my-account">My Account</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
                                 <form action="{{ route('admin.logout') }}" method="POST">
@@ -144,14 +144,14 @@
                 <div class="col-md-4 mb-3 mb-md-0">
                     <h6>Quick Links</h6>
                     <ul class="list-unstyled small">
-                        <li><a href="https://middleworldfarms.org/shop">Shop</a></li>
-                        <li><a href="https://middleworldfarms.org/about">About Us</a></li>
-                        <li><a href="https://middleworldfarms.org/contact">Contact</a></li>
+                        <li><a href="{{ config('services.customer_site.url') }}/shop">Shop</a></li>
+                        <li><a href="{{ config('services.customer_site.url') }}/about">About Us</a></li>
+                        <li><a href="{{ config('services.customer_site.url') }}/contact">Contact</a></li>
                     </ul>
                 </div>
                 <div class="col-md-4">
                     <h6>Contact</h6>
-                    <p class="small mb-0">Email: info@middleworldfarms.org</p>
+                    <p class="small mb-0">Email: {{ config('mail.from.address', 'info@example-farm.com') }}</p>
                     <p class="small">Phone: 01234 567890</p>
                 </div>
             </div>

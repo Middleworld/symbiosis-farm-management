@@ -43,5 +43,5 @@ return [
     | Email address to receive admin notifications about subscription issues.
     |
     */
-    'admin_email' => env('ADMIN_EMAIL', 'middleworldfarms@gmail.com'),
+    'admin_email' => env('ADMIN_EMAIL', env('MAIL_FROM_ADDRESS', 'admin@example-farm.com')),
 ];

@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: MWF Reviews
- * Plugin URI: https://middleworldfarms.org
+ * Plugin URI: https://example-farm.com
  * Description: Lightweight Google reviews display with Facebook Page Plugin embed - no API keys required for Facebook!
  * Version: 1.0.0
  * Author: Middleworld Farms
- * Author URI: https://middleworldfarms.org
+ * Author URI: https://example-farm.com
  * License: GPL2
  */
 

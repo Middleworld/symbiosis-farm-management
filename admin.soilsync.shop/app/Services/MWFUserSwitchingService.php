@@ -7,12 +7,13 @@ use Illuminate\Support\Facades\Log;
 
 class MWFUserSwitchingService
 {
-    private string $baseUrl = 'https://middleworldfarms.org/wp-json/mwf/v1/';
+    private string $baseUrl;
     private string $apiKey;
 
     public function __construct()
     {
-        $this->apiKey = env('MWF_API_KEY', 'Ffsh8yhsuZEGySvLrP0DihCDDwhPwk4h');
+        $this->baseUrl = config('services.customer_site.url') . '/wp-json/mwf/v1/';
+        $this->apiKey = config('services.customer_site.api_key', env('MWF_API_KEY'));
     }
 
     /**

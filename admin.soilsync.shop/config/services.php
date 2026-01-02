@@ -65,7 +65,7 @@ return [
     ],
 
     'wp_api' => [
-        'url'    => env('WOOCOMMERCE_URL', 'https://middleworldfarms.org'),
+        'url'    => env('WOOCOMMERCE_URL', 'https://example-farm.com'),
         'key'    => env('WOOCOMMERCE_CONSUMER_KEY'),
         'secret' => env('WOOCOMMERCE_CONSUMER_SECRET'),
     ],
@@ -100,8 +100,8 @@ return [
     ],
 
     'farmos' => [
-        'url' => env('FARMOS_URL', 'https://farmos.middleworldfarms.org'),
-        'api_url' => env('FARMOS_API_URL', 'https://farmos.middleworldfarms.org/api/v1'),
+        'url' => env('FARMOS_URL', 'https://farmos.example.com'),
+        'api_url' => env('FARMOS_API_URL', 'https://farmos.example.com/api/v1'),
         'client_id' => env('FARMOS_CLIENT_ID'),
         'client_secret' => env('FARMOS_CLIENT_SECRET'),
         'username' => env('FARMOS_USERNAME'),
@@ -114,7 +114,8 @@ return [
     ],
 
     'customer_site' => [
-        'url' => env('CUSTOMER_SITE_URL', 'https://middleworldfarms.org'),
+        'url' => env('CUSTOMER_SITE_URL', 'https://example-farm.com'),
+        'api_key' => env('MWF_API_KEY'),
     ],
 
 ];

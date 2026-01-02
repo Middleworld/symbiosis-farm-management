@@ -8,7 +8,7 @@ set -e  # Exit on any error
 # Configuration
 STAGING_BRANCH="demo"
 PRODUCTION_BRANCH="master"
-PRODUCTION_DIR="/opt/sites/admin.middleworldfarms.org"
+PRODUCTION_DIR="${APP_DIR:-/opt/sites/admin.your-domain.com}"
 STAGING_DIR="/opt/sites/admin.soilsync.shop"
 LOG_FILE="/var/log/symbiosis-deployment.log"
 

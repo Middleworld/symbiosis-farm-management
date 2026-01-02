@@ -21,7 +21,8 @@ class TestNotifications extends Command
         $type = $this->option('type');
 
         // Get a test user (your account)
-        $user = User::where('email', 'middleworldfarms@gmail.com')->first();
+        // Use first admin user or create test user
+        $user = User::where('role', 'super_admin')->first() ?? User::where('role', 'admin')->first();
 
         if (!$user) {
             $this->error('Test user not found');
