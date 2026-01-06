@@ -23,6 +23,11 @@ return [
     
     'oauth_scope' => env('FARMOS_OAUTH_SCOPE', 'farm_manager'),
     
+    // OpenID Connect client for SSO login (different from API client)
+    'openid_client_id' => env('FARMOS_OPENID_CLIENT_ID'),
+    
+    'openid_client_secret' => env('FARMOS_OPENID_CLIENT_SECRET'),
+    
     /*
     |--------------------------------------------------------------------------
     | Sync Settings

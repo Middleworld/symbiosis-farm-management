@@ -164,7 +164,7 @@
                             </a>
                         </div>
                         <div class="col-md-6 col-lg-3">
-                            <a href="https://admin.soilsync.shop/oauth/authorize?client_id={{ config('farmos.client_id') }}&redirect_uri={{ urlencode(config('farmos.url') . '/user/openid-connect/generic') }}&response_type=code&state={{ bin2hex(random_bytes(16)) }}" 
+                            <a href="https://admin.soilsync.shop/oauth/authorize?client_id={{ config('farmos.openid_client_id') }}&redirect_uri={{ urlencode(config('farmos.url') . '/user/openid-connect/generic') }}&response_type=code&state={{ bin2hex(random_bytes(16)) }}" 
                                class="site-card"
                                onclick="return confirm('You will be redirected to FarmOS for authentication. The authorization URL may appear suspicious due to OAuth security measures, but it is safe to proceed. Continue?')">
                                 <span class="site-icon">🌾</span>
@@ -173,10 +173,10 @@
                             </a>
                         </div>
                         <div class="col-md-6 col-lg-3">
-                            <a href="https://feildkit.soilsync.shop" class="site-card" onclick="alert('Field Kit will check for your SSO authentication automatically. If you see a login screen, please authenticate with Field Kit directly.');">
+                            <a href="https://feildkit.soilsync.shop" class="site-card">
                                 <span class="site-icon">📱</span>
                                 <div class="site-title">Field Kit</div>
-                                <div class="site-description">Offline data collection (checks SSO auth)</div>
+                                <div class="site-description">Offline data collection & QR scanning</div>
                             </a>
                         </div>
                     </div>
@@ -184,7 +184,7 @@
                     @if($redirect)
                         <div class="text-center mt-4">
                             @if(str_contains($redirect, 'farmos.soilsync.shop'))
-                                <a href="https://admin.soilsync.shop/oauth/authorize?client_id={{ config('farmos.client_id') }}&redirect_uri={{ urlencode(config('farmos.url') . '/user/openid-connect/generic') }}&response_type=code&state={{ bin2hex(random_bytes(16)) }}" 
+                                <a href="https://admin.soilsync.shop/oauth/authorize?client_id={{ config('farmos.openid_client_id') }}&redirect_uri={{ urlencode(config('farmos.url') . '/user/openid-connect/generic') }}&response_type=code&state={{ bin2hex(random_bytes(16)) }}" 
                                    class="continue-btn"
                                    onclick="return confirm('You will be redirected to FarmOS for authentication. The authorization URL may appear suspicious due to OAuth security measures, but it is safe to proceed. Continue?')">
                                     Continue to Original Destination →

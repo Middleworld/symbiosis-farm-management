@@ -1,0 +1,78 @@
+{
+    "system_version": "1.0.0",
+    "release_date": "2026-01-02",
+    "release_name": "Gold Master Initial Release",
+    "components": {
+        "laravel_admin": {
+            "version": "1.0.0",
+            "files": [
+                "app/Http/Controllers/Admin/ProductController.php",
+                "app/Services/WooCommerceApiService.php",
+                "resources/views/admin/products/index.blade.php"
+            ]
+        },
+        "wordpress_plugins": {
+            "mwf-integration": {
+                "version": "1.1.0",
+                "description": "Laravel API integration + user switching",
+                "file": "httpdocs/wp-content/plugins/mwf-integration/mwf-integration.php"
+            },
+            "mwf-solidarity-pricing": {
+                "version": "1.2.0",
+                "description": "Pay-what-you-can pricing modal",
+                "file": "httpdocs/wp-content/plugins/mwf-solidarity-pricing/mwf-solidarity-pricing.php"
+            },
+            "mwf-sso": {
+                "version": "1.0.0",
+                "description": "Single sign-on to farmOS",
+                "file": "httpdocs/wp-content/plugins/mwf-sso/mwf-sso.php"
+            },
+            "mwf-subscriptions": {
+                "version": "1.0.0",
+                "description": "Subscription management",
+                "file": "httpdocs/wp-content/plugins/mwf-subscriptions/mwf-subscriptions.php"
+            },
+            "mwf-team-members": {
+                "version": "1.0.0",
+                "description": "Team portal",
+                "file": "httpdocs/wp-content/plugins/mwf-team-members/mwf-team-members.php"
+            },
+            "mwf-reviews": {
+                "version": "1.0.0",
+                "description": "Review system",
+                "file": "httpdocs/wp-content/plugins/mwf-reviews/mwf-reviews.php"
+            },
+            "user-switching": {
+                "version": "1.7.2",
+                "description": "User impersonation (required dependency)",
+                "file": "httpdocs/wp-content/plugins/user-switching/user-switching.php"
+            }
+        }
+    },
+    "updates": {
+        "1.0.0": {
+            "date": "2026-01-02",
+            "changes": [
+                "Added bulk product sync to WooCommerce",
+                "Fixed short description sync from metadata",
+                "Added automatic SKU conflict resolution",
+                "Fixed category sync to WooCommerce",
+                "Disabled stock control for variable products (veg boxes)",
+                "Added User Switching plugin dependency checks",
+                "Fixed variation dropdown CSS alignment (twentytwentyfive theme)"
+            ],
+            "breaking_changes": [],
+            "requires": {
+                "php": ">=8.2",
+                "laravel": ">=12.0",
+                "wordpress": ">=6.4",
+                "woocommerce": ">=8.0"
+            }
+        }
+    },
+    "update_server": {
+        "url": "https://admin.soilsync.shop/api/updates",
+        "method": "GET",
+        "auth": "api_token"
+    }
+}

@@ -7,10 +7,21 @@ use App\Services\FarmOSApi;
 use App\Services\FarmOSQueryService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\View\View;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
+/**
+ * Succession Planning Controller
+ * 
+ * Manages AI-powered succession planting with farmOS integration
+ * 
+ * @uses \Illuminate\Support\Facades\Log
+ * @uses \Illuminate\Support\Facades\Http
+ * @uses \Illuminate\Support\Facades\DB
+ */
 class SuccessionPlanningController extends Controller
 {
     protected $farmOSApi;
@@ -27,7 +38,7 @@ class SuccessionPlanningController extends Controller
     /**
      * Display the succession planning interface
      */
-    public function index()
+    public function index(): View
     {
         // Auto-wake AI service on page load to avoid cold start delays (but don't fail if it errors)
         try {
@@ -38,9 +49,47 @@ class SuccessionPlanningController extends Controller
         }
         
         try {
-            // Get available crop types and varieties from farmOS (direct DB query - fast)
-            $varieties = $this->farmOSQuery->getPlantVarieties(['with_fields' => ['maturity_days', 'transplant_days']]);
-            $cropData = ['types' => $varieties->map(fn($v) => ['id' => $v->tid, 'name' => $v->name, 'label' => $v->name])->toArray()];
+            // Get plant types (parent taxonomy terms - e.g., "Radish", "Lettuce", "Carrot")
+            $plantTypes = $this->farmOSQuery->getPlantTypes();
+            Log::info('Plant types fetched', ['count' => $plantTypes->count()]);
+            
+            // Get all plant varieties with parent relationships via direct query
+            $varieties = DB::connection('farmos')
+                ->table('taxonomy_term_field_data as t')
+                ->join('taxonomy_term__parent as p', 't.tid', '=', 'p.entity_id')
+                ->where('t.vid', 'plant_type')
+                ->where('t.status', 1)
+                ->where('p.parent_target_id', '>', 0) // Only get varieties (have parent > 0)
+                ->select(
+                    't.tid',
+                    't.name',
+                    'p.parent_target_id as parent_id'
+                )
+                ->orderBy('t.name')
+                ->get();
+            
+            Log::info('Varieties fetched', ['count' => $varieties->count()]);
+            
+            // Format for JavaScript consumption
+            $cropData = [
+                'types' => $plantTypes->map(fn($t) => [
+                    'id' => $t->tid, 
+                    'name' => $t->name, 
+                    'label' => $t->name
+                ])->toArray(),
+                'varieties' => $varieties->map(fn($v) => [
+                    'id' => $v->tid,
+                    'name' => $v->name,
+                    'label' => $v->name,
+                    'parent_id' => $v->parent_id // CRITICAL: Link varieties to plant types
+                ])->toArray()
+            ];
+            
+            Log::info('Crop data formatted', [
+                'types_count' => count($cropData['types']),
+                'varieties_count' => count($cropData['varieties'])
+            ]);
+            
             $beds = $this->farmOSQuery->getBeds();
             $availableBeds = $beds->map(fn($b) => ['id' => $b->id, 'name' => $b->name])->toArray();
             
@@ -83,7 +132,7 @@ class SuccessionPlanningController extends Controller
     /**
      * Generate succession plan based on user input
      */
-    public function generate(Request $request)
+    public function generate(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'crop_type' => 'required|string',
@@ -136,7 +185,7 @@ class SuccessionPlanningController extends Controller
      * IMPORTANT: This admin is a CLIENT ONLY - all data goes to farmOS via API
      * Our planting chart will then read this data back from farmOS
      */
-    public function createLogs(Request $request)
+    public function createLogs(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'plan' => 'required|array',
@@ -248,7 +297,7 @@ class SuccessionPlanningController extends Controller
     /**
      * Create individual succession planting log from form data
      */
-    public function createSingleLog(Request $request)
+    public function createSingleLog(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'succession_id' => 'required|string',
@@ -347,7 +396,7 @@ class SuccessionPlanningController extends Controller
     /**
      * Generate basic succession plan with timing calculations
      */
-    private function generateSuccessionPlan($validated, $existingPlans, $cropPresets)
+    private function generateSuccessionPlan($validated, $existingPlans, $cropPresets): array
     {
         $cropType = $validated['crop_type'];
         $variety = $validated['variety'] ?? 'Standard';
@@ -456,7 +505,7 @@ class SuccessionPlanningController extends Controller
     /**
      * Assign beds while checking for conflicts with existing farmOS data
      */
-    private function assignBedsWithConflictResolution($plan)
+    private function assignBedsWithConflictResolution($plan): array
     {
         // Get all available beds from farmOS (direct DB query - fast)
         $beds = $this->farmOSQuery->getBeds();
@@ -509,7 +558,7 @@ class SuccessionPlanningController extends Controller
     /**
      * Use AI to optimize the succession plan
      */
-    private function optimizePlanWithAI($plan, $originalRequest)
+    private function optimizePlanWithAI($plan, $originalRequest): array
     {
         try {
             $aiContext = [
@@ -559,7 +608,7 @@ class SuccessionPlanningController extends Controller
     /**
      * Check for bed conflicts with existing farmOS plans
      */
-    private function checkBedConflicts($bed, $startDate, $endDate, $existingPlans)
+    private function checkBedConflicts($bed, $startDate, $endDate, $existingPlans): array
     {
         $conflicts = [];
         $startCarbon = Carbon::parse($startDate);
@@ -588,7 +637,7 @@ class SuccessionPlanningController extends Controller
     /**
      * Extract available beds from farmOS geometry assets
      */
-    private function extractAvailableBeds($geometryAssets)
+    private function extractAvailableBeds($geometryAssets): array
     {
         $beds = [];
         
@@ -620,7 +669,7 @@ class SuccessionPlanningController extends Controller
     /**
      * Get fallback bed data for demo/testing
      */
-    private function getFallbackBeds()
+    private function getFallbackBeds(): array
     {
         $beds = [];
         for ($block = 1; $block <= 10; $block++) {
@@ -639,7 +688,7 @@ class SuccessionPlanningController extends Controller
     /**
      * Get crop timing presets for common market garden crops
      */
-    private function getCropTimingPresets()
+    private function getCropTimingPresets(): array
     {
         return [
             'lettuce' => [
@@ -1259,7 +1308,7 @@ class SuccessionPlanningController extends Controller
             );
 
             if ($harvestWindow['success']) {
-                return response()->json([
+                return new JsonResponse([
                     'success' => true,
                     'data' => $harvestWindow,
                     'ai_confidence' => $harvestWindow['ai_confidence'],
@@ -1275,7 +1324,7 @@ class SuccessionPlanningController extends Controller
         } catch (\Exception $e) {
             Log::error('Harvest window optimization failed: ' . $e->getMessage());
             
-            return response()->json([
+            return new JsonResponse([
                 'success' => false,
                 'error' => 'Failed to get harvest window optimization',
                 'message' => $e->getMessage()
@@ -1399,7 +1448,7 @@ class SuccessionPlanningController extends Controller
     /**
      * Wake up AI service to avoid cold start delays
      */
-    private function wakeUpAIService()
+    private function wakeUpAIService(): void
     {
         try {
             // Send a quick wake-up ping to the AI service with minimal timeout
@@ -1489,7 +1538,7 @@ class SuccessionPlanningController extends Controller
     /**
      * Get harvest window analysis from HuggingFace AI service
      */
-    private function getHuggingFaceHarvestWindow(string $cropType, string $variety = null, array $contextualData = []): array
+    private function getHuggingFaceHarvestWindow(string $cropType, ?string $variety = null, array $contextualData = []): array
     {
         try {
             // Build detailed question for AI about harvest window
@@ -1590,7 +1639,7 @@ class SuccessionPlanningController extends Controller
     /**
      * Get bed occupancy data for timeline visualization
      */
-    public function getBedOccupancy(Request $request)
+    public function getBedOccupancy(Request $request): JsonResponse
     {
         try {
             $startDate = $request->get('start_date', now()->startOfYear()->format('Y-m-d'));
@@ -1616,6 +1665,39 @@ class SuccessionPlanningController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Unable to load real bed occupancy data from FarmOS. Please check your FarmOS connection and credentials.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get farmOS crop plans for dropdown population
+     */
+    public function getCropPlans(Request $request): JsonResponse
+    {
+        try {
+            $plans = $this->farmOSApi->getCropPlans(['status' => 'active']);
+            
+            // Format for dropdown: extract id and name
+            $formattedPlans = collect($plans)->map(function($plan) {
+                return [
+                    'id' => $plan['id'] ?? '',
+                    'name' => $plan['attributes']['name'] ?? 'Unnamed Plan',
+                    'status' => $plan['attributes']['status'] ?? 'active'
+                ];
+            })->toArray();
+
+            return response()->json([
+                'success' => true,
+                'plans' => $formattedPlans
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch crop plans: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to load crop plans from farmOS',
                 'error' => $e->getMessage()
             ], 500);
         }

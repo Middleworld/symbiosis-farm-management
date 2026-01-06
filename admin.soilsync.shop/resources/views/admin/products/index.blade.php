@@ -156,6 +156,18 @@
                             <i class="fas fa-times"></i> Clear
                         </a>
                     </form>
+                    
+                    <!-- Bulk Actions -->
+                    <div class="mt-3">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="bulkSyncSelected()">
+                                <i class="fab fa-wordpress"></i> Sync Selected to WooCommerce
+                            </button>
+                        </div>
+                        <small class="text-muted ml-2">
+                            <span id="selected-count">0</span> products selected
+                        </small>
+                    </div>
                 </div>
 
                 <div class="card-body p-0" style="overflow-x: auto;">
@@ -362,7 +374,21 @@
 document.getElementById('select-all').addEventListener('change', function() {
     const checkboxes = document.querySelectorAll('.product-checkbox');
     checkboxes.forEach(checkbox => checkbox.checked = this.checked);
+    updateSelectedCount();
 });
+
+// Update selected count when individual checkboxes change
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.product-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCount);
+    });
+    updateSelectedCount();
+});
+
+function updateSelectedCount() {
+    const count = document.querySelectorAll('.product-checkbox:checked').length;
+    document.getElementById('selected-count').textContent = count;
+}
 
 function toggleStatus(productId) {
     if (confirm('Are you sure you want to change this product\'s status?')) {
@@ -486,7 +512,13 @@ function bulkSyncSelected() {
         return;
     }
     
-    if (confirm('Sync ' + selectedProducts.length + ' selected products with WooCommerce?')) {
+    if (confirm(`Sync ${selectedProducts.length} selected product${selectedProducts.length > 1 ? 's' : ''} with WooCommerce?`)) {
+        // Show loading indicator
+        const button = event.target.closest('button');
+        const originalHtml = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm mr-1"></span> Syncing...';
+        
         $.ajax({
             url: '{{ route("admin.products.bulk-sync-woocommerce") }}',
             type: 'POST',
@@ -495,15 +527,20 @@ function bulkSyncSelected() {
                 product_ids: selectedProducts
             },
             success: function(response) {
+                button.disabled = false;
+                button.innerHTML = originalHtml;
+                
                 if (response.success) {
-                    alert('Bulk sync completed: ' + response.message);
+                    alert(`Bulk sync completed!\n\n✓ ${response.success_count} succeeded\n✗ ${response.failed_count} failed${response.errors.length > 0 ? '\n\nErrors:\n' + response.errors.slice(0, 3).join('\n') : ''}`);
                     location.reload();
                 } else {
                     alert('Bulk sync failed: ' + response.message);
                 }
             },
             error: function(xhr) {
-                alert('An error occurred during bulk sync: ' + xhr.responseJSON?.message || 'Unknown error');
+                button.disabled = false;
+                button.innerHTML = originalHtml;
+                alert('An error occurred during bulk sync: ' + (xhr.responseJSON?.message || 'Unknown error'));
             }
         });
     }

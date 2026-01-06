@@ -9,6 +9,8 @@ use App\Models\HarvestLog;
 use App\Models\StockItem;
 use App\Models\CropPlan;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\View\View;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
@@ -33,7 +35,7 @@ class FarmOSDataController extends Controller
     /**
      * Display the main FarmOS dashboard
      */
-    public function index()
+    public function index(): View
     {
         try {
             // Debug: Check service instance and method
@@ -144,7 +146,7 @@ class FarmOSDataController extends Controller
     /**
      * Display harvest logs
      */
-    public function harvests(Request $request)
+    public function harvests(Request $request): View
     {
         try {
             // Get real farmOS harvest logs (direct DB query - fast)
@@ -262,7 +264,7 @@ class FarmOSDataController extends Controller
     /**
      * Display stock management
      */
-    public function stock(Request $request)
+    public function stock(Request $request): View
     {
         try {
             // For now, stock management still uses local database since farmOS doesn't have a direct stock API
@@ -408,7 +410,7 @@ class FarmOSDataController extends Controller
     /**
      * Store a new stock item
      */
-    public function storeStock(Request $request)
+    public function storeStock(Request $request): JsonResponse
     {
         $request->validate([
             'crop_type' => 'required|string|max:255',
@@ -433,7 +435,7 @@ class FarmOSDataController extends Controller
     /**
      * Display crop planning
      */
-    public function cropPlans(Request $request)
+    public function cropPlans(Request $request): View
     {
         try {
             // Get real farmOS data (direct DB queries - fast)
@@ -630,7 +632,7 @@ class FarmOSDataController extends Controller
     /**
      * Store a new crop plan
      */
-    public function storeCropPlan(Request $request)
+    public function storeCropPlan(Request $request): JsonResponse
     {
         $request->validate([
             'crop_type' => 'required|string|max:255',
@@ -659,7 +661,7 @@ class FarmOSDataController extends Controller
     /**
      * Sync harvest logs from FarmOS
      */
-    public function syncHarvests()
+    public function syncHarvests(): JsonResponse
     {
         try {
             $since = HarvestLog::max('updated_at') ?? Carbon::now()->subDays(30);
@@ -690,7 +692,7 @@ class FarmOSDataController extends Controller
     /**
      * Sync plant varieties from FarmOS
      */
-    public function syncVarieties()
+    public function syncVarieties(): JsonResponse
     {
         try {
             // Run the artisan command to sync varieties
@@ -748,7 +750,7 @@ class FarmOSDataController extends Controller
     /**
      * Sync harvest to stock items
      */
-    public function syncHarvestToStock(HarvestLog $harvestLog)
+    public function syncHarvestToStock(HarvestLog $harvestLog): JsonResponse
     {
         try {
             // Find or create stock item
@@ -835,70 +837,25 @@ class FarmOSDataController extends Controller
     }
 
     /**
-     * Display the planting chart page (main timeline/planning view)
+     * Redirect to native farmOS planning tools
+     * 
+     * The planting chart has been replaced by:
+     * 1. farmOS native crop plan timelines (better integration)
+     * 2. Succession planner bed occupancy view (already built in)
+     * 
+     * This redirect guides users to the right tools.
      */
-    public function plantingChart(Request $request)
+    public function plantingChart(Request $request): View
     {
-        try {
-            // Get farmOS data (direct DB queries - fast)
-            $beds = $this->farmOSQuery->getBeds();
-            $plantings = $this->farmOSQuery->getPlantings();
-            $varieties = $this->farmOSQuery->getPlantVarieties(['active_only' => true]);
-            
-            // Extract simple crop type names for the filter dropdown
-            $cropTypes = $varieties->pluck('name')->toArray();
-            
-            // Debug: Log the data we're getting
-            Log::info('Planting Chart Debug - Beds Count: ' . $beds->count());
-            Log::info('Planting Chart Debug - Plantings Count: ' . $plantings->count());
-            Log::info('Planting Chart Debug - Crop Types: ', $cropTypes);
-            
-            // Transform land assets into chart data showing your actual blocks and beds
-            $geometryAssets = ['features' => $beds->toArray()];
-            $chartData = $this->transformLandAssetsToChart($geometryAssets, $plantings->toArray());
-            $locations = $beds->pluck('name', 'id')->toArray();
-            
-            $usingFarmOSData = true;
-            
-            // Check if we have actual planting data (not just empty locations)
-            $hasPlantingData = false;
-            foreach ($chartData as $location => $plantings) {
-                if (!empty($plantings)) {
-                    $hasPlantingData = true;
-                    break;
-                }
-            }
-            
-            // If we don't have good data or no planting data, use fallback
-            if (empty($chartData) || count($geometryAssets['features'] ?? []) < 5 || !$hasPlantingData) {
-                throw new \Exception('Insufficient farmOS planting data, using fallback');
-            }
-            
-            $usingFarmOSData = true;
-            
-            return view('admin.farmos.planting-chart', compact(
-                'chartData',
-                'locations',
-                'cropTypes', 
-                'usingFarmOSData'
-            ));
-            
-        } catch (\Exception $e) {
-            Log::error('Failed to load planting chart: ' . $e->getMessage());
-            
-            // Fallback to local data
-            $locations = ['Block 1', 'Block 2', 'Block 3', 'Block 4', 'Block 5', 'Block 6', 'Block 7', 'Block 8', 'Block 9', 'Block 10'];
-            $cropTypes = ['lettuce', 'tomato', 'carrot', 'cabbage', 'potato'];
-            $chartData = $this->getFallbackPlantingData();
-            $usingFarmOSData = false;
-            
-            return view('admin.farmos.planting-chart', compact(
-                'chartData',
-                'locations',
-                'cropTypes',
-                'usingFarmOSData'
-            ));
-        }
+        $farmosUrl = config('farmos.url');
+        
+        // Show redirect page with options to native farmOS tools
+        return view('admin.farmos.planting-chart-redirect', [
+            'farmosUrl' => $farmosUrl,
+            'successionPlannerUrl' => route('admin.farmos.succession-planning'),
+            'farmosTimelineUrl' => $farmosUrl . '/admin/content/plan',
+            'farmosMapUrl' => $farmosUrl . '/dashboard/map',
+        ]);
     }
 
     /**

@@ -699,6 +699,32 @@ Only needed if FarmOS varieties have changed
     .quick-form-container {
         background: #f8f9fa;
         border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+    }
+
+    /* farmOS Embedded Iframe Styles */
+    .embedded-farmos-iframe {
+        margin: 1.5rem 0;
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .farmos-quickform-iframe {
+        width: 100%;
+        min-height: 800px;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        background: white;
+    }
+
+    .iframe-loading {
+        background: #f8f9fa;
+        padding: 3rem;
+        text-align: center;
+        border-radius: 0.5rem;
+    }
+        border-radius: 0.5rem;
         padding: 1rem;
         margin-bottom: 1rem;
     }
@@ -1537,12 +1563,45 @@ Only needed if FarmOS varieties have changed
     <div class="row">
         <!-- Left Column: Planning Interface and Timeline -->
         <div class="col-lg-8">
-            <!-- Season/Year Selection -->
-            <div class="planning-card mb-3">
+            <!-- Crop Plan Integration Section - MOVED TO TOP -->
+            <div class="planning-card">
+                <div class="planning-section">
+                    <h3>
+                        <i class="fas fa-clipboard-list section-icon"></i>
+                        Step 1: Link to farmOS Crop Plan (Recommended)
+                    </h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="cropPlanSelect" class="form-label">farmOS Crop Plan</label>
+                            <select class="form-select" id="cropPlanSelect" name="cropPlanId">
+                                <option value="">No plan (standalone succession)</option>
+                                <option value="_loading" disabled>Loading plans from farmOS...</option>
+                            </select>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-link me-1"></i>
+                                Links quick forms to your crop plan for automatic planting records & timeline visualization
+                            </small>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="button" class="btn btn-success w-100" onclick="createNewCropPlan()">
+                                <i class="fas fa-plus"></i> Create New Plan
+                            </button>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="button" class="btn btn-outline-secondary w-100" onclick="testCropPlanLink()" disabled id="testPlanBtn">
+                                <i class="fas fa-external-link-alt"></i> View in farmOS
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Season/Year Selection - Now conditional/informational -->
+            <div class="planning-card mb-3" id="seasonYearCard">
                 <div class="planning-section">
                     <h3>
                         <i class="fas fa-calendar section-icon"></i>
-                        Planning Season & Year
+                        Planning Season & Year <span class="badge bg-secondary">Optional for AI Context</span>
                     </h3>
                     <div class="row">
                         <div class="col-md-6">
@@ -1568,35 +1627,8 @@ Only needed if FarmOS varieties have changed
                     </div>
                     <small class="text-muted">
                         <i class="fas fa-info-circle me-1"></i>
-                        This sets the timeline view and helps AI provide season-appropriate succession planning advice.
+                        Used for AI advice context. If using a crop plan, season/year will be pulled from the plan automatically.
                     </small>
-                </div>
-            </div>
-
-            <!-- Crop Plan Integration Section -->
-            <div class="planning-card">
-                <div class="planning-section">
-                    <h3>
-                        <i class="fas fa-clipboard-list section-icon"></i>
-                        Crop Plan Integration (Optional)
-                    </h3>
-                    <div class="row">
-                        <div class="col-md-8">
-                            <label for="cropPlanId" class="form-label">farmOS Crop Plan ID</label>
-                            <input type="number" class="form-control" id="cropPlanId" name="cropPlanId" 
-                                   placeholder="e.g., 123" min="1" step="1">
-                            <small class="form-text text-muted">
-                                <i class="fas fa-info-circle me-1"></i>
-                                If you've created a Crop Plan in farmOS (<a href="https://farmos.soilsync.shop/plan/add/crop" target="_blank">create one here</a>), 
-                                enter its ID to automatically link quick forms and create planting records.
-                            </small>
-                        </div>
-                        <div class="col-md-4 d-flex align-items-end">
-                            <button type="button" class="btn btn-outline-secondary w-100" onclick="testCropPlanLink()">
-                                <i class="fas fa-link"></i> Test Link
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -1624,10 +1656,10 @@ Only needed if FarmOS varieties have changed
                         <div class="col-md-6">
                             <label for="varietySelect" class="form-label">Variety</label>
                             <select class="form-select" id="varietySelect" name="varietySelect">
-                                <option value="">Select a variety...</option>
+                                <option value="">Select crop first...</option>
                                 @if(isset($cropData['varieties']) && count($cropData['varieties']) > 0)
                                     @foreach($cropData['varieties'] as $variety)
-                                        <option value="{{ $variety['id'] }}" data-crop="{{ $variety['parent_id'] ?? '' }}" data-name="{{ $variety['name'] }}">
+                                        <option value="{{ $variety['id'] }}" data-crop="{{ $variety['parent_id'] ?? '' }}" data-name="{{ $variety['name'] }}" style="display: none;">
                                             {{ $variety['name'] }}
                                         </option>
                                     @endforeach
@@ -2294,16 +2326,16 @@ Only needed if FarmOS varieties have changed
                         </small>
                     </div>
 
-                    <!-- Submit All Records Button -->
-                    <div class="mt-4 pt-3 border-top">
-                        <div class="d-grid">
-                            <button type="button" class="btn btn-success btn-lg" onclick="submitAllQuickForms()">
-                                <i class="fas fa-save"></i> Submit All Records
-                            </button>
-                        </div>
-                        <p class="text-muted text-center mt-2 mb-0">
-                            <small>Submit all planting records to FarmOS</small>
-                        </p>
+                    <!-- Info about farmOS embedded forms -->
+                    <div class="alert alert-info mt-4">
+                        <h6><i class="fas fa-info-circle"></i> farmOS Quick Forms</h6>
+                        <p class="mb-2">Each succession has embedded farmOS forms below. Submit each form directly in farmOS:</p>
+                        <ul class="mb-0 small">
+                            <li>Forms are pre-filled with succession data</li>
+                            <li>Submit each form individually when ready</li>
+                            <li>farmOS handles all validation and storage</li>
+                            <li>No need for bulk submission - work at your own pace</li>
+                        </ul>
                     </div>
 
                     <!-- Page Navigation Buttons -->
@@ -2324,6 +2356,46 @@ Only needed if FarmOS varieties have changed
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Crop Plan Creation Modal -->
+<div id="cropPlanModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; overflow: auto;">
+    <div style="position: relative; margin: 2rem auto; max-width: 1200px; background: white; border-radius: 0.5rem; box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.3);">
+        <!-- Modal Header -->
+        <div style="padding: 1.5rem; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; background: #f8f9fa; border-radius: 0.5rem 0.5rem 0 0;">
+            <h4 style="margin: 0; color: #198754;">
+                <i class="fas fa-plus-circle"></i> Create New Crop Plan in farmOS
+            </h4>
+            <button onclick="closeCropPlanModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6c757d;" title="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <!-- Loading Indicator -->
+        <div id="cropPlanLoading" style="text-align: center; padding: 3rem;">
+            <div class="spinner-border text-success" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Loading farmOS crop plan form...</span>
+            </div>
+            <p style="margin-top: 1rem; color: #6c757d;">Loading farmOS crop plan form...</p>
+        </div>
+        
+        <!-- farmOS Iframe -->
+        <iframe 
+            id="cropPlanIframe"
+            src="about:blank"
+            style="width: 100%; height: 70vh; border: none; display: none;"
+            title="farmOS Crop Plan Creation"
+            sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+            onload="document.getElementById('cropPlanLoading').style.display='none'; this.style.display='block';"
+        ></iframe>
+        
+        <!-- Modal Footer -->
+        <div style="padding: 1rem 1.5rem; border-top: 1px solid #dee2e6; text-align: right; background: #f8f9fa; border-radius: 0 0 0.5rem 0.5rem;">
+            <button onclick="closeCropPlanModal()" class="btn btn-secondary">
+                <i class="fas fa-check"></i> Done (Reload Plans)
+            </button>
         </div>
     </div>
 </div>
@@ -6025,40 +6097,32 @@ Calculate for ${contextPayload.planning_year}.`;
                 <p><strong>Harvest:</strong> ${p.harvest_date}${p.harvest_end_date ? ' → ' + p.harvest_end_date : ''}</p>`;
             pane.appendChild(info);
 
-            // Generate URLs for all quick form types
-            // IMPORTANT: Add plan_id parameter if available so farmOS links the quick form to the crop plan
-            const baseUrl = window.location.origin + '/admin/farmos';
+            // Generate farmOS quick form URLs with iframe embedding
+            // IMPORTANT: Add plan_id parameter so farmOS links the quick form to the crop plan
+            const farmosUrl = 'https://farmos.soilsync.shop'; // Direct farmOS URL
             const planId = p.plan_id || window.cropPlanId || ''; // Get plan ID from planting or global var
+            
             const quickFormUrls = {
-                seeding: baseUrl + '/quick/seeding?' + new URLSearchParams({
-                    crop_name: p.crop_name || '',
-                    variety_name: p.variety_name || '',
-                    bed_name: p.bed_name || '',
-                    quantity: p.quantity || '',
-                    succession_number: p.succession_id || 1,
-                    seeding_date: p.seeding_date || '',
-                    season: p.season || '',
-                    plan: planId // CRITICAL: Links quick form to crop plan for automatic planting record creation
+                seeding: farmosUrl + '/log/add/seeding?' + new URLSearchParams({
+                    iframe_embed: '1', // CRITICAL: Hide farmOS UI
+                    asset: p.asset_id || '',
+                    location: p.location_id || '',
+                    timestamp: p.seeding_date || '',
+                    plan: planId // Links to crop plan for automatic planting record creation
                 }).toString(),
-                transplanting: baseUrl + '/quick/transplant?' + new URLSearchParams({
-                    crop_name: p.crop_name || '',
-                    variety_name: p.variety_name || '',
-                    bed_name: p.bed_name || '',
-                    quantity: p.quantity || '',
-                    succession_number: p.succession_id || 1,
-                    transplant_date: p.transplant_date || '',
-                    season: p.season || '',
-                    plan: planId // CRITICAL: Links quick form to crop plan for automatic planting record creation
+                transplanting: farmosUrl + '/log/add/transplanting?' + new URLSearchParams({
+                    iframe_embed: '1', // CRITICAL: Hide farmOS UI
+                    asset: p.asset_id || '',
+                    location: p.location_id || '',
+                    timestamp: p.transplant_date || '',
+                    plan: planId // Links to crop plan for automatic planting record creation
                 }).toString(),
-                harvest: baseUrl + '/quick/harvest?' + new URLSearchParams({
-                    crop_name: p.crop_name || '',
-                    variety_name: p.variety_name || '',
-                    bed_name: p.bed_name || '',
-                    quantity: p.quantity || '',
-                    succession_number: p.succession_id || 1,
-                    harvest_date: p.harvest_date || '',
-                    season: p.season || '',
-                    plan: planId // CRITICAL: Links quick form to crop plan for automatic planting record creation
+                harvest: farmosUrl + '/log/add/harvest?' + new URLSearchParams({
+                    iframe_embed: '1', // CRITICAL: Hide farmOS UI
+                    asset: p.asset_id || '',
+                    location: p.location_id || '',
+                    timestamp: p.harvest_date || '',
+                    plan: planId // Links to crop plan for automatic planting record creation
                 }).toString()
             };
 
@@ -6068,245 +6132,94 @@ Calculate for ${contextPayload.planning_year}.`;
             const transplantChecked = hasTransplant; // Transplant: check transplanting
             const harvestChecked = true; // Always check harvest by default
 
-            // Display quick form buttons that toggle form sections
+            // Display quick form options with embedded farmOS iframes
             pane.innerHTML += `
                 <div class="quick-form-container">
                     <h6>Quick Forms</h6>
                     <div class="mb-3">
                         <div class="form-check">
-                            <input class="form-check-input log-type-checkbox" type="checkbox" id="seeding-enabled-${i}" ${seedingChecked ? 'checked' : ''} onchange="toggleQuickForm(${i}, 'seeding')">
+                            <input class="form-check-input log-type-checkbox" type="checkbox" id="seeding-enabled-${i}" ${seedingChecked ? 'checked' : ''} onchange="toggleQuickFormIframe(${i}, 'seeding')">
                             <label class="form-check-label" for="seeding-enabled-${i}">
                                 <strong>Seeding</strong> - Record when seeds are planted
                             </label>
                         </div>
                         ${p.transplant_date ? `<div class="form-check">
-                            <input class="form-check-input log-type-checkbox" type="checkbox" id="transplanting-enabled-${i}" ${transplantChecked ? 'checked' : ''} onchange="toggleQuickForm(${i}, 'transplanting')">
+                            <input class="form-check-input log-type-checkbox" type="checkbox" id="transplanting-enabled-${i}" ${transplantChecked ? 'checked' : ''} onchange="toggleQuickFormIframe(${i}, 'transplanting')">
                             <label class="form-check-label" for="transplanting-enabled-${i}">
                                 <strong>Transplanting</strong> - Record when seedlings are transplanted
                             </label>
                         </div>` : ''}
                         <div class="form-check">
-                            <input class="form-check-input log-type-checkbox" type="checkbox" id="harvest-enabled-${i}" ${harvestChecked ? 'checked' : ''} onchange="toggleQuickForm(${i}, 'harvest')">
+                            <input class="form-check-input log-type-checkbox" type="checkbox" id="harvest-enabled-${i}" ${harvestChecked ? 'checked' : ''} onchange="toggleQuickFormIframe(${i}, 'harvest')">
                             <label class="form-check-label" for="harvest-enabled-${i}">
                                 <strong>Harvest</strong> - Record harvest dates and quantities
                             </label>
                         </div>
                     </div>
                     <div class="alert alert-info mt-2">
-                        <small>Check boxes to fill out forms directly here</small>
+                        <small><i class="fas fa-info-circle"></i> farmOS quick forms will load below. Forms are pre-filled with succession data.</small>
                     </div>
                 </div>
 
-                <!-- Season Selection -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <h5 class="mb-3"><i class="fas fa-calendar-alt text-primary"></i> Season</h5>
-                        <div class="mb-3">
-                            <label class="form-label">What season(s) will this be part of? *</label>
-                            <input type="text" class="form-control" name="plantings[${i}][season]"
-                                   value="${p.season || (new Date().getFullYear() + ' Succession')}" required
-                                   placeholder="e.g., 2025, 2025 Summer, 2025 Succession">
-                            <div class="form-text">This will be prepended to the plant asset name for organization.</div>
+                <!-- Embedded farmOS Quick Forms (iframes) -->
+                <div id="quick-form-seeding-${i}" class="embedded-farmos-iframe" style="display: ${seedingChecked ? 'block' : 'none'};">
+                    <div class="iframe-loading" id="loading-seeding-${i}">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-success" role="status">
+                                <span class="visually-hidden">Loading farmOS seeding form...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Loading seeding form...</p>
                         </div>
                     </div>
-                </div>
-
-                <!-- Crops/Varieties Section -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <h5 class="mb-3"><i class="fas fa-leaf text-success"></i> Crop/Variety</h5>
-                        <div class="mb-3">
-                            <input type="text" class="form-control" name="plantings[${i}][crop_variety]"
-                                   value="${p.variety_name || p.crop_name || ''}" required
-                                   placeholder="Enter crop/variety (e.g., Lettuce, Carrot, Tomato)">
-                            <div class="form-text">Enter the crop or variety name for this planting.</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Embedded Quick Form Sections -->
-                <div id="quick-form-seeding-${i}" class="embedded-quick-form" style="display: block;">
-                    <div class="form-content">
-                        <h6><i class="fas fa-seedling text-success"></i> Seeding Form</h6>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Seeding Date *</label>
-                                <input type="datetime-local" class="form-control" name="plantings[${i}][seeding][date]"
-                                       value="${p.seeding_date ? new Date(p.seeding_date).toISOString().slice(0, 16) : ''}" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Completed</label>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="plantings[${i}][seeding][done]" value="1">
-                                    <label class="form-check-label">Mark as completed</label>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Location *</label>
-                            <input type="text" class="form-control" name="plantings[${i}][seeding][location]"
-                                   value="${p.transplant_date ? 'Propagation' : (p.bed_name || '')}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Quantity *</label>
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <input type="number" class="form-control" name="plantings[${i}][seeding][quantity][value]"
-                                           value="${p.seeding_quantity || 100}" step="1" min="0" required>
-                                </div>
-                                <div class="col-md-4">
-                                    <select class="form-select" name="plantings[${i}][seeding][quantity][units]">
-                                        <option value="seeds" selected>Seeds</option>
-                                        <option value="plants">Plants</option>
-                                        <option value="grams">Grams</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <select class="form-select" name="plantings[${i}][seeding][quantity][measure]">
-                                        <option value="count" selected>Count</option>
-                                        <option value="weight">Weight</option>
-                                    </select>
-                                </div>
-                            </div>
-                            ${p.seeding_quantity ? `
-                                <div class="mt-2">
-                                    <small class="text-muted d-block">
-                                        <strong>Calculated:</strong> ${p.total_plants || ''} plants with ${p.planting_method === 'direct' ? '30%' : '20%'} overseeding
-                                    </small>
-                                    <small class="text-muted d-block">
-                                        <i class="fas fa-calculator"></i> 
-                                        ${p.bed_length || '?'}m × ${p.bed_width || '?'}m bed: 
-                                        <strong>${p.plants_per_row || '?'} plants/row</strong> × <strong>${p.number_of_rows || '?'} rows</strong> = ${p.total_plants || '?'} plants
-                                    </small>
-                                    <small class="text-muted d-block">
-                                        (${p.in_row_spacing || '?'}cm in-row spacing, ${p.between_row_spacing || '?'}cm between-row spacing)
-                                    </small>
-                                    <small class="text-muted fst-italic">
-                                        <i class="fas fa-info-circle"></i> Rows calculated as: floor(bed width ÷ row spacing)
-                                    </small>
-                                </div>
-                            ` : ''}
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Notes</label>
-                            <textarea class="form-control" name="plantings[${i}][seeding][notes]" rows="2">Seeding for succession #${p.succession_id || 1}</textarea>
-                        </div>
-                    </div>
+                    <iframe 
+                        src="${quickFormUrls.seeding}"
+                        class="farmos-quickform-iframe"
+                        title="farmOS Seeding Form"
+                        sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+                        onload="document.getElementById('loading-seeding-${i}').style.display='none'"
+                        style="width: 100%; min-height: 800px; border: 1px solid #dee2e6; border-radius: 0.5rem; display: none;"
+                        onload="this.style.display='block'; document.getElementById('loading-seeding-${i}').style.display='none';"
+                    ></iframe>
                 </div>
 
                 ${p.transplant_date ? `
-                <div id="quick-form-transplanting-${i}" class="embedded-quick-form" style="display: block;">
-                    <div class="form-content">
-                        <h6><i class="fas fa-shipping-fast text-warning"></i> Transplanting Form</h6>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Transplant Date *</label>
-                                <input type="datetime-local" class="form-control" name="plantings[${i}][transplanting][date]"
-                                       value="${p.transplant_date ? new Date(p.transplant_date).toISOString().slice(0, 16) : ''}" required>
+                <div id="quick-form-transplanting-${i}" class="embedded-farmos-iframe" style="display: ${transplantChecked ? 'block' : 'none'};">
+                    <div class="iframe-loading" id="loading-transplanting-${i}">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-info" role="status">
+                                <span class="visually-hidden">Loading farmOS transplanting form...</span>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Completed</label>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="plantings[${i}][transplanting][done]" value="1">
-                                    <label class="form-check-label">Mark as completed</label>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Location *</label>
-                            <input type="text" class="form-control" name="plantings[${i}][transplanting][location]"
-                                   value="${p.bed_name || ''}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Quantity *</label>
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <input type="number" class="form-control" name="plantings[${i}][transplanting][quantity][value]"
-                                           value="${p.transplant_quantity || p.total_plants || 100}" step="1" min="0" required>
-                                </div>
-                                <div class="col-md-4">
-                                    <select class="form-select" name="plantings[${i}][transplanting][quantity][units]">
-                                        <option value="plants" selected>Plants</option>
-                                        <option value="seeds">Seeds</option>
-                                        <option value="grams">Grams</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <select class="form-select" name="plantings[${i}][transplanting][quantity][measure]">
-                                        <option value="count" selected>Count</option>
-                                        <option value="weight">Weight</option>
-                                    </select>
-                                </div>
-                            </div>
-                            ${p.transplant_quantity ? `
-                                <div class="mt-2">
-                                    <small class="text-muted d-block">
-                                        <strong>Calculated:</strong> ${p.total_plants || ''} plants
-                                    </small>
-                                    <small class="text-muted d-block">
-                                        <i class="fas fa-calculator"></i> 
-                                        ${p.bed_length || '?'}m × ${p.bed_width || '?'}cm bed: 
-                                        <strong>${p.plants_per_row || '?'} plants/row</strong> × <strong>${p.number_of_rows || '?'} rows</strong> = ${p.total_plants || '?'} plants
-                                    </small>
-                                    <small class="text-muted">
-                                        (${p.in_row_spacing || '?'}cm in-row spacing, ${p.between_row_spacing || '?'}cm between-row spacing)
-                                    </small>
-                                </div>
-                            ` : ''}
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Notes</label>
-                            <textarea class="form-control" name="plantings[${i}][transplanting][notes]" rows="2">Transplanting for succession #${p.succession_id || 1}</textarea>
+                            <p class="mt-2 text-muted">Loading transplanting form...</p>
                         </div>
                     </div>
+                    <iframe 
+                        src="${quickFormUrls.transplanting}"
+                        class="farmos-quickform-iframe"
+                        title="farmOS Transplanting Form"
+                        sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+                        style="width: 100%; min-height: 800px; border: 1px solid #dee2e6; border-radius: 0.5rem; display: none;"
+                        onload="this.style.display='block'; document.getElementById('loading-transplanting-${i}').style.display='none';"
+                    ></iframe>
                 </div>
                 ` : ''}
 
-                <div id="quick-form-harvest-${i}" class="embedded-quick-form" style="display: block;">
-                    <div class="form-content">
-                        <h6><i class="fas fa-shopping-basket text-danger"></i> Harvest Form</h6>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Harvest Date *</label>
-                                <input type="datetime-local" class="form-control" name="plantings[${i}][harvest][date]"
-                                       value="${p.harvest_date ? new Date(p.harvest_date).toISOString().slice(0, 16) : ''}" required>
+                <div id="quick-form-harvest-${i}" class="embedded-farmos-iframe" style="display: ${harvestChecked ? 'block' : 'none'};">
+                    <div class="iframe-loading" id="loading-harvest-${i}">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-warning" role="status">
+                                <span class="visually-hidden">Loading farmOS harvest form...</span>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Completed</label>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="plantings[${i}][harvest][done]" value="1">
-                                    <label class="form-check-label">Mark as completed</label>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Quantity *</label>
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <input type="number" class="form-control" name="plantings[${i}][harvest][quantity][value]"
-                                           value="0" step="1" min="0" required>
-                                </div>
-                                <div class="col-md-4">
-                                    <select class="form-select" name="plantings[${i}][harvest][quantity][units]">
-                                        <option value="grams">Grams</option>
-                                        <option value="pounds">Pounds</option>
-                                        <option value="kilograms" selected>Kilograms</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <select class="form-select" name="plantings[${i}][harvest][quantity][measure]">
-                                        <option value="weight" selected>Weight</option>
-                                        <option value="count">Count</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <small class="text-muted">Weight will be recorded on harvest day</small>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Notes</label>
-                            <textarea class="form-control" name="plantings[${i}][harvest][notes]" rows="2">Harvest for succession #${p.succession_id || 1}</textarea>
+                            <p class="mt-2 text-muted">Loading harvest form...</p>
                         </div>
                     </div>
+                    <iframe 
+                        src="${quickFormUrls.harvest}"
+                        class="farmos-quickform-iframe"
+                        title="farmOS Harvest Form"
+                        sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+                        style="width: 100%; min-height: 800px; border: 1px solid #dee2e6; border-radius: 0.5rem; display: none;"
+                        onload="this.style.display='block'; document.getElementById('loading-harvest-${i}').style.display='none';"
+                    ></iframe>
                 </div>
             `;
 
@@ -7654,20 +7567,21 @@ Calculate for ${contextPayload.planning_year}.`;
         }, 3000);
     }
 
-    function toggleQuickForm(successionIndex, formType, forceShow = null) {
+    /**
+     * Toggle visibility of embedded farmOS iframe quick forms
+     */
+    function toggleQuickFormIframe(successionIndex, formType) {
         const checkbox = document.getElementById(`${formType}-enabled-${successionIndex}`);
         const formElement = document.getElementById(`quick-form-${formType}-${successionIndex}`);
 
         if (checkbox && formElement) {
-            // If forceShow is specified, use it; otherwise check the checkbox state
-            const shouldShow = forceShow !== null ? forceShow : checkbox.checked;
-            
-            if (shouldShow) {
-                formElement.style.display = 'block';
-            } else {
-                formElement.style.display = 'none';
-            }
+            formElement.style.display = checkbox.checked ? 'block' : 'none';
         }
+    }
+    
+    // Keep old function name for backwards compatibility
+    function toggleQuickForm(successionIndex, formType, forceShow = null) {
+        toggleQuickFormIframe(successionIndex, formType);
     }
 
 
@@ -10090,111 +10004,10 @@ Plantings:`;
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    async function submitAllQuickForms() {
-        // Collect all form data
-        const formData = new FormData();
-        formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
-
-        // Get all planting data
-        const plantings = [];
-        const tabPanes = document.querySelectorAll('#tabContent .tab-pane');
-
-        tabPanes.forEach((pane, index) => {
-            const planting = {
-                succession_index: index,
-                season: '',
-                crop_variety: '',
-                logs: {}
-            };
-
-            // Get season and crop variety
-            const seasonInput = pane.querySelector(`input[name="plantings[${index}][season]"]`);
-            const cropInput = pane.querySelector(`input[name="plantings[${index}][crop_variety]"]`);
-            planting.season = seasonInput ? seasonInput.value : '';
-            planting.crop_variety = cropInput ? cropInput.value : '';
-
-            // Check each form type
-            ['seeding', 'transplanting', 'harvest'].forEach(formType => {
-                const checkbox = document.getElementById(`${formType}-enabled-${index}`);
-                if (checkbox && checkbox.checked) {
-                    // Form is enabled, collect its data
-                    const formElement = document.getElementById(`quick-form-${formType}-${index}`);
-                    if (formElement) {
-                        const formDataObj = {};
-                        const inputs = formElement.querySelectorAll('input, select, textarea');
-                        inputs.forEach(input => {
-                            if (input.name) {
-                                const nameParts = input.name.replace(`plantings[${index}][${formType}][`, '').replace(']', '').split('][');
-                                let current = formDataObj;
-                                for (let i = 0; i < nameParts.length - 1; i++) {
-                                    if (!current[nameParts[i]]) current[nameParts[i]] = {};
-                                    current = current[nameParts[i]];
-                                }
-                                
-                                // Log quantity fields for debugging
-                                if (input.name.includes('quantity][value]')) {
-                                    console.log(`📊 Submitting ${formType} for succession ${index + 1}: quantity = ${input.value} (field: ${input.name})`);
-                                }
-                                
-                                // Handle checkboxes specially - include them even if unchecked
-                                if (input.type === 'checkbox') {
-                                    current[nameParts[nameParts.length - 1]] = input.checked ? '1' : '0';
-                                } else if (input.value) {
-                                    current[nameParts[nameParts.length - 1]] = input.value;
-                                }
-                            }
-                        });
-                        planting.logs[formType] = formDataObj;
-                    }
-                }
-            });
-
-            if (Object.keys(planting.logs).length > 0) {
-                plantings.push(planting);
-            }
-        });
-
-        if (plantings.length === 0) {
-            alert('No forms have been filled out. Please check at least one form type and fill out the required fields.');
-            return;
-        }
-
-        // Submit to backend
-        try {
-            showLoading(true);
-            const response = await fetch('/admin/farmos/succession-planning/submit-all-logs', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify({ plantings })
-            });
-
-            const result = await response.json();
-
-            if (response.ok && result.success) {
-                showToast('All planting records submitted successfully!', 'success');
-                // Hide all forms and uncheck all checkboxes
-                document.querySelectorAll('.embedded-quick-form').forEach(form => {
-                    form.style.display = 'none';
-                });
-                document.querySelectorAll('.log-type-checkbox').forEach(checkbox => {
-                    checkbox.checked = false;
-                });
-            } else {
-                showToast('Failed to submit planting records: ' + (result.message || 'Unknown error'), 'error');
-            }
-        } catch (error) {
-            console.error('Submit error:', error);
-            showToast('Error submitting planting records', 'error');
-        } finally {
-            showLoading(false);
-        }
-    }
-
-    // Bed Dimensions Persistence (localStorage)
-    // Save only bed dimensions - spacing and dates auto-fill per crop
+    /**
+     * Bed Dimensions Persistence (localStorage)
+     * Save only bed dimensions - spacing and dates auto-fill per crop
+     */
     function saveBedDimensions() {
         const bedLength = document.getElementById('bedLength')?.value;
         const bedWidth = document.getElementById('bedWidth')?.value;
@@ -10262,6 +10075,9 @@ Plantings:`;
         }, 500);
 
         console.log('🌱 Initializing Succession Planning Interface...');
+        
+        // Load crop plans from farmOS for dropdown
+        loadCropPlans();
         
         // 🧹 Clear stale localStorage harvest window dates (Nov 1 - Feb 28 from old testing)
         // AI will calculate fresh harvest windows based on selected variety
@@ -10725,9 +10541,8 @@ Plantings:`;
         // Set up periodic status checking (every 30 seconds)
         setInterval(checkAIStatus, 30000);
 
-        // Set up event handlers - DISABLED: succession-planner.js handles this now
-        // setupSeasonYearHandlers();
-        // setupCropVarietyHandlers();
+        // Set up event handlers for crop and variety selection
+        setupCropVarietyHandlers();
     });
 
     // ========================================================================
@@ -11289,24 +11104,105 @@ Plantings:`;
     // ===== CROP PLAN INTEGRATION =====
     
     /**
-     * Initialize crop plan ID from input field
+     * Load crop plans from farmOS for dropdown population
+     */
+    async function loadCropPlans() {
+        const selectElement = document.getElementById('cropPlanSelect');
+        if (!selectElement) return;
+        
+        try {
+            const response = await fetch('/admin/farmos/succession-planning/crop-plans');
+            const result = await response.json();
+            
+            if (result.success && result.plans) {
+                // Clear loading option
+                selectElement.innerHTML = '<option value="">No plan (standalone succession)</option>';
+                
+                // Add plans
+                result.plans.forEach(plan => {
+                    const option = document.createElement('option');
+                    option.value = plan.id;
+                    option.textContent = plan.name;
+                    selectElement.appendChild(option);
+                });
+                
+                console.log(`📋 Loaded ${result.plans.length} crop plans from farmOS`);
+            } else {
+                console.warn('Failed to load crop plans:', result.message);
+                selectElement.innerHTML = '<option value="">No plans available (create one below)</option>';
+            }
+        } catch (error) {
+            console.error('Error loading crop plans:', error);
+            selectElement.innerHTML = '<option value="">Error loading plans</option>';
+        }
+    }
+    
+    /**
+     * Initialize crop plan ID from dropdown selection
      */
     function initializeCropPlanId() {
-        const planInput = document.getElementById('cropPlanId');
-        if (planInput) {
-            planInput.addEventListener('change', function() {
+        const planSelect = document.getElementById('cropPlanSelect');
+        const testBtn = document.getElementById('testPlanBtn');
+        
+        if (planSelect) {
+            planSelect.addEventListener('change', function() {
                 window.cropPlanId = this.value || '';
                 console.log('🔗 Crop Plan ID set to:', window.cropPlanId);
+                
+                // Enable/disable "View in farmOS" button
+                if (testBtn) {
+                    testBtn.disabled = !this.value;
+                }
+                
                 if (window.cropPlanId) {
-                    showToast(`Linked to Crop Plan #${window.cropPlanId}`, 'success');
+                    const selectedOption = this.options[this.selectedIndex];
+                    showToast(`Linked to: ${selectedOption.textContent}`, 'success');
                 }
             });
             
             // Set initial value if exists
-            if (planInput.value) {
-                window.cropPlanId = planInput.value;
+            if (planSelect.value) {
+                window.cropPlanId = planSelect.value;
                 console.log('🔗 Initial Crop Plan ID:', window.cropPlanId);
+                if (testBtn) testBtn.disabled = false;
             }
+        }
+    }
+    
+    /**
+     * Open modal to create new crop plan in farmOS
+     */
+    function createNewCropPlan() {
+        const modal = document.getElementById('cropPlanModal');
+        const iframe = document.getElementById('cropPlanIframe');
+        
+        if (modal && iframe) {
+            // Set iframe source with iframe_embed parameter
+            iframe.src = 'https://farmos.soilsync.shop/plan/add/crop?iframe_embed=1';
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+    }
+    
+    /**
+     * Close crop plan modal and reload plans
+     */
+    function closeCropPlanModal() {
+        const modal = document.getElementById('cropPlanModal');
+        const iframe = document.getElementById('cropPlanIframe');
+        
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = ''; // Restore scrolling
+            
+            // Clear iframe
+            if (iframe) {
+                iframe.src = 'about:blank';
+            }
+            
+            // Reload crop plans to include newly created plan
+            loadCropPlans();
+            showToast('Reloading crop plans...', 'info');
         }
     }
     
@@ -11314,7 +11210,7 @@ Plantings:`;
      * Test crop plan link - opens farmOS crop plan page
      */
     function testCropPlanLink() {
-        const planId = document.getElementById('cropPlanId')?.value;
+        const planId = document.getElementById('cropPlanSelect')?.value;
         
         if (!planId) {
             showToast('Please enter a Crop Plan ID first', 'warning');

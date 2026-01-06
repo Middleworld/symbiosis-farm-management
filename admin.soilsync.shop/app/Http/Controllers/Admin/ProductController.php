@@ -541,6 +541,85 @@ class ProductController extends Controller
     }
 
     /**
+     * Bulk sync selected products with WooCommerce
+     */
+    public function bulkSyncWithWooCommerce(Request $request)
+    {
+        $request->validate([
+            'product_ids' => 'required|array',
+            'product_ids.*' => 'integer|exists:products,id'
+        ]);
+
+        try {
+            $wooCommerceService = new WooCommerceApiService();
+            $productIds = $request->input('product_ids');
+            $products = Product::whereIn('id', $productIds)->get();
+
+            $results = [
+                'success' => 0,
+                'failed' => 0,
+                'errors' => []
+            ];
+
+            foreach ($products as $product) {
+                try {
+                    // Check if product has invalid woo_product_id
+                    if ($product->woo_product_id) {
+                        try {
+                            $existingProduct = $wooCommerceService->getProduct($product->woo_product_id);
+                            if (!$existingProduct || (isset($existingProduct['code']) && $existingProduct['code'] === 'woocommerce_rest_product_invalid_id')) {
+                                \Log::info("Product ID {$product->woo_product_id} doesn't exist in WooCommerce, creating new product instead");
+                                $product->woo_product_id = null;
+                                $product->save();
+                            }
+                        } catch (\Exception $e) {
+                            if (strpos($e->getMessage(), 'Invalid ID') !== false || strpos($e->getMessage(), 'invalid_id') !== false) {
+                                \Log::info("Clearing invalid WooCommerce product ID {$product->woo_product_id} for product: {$product->name}");
+                                $product->woo_product_id = null;
+                                $product->save();
+                            }
+                        }
+                    }
+
+                    $result = $wooCommerceService->syncProduct($product);
+
+                    if ($result['success']) {
+                        $results['success']++;
+                    } else {
+                        $results['failed']++;
+                        $results['errors'][] = "{$product->name}: {$result['message']}";
+                    }
+                } catch (\Exception $e) {
+                    $results['failed']++;
+                    $results['errors'][] = "{$product->name}: {$e->getMessage()}";
+                    \Log::error("Bulk sync failed for product {$product->id}: " . $e->getMessage());
+                }
+            }
+
+            $message = "Bulk sync completed. {$results['success']} succeeded, {$results['failed']} failed.";
+            if (!empty($results['errors'])) {
+                $message .= " Errors: " . implode('; ', array_slice($results['errors'], 0, 3));
+                if (count($results['errors']) > 3) {
+                    $message .= " (and " . (count($results['errors']) - 3) . " more)";
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'success_count' => $results['success'],
+                'failed_count' => $results['failed'],
+                'errors' => $results['errors']
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bulk sync failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Get WooCommerce product details
      */
     public function getWooCommerceProduct(Product $product)

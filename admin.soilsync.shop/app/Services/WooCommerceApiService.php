@@ -5,6 +5,7 @@ namespace App\Services;
 use Automattic\WooCommerce\Client;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use App\Models\Product;
 
 class WooCommerceApiService
@@ -234,6 +235,25 @@ class WooCommerceApiService
     }
 
     /**
+     * Find WooCommerce product by SKU
+     */
+    public function findProductBySku($sku)
+    {
+        try {
+            $products = $this->woocommerce->get('products', ['sku' => $sku]);
+            
+            if (!empty($products) && count($products) > 0) {
+                return ['success' => true, 'data' => $products[0]];
+            }
+            
+            return ['success' => false, 'message' => 'Product not found'];
+        } catch (\Exception $e) {
+            Log::error("Failed to find WooCommerce product by SKU {$sku}: " . $e->getMessage());
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    /**
      * Create a product in WooCommerce
      */
     public function createProduct($wooProductData)
@@ -246,8 +266,30 @@ class WooCommerceApiService
 
             return ['success' => true, 'data' => $response];
         } catch (\Exception $e) {
-            Log::error('Failed to create WooCommerce product: ' . $e->getMessage());
-            return ['success' => false, 'message' => $e->getMessage()];
+            $errorMessage = $e->getMessage();
+            
+            // Check if it's a duplicate SKU error
+            if (strpos($errorMessage, 'product_invalid_sku') !== false || 
+                strpos($errorMessage, 'already exists') !== false ||
+                strpos($errorMessage, 'duplicate') !== false) {
+                
+                // Try to find the existing product by SKU
+                if (!empty($wooProductData['sku'])) {
+                    $existingProduct = $this->findProductBySku($wooProductData['sku']);
+                    
+                    if ($existingProduct['success']) {
+                        Log::info("Product with SKU {$wooProductData['sku']} already exists (ID: {$existingProduct['data']->id}), updating instead");
+                        return [
+                            'success' => false, 
+                            'message' => "Product with SKU '{$wooProductData['sku']}' already exists in WooCommerce (ID: {$existingProduct['data']->id}). Please update the existing product instead.",
+                            'existing_product_id' => $existingProduct['data']->id
+                        ];
+                    }
+                }
+            }
+            
+            Log::error('Failed to create WooCommerce product: ' . $errorMessage);
+            return ['success' => false, 'message' => $errorMessage];
         }
     }
 
@@ -359,6 +401,34 @@ class WooCommerceApiService
             } else {
                 // Create new WooCommerce product
                 $result = $this->createProduct($wooProductData);
+                
+                // If creation failed due to duplicate SKU, try to find and link existing product
+                if (!$result['success'] && isset($result['existing_product_id'])) {
+                    $existingWooId = $result['existing_product_id'];
+                    Log::info("Linking Laravel product {$product->id} to existing WooCommerce product {$existingWooId}");
+                    
+                    // Update the Laravel product with the existing WooCommerce ID
+                    $product->update(['woo_product_id' => $existingWooId]);
+                    
+                    // Now update the existing WooCommerce product with current data
+                    $updateResult = $this->updateProduct($existingWooId, $wooProductData);
+                    
+                    if ($updateResult['success']) {
+                        // Sync variations if variable product
+                        if ($product->product_type === 'variable') {
+                            $this->syncProductVariations($product);
+                        }
+                        
+                        // Sync solidarity pricing meta
+                        $this->syncSolidarityPricingMeta($product);
+                        
+                        Log::info("Linked and updated WooCommerce product {$existingWooId} for Laravel product {$product->id}");
+                        return ['success' => true, 'data' => (object)['id' => $existingWooId], 'message' => 'Linked to existing product and updated'];
+                    }
+                    
+                    return $updateResult;
+                }
+                
                 if ($result['success']) {
                     $wooProduct = $result['data']; // This is an object, not array
                     $product->update(['woo_product_id' => $wooProduct->id]);
@@ -513,11 +583,19 @@ class WooCommerceApiService
             throw new \InvalidArgumentException('Product price is required for simple WooCommerce products');
         }
 
+        // Use dedicated short_description from metadata, fallback to truncated description
+        $shortDescription = '';
+        if (!empty($productData['metadata']['short_description'])) {
+            $shortDescription = $productData['metadata']['short_description'];
+        } elseif (!empty($productData['description'])) {
+            $shortDescription = substr($productData['description'], 0, 150);
+        }
+        
         $wooProduct = [
             'name' => $productData['name'],
             'type' => $productType, // 'simple' or 'variable'
             'description' => $productData['description'] ?? '',
-            'short_description' => substr($productData['description'] ?? '', 0, 150),
+            'short_description' => $shortDescription,
             'sku' => $productData['sku'],
             'status' => ($productData['is_active'] ?? true) ? 'publish' : 'draft',
             'weight' => (string) ($productData['weight'] ?? ''),
@@ -536,21 +614,40 @@ class WooCommerceApiService
             // Explicitly set stock status - instock if quantity > 0, otherwise outofstock
             $wooProduct['stock_status'] = ($productData['stock_quantity'] ?? 0) > 0 ? 'instock' : 'outofstock';
         } else {
-            // Variable products manage stock at variation level
+            // Variable products (veg boxes) don't use stock control - seasonal produce
             $wooProduct['manage_stock'] = false;
-            $wooProduct['stock_status'] = 'instock'; // Variable products typically show as in stock
+            $wooProduct['stock_status'] = 'instock';
+            $wooProduct['backorders'] = 'no';
         }
 
         // Add categories if available
         if (!empty($productData['category'])) {
-            $wooProduct['categories'] = [
-                ['name' => $productData['category']]
-            ];
+            Log::info('Syncing category for product', [
+                'product_name' => $productData['name'],
+                'category' => $productData['category']
+            ]);
+            
+            // Look up category ID from WordPress database (prefix is added automatically)
+            $categoryId = DB::connection('wordpress')
+                ->table('terms as t')
+                ->join('term_taxonomy as tt', 't.term_id', '=', 'tt.term_id')
+                ->where('t.name', $productData['category'])
+                ->where('tt.taxonomy', 'product_cat')
+                ->value('t.term_id');
+            
+            if ($categoryId) {
+                $wooProduct['categories'] = [
+                    ['id' => $categoryId]
+                ];
+                Log::info('Found category ID', ['category_id' => $categoryId]);
+            } else {
+                Log::warning('Category not found in WooCommerce', ['category' => $productData['category']]);
+            }
         }
 
-        // Skip image syncing for now - images are stored in Laravel and displayed there
-        // WooCommerce can't access images via URL due to cross-site restrictions
-        // Images will still display correctly in the Laravel admin and box customization interface
+        // TODO: Sync product images to WooCommerce
+        // Images need to be copied to WordPress uploads directory first
+        // Current approach (URL-based) fails with 403 Forbidden
         /*
         if (!empty($productData['local_image_path'])) {
             $wooProduct['images'] = [
@@ -560,15 +657,17 @@ class WooCommerceApiService
                     'alt' => $productData['name']
                 ]
             ];
-        } elseif (!empty($productData['image_url']) && !str_starts_with($productData['image_url'], 'http')) {
-            // Only sync local images (legacy format)
-            $wooProduct['images'] = [
-                [
-                    'src' => route('product.image', ['path' => $productData['image_url']]),
-                    'name' => $productData['name'],
-                    'alt' => $productData['name']
-                ]
-            ];
+        } elseif (!empty($productData['image_url'])) {
+            // Check if it's a local path (not a full URL)
+            if (!str_starts_with($productData['image_url'], 'http')) {
+                $wooProduct['images'] = [
+                    [
+                        'src' => url('storage/' . $productData['image_url']),
+                        'name' => $productData['name'],
+                        'alt' => $productData['name']
+                    ]
+                ];
+            }
         }
         */
 
@@ -639,8 +738,9 @@ class WooCommerceApiService
                 $variationData = [
                     'regular_price' => (string) $variation->price,
                     'sku' => $variation->sku,
-                    'manage_stock' => true,
-                    'stock_quantity' => $variation->stock_quantity ?? 0,
+                    'manage_stock' => false, // Veg boxes don't use stock control - seasonal produce
+                    'stock_status' => 'instock',
+                    'backorders' => 'no',
                     'attributes' => []
                 ];
                 

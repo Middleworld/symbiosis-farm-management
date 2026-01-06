@@ -14,6 +14,8 @@ use Illuminate\Support\Collection;
  * - Single source of truth (farmOS database)
  * 
  * For WRITE operations, use FarmOSApi service (validates via Drupal hooks).
+ * 
+ * @uses \Illuminate\Support\Facades\DB
  */
 class FarmOSQueryService
 {
@@ -131,9 +133,13 @@ class FarmOSQueryService
     {
         return DB::connection('farmos')
             ->table('taxonomy_term_field_data as t')
+            ->leftJoin('taxonomy_term__parent as p', 't.tid', '=', 'p.entity_id')
             ->where('t.vid', 'plant_type')
             ->where('t.status', 1)
-            ->whereNull('t.parent_target_id') // Top-level only
+            ->where(function($q) {
+                $q->whereNull('p.parent_target_id')
+                  ->orWhere('p.parent_target_id', 0); // 0 = top-level in farmOS
+            })
             ->select('t.tid', 't.name', 't.description__value as description')
             ->orderBy('t.name')
             ->get();

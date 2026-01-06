@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\WeatherService;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\View\View;
 use Illuminate\Support\Facades\Log;
 
 class WeatherController extends Controller
@@ -19,7 +21,7 @@ class WeatherController extends Controller
     /**
      * Weather dashboard view
      */
-    public function index()
+    public function index(): View
     {
         try {
             $currentWeather = $this->weatherService->getCurrentWeather();
@@ -60,7 +62,7 @@ class WeatherController extends Controller
     /**
      * Get current weather as JSON
      */
-    public function getCurrentWeather()
+    public function getCurrentWeather(): JsonResponse
     {
         try {
             $weather = $this->weatherService->getCurrentWeather();
@@ -82,7 +84,7 @@ class WeatherController extends Controller
     /**
      * Get weather forecast as JSON
      */
-    public function getForecast(Request $request)
+    public function getForecast(Request $request): JsonResponse
     {
         try {
             $days = $request->get('days', 5);
@@ -105,7 +107,7 @@ class WeatherController extends Controller
     /**
      * Get frost risk analysis
      */
-    public function getFrostRisk(Request $request)
+    public function getFrostRisk(Request $request): JsonResponse
     {
         try {
             $days = $request->get('days', 7);
@@ -179,7 +181,7 @@ class WeatherController extends Controller
     /**
      * Historical weather data
      */
-    public function getHistoricalWeather(Request $request)
+    public function getHistoricalWeather(Request $request): JsonResponse
     {
         try {
             $startDate = $request->get('start_date');
@@ -211,7 +213,7 @@ class WeatherController extends Controller
     /**
      * Weather alerts and notifications
      */
-    public function getWeatherAlerts()
+    public function getWeatherAlerts(): JsonResponse
     {
         try {
             $alerts = [];
@@ -291,7 +293,7 @@ class WeatherController extends Controller
     /**
      * Field work recommendations based on weather
      */
-    public function getFieldWorkRecommendations()
+    public function getFieldWorkRecommendations(): JsonResponse
     {
         try {
             $forecast = $this->weatherService->getForecast(7);

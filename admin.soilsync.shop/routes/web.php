@@ -27,6 +27,13 @@ Route::get('/sso/authenticate', function () {
 Route::post('/sso/authenticate', [App\Http\Controllers\SsoController::class, 'authenticate'])->name('sso.authenticate');
 Route::get('/sso/logout', [App\Http\Controllers\SsoController::class, 'logout'])->name('sso.logout');
 Route::get('/sso/farmos-tokens', [App\Http\Controllers\SsoController::class, 'getFarmOSTokens'])->name('sso.farmos.tokens');
+Route::options('/sso/farmos-tokens', function () {
+    return response('', 200)
+        ->header('Access-Control-Allow-Origin', request()->header('Origin'))
+        ->header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        ->header('Access-Control-Allow-Headers', 'Accept, Content-Type')
+        ->header('Access-Control-Allow-Credentials', 'true');
+});
 Route::get('/sso/dashboard', [App\Http\Controllers\SsoController::class, 'dashboard'])->name('sso.dashboard');
 
 // Route for Passport redirect to login
@@ -96,7 +103,7 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         return view('admin.placeholder', ['title' => 'Analytics', 'description' => 'Advanced analytics dashboard coming soon']);
     })->name('admin.analytics');
 
-    // System routes (placeholders for future implementation)
+    // System routes
     Route::get('/settings', function () {
         return view('admin.placeholder', ['title' => 'Settings', 'description' => 'System configuration coming soon']);
     })->name('admin.settings');
@@ -104,6 +111,14 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
     Route::get('/logs', function () {
         return view('admin.placeholder', ['title' => 'System Logs', 'description' => 'Activity logs and debugging coming soon']);
     })->name('admin.logs');
+    
+    // System updates routes
+    Route::prefix('system')->name('admin.system.')->group(function () {
+        Route::get('/updates', [App\Http\Controllers\Admin\SystemUpdateController::class, 'index'])->name('updates');
+        Route::post('/updates/check', [App\Http\Controllers\Admin\SystemUpdateController::class, 'checkForUpdates'])->name('updates.check');
+        Route::post('/updates/plugins', [App\Http\Controllers\Admin\SystemUpdateController::class, 'checkPluginVersions'])->name('updates.plugins');
+        Route::post('/updates/install', [App\Http\Controllers\Admin\SystemUpdateController::class, 'installUpdate'])->name('updates.install');
+    });
 
     // Simple test route
     Route::get('/test', function () {
@@ -703,12 +718,22 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         // Bed occupancy data for timeline visualization
         Route::get('/succession-planning/bed-occupancy', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'getBedOccupancy'])->name('succession-planning.bed-occupancy');
         
+        // Crop plans for dropdown population
+        Route::get('/succession-planning/crop-plans', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'getCropPlans'])->name('succession-planning.crop-plans');
+        
         // AI service management routes
         Route::get('/succession-planning/ai-status', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'getAIStatus'])->name('succession-planning.ai-status');
         Route::post('/succession-planning/wake-ai', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'wakeUpAI'])->name('succession-planning.wake-ai');
         
         // Image proxy for FarmOS variety images
         Route::get('/variety-image/{fileId}', [App\Http\Controllers\Admin\FarmOSDataController::class, 'proxyVarietyImage'])->name('variety-image');
+        
+        // farmOS Quick Forms (embedded in Laravel) - 🔬 EXPERIMENTAL IFRAME EMBEDDING
+        Route::prefix('quickforms')->name('quickforms.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Admin\FarmOSQuickFormController::class, 'index'])->name('index');
+            Route::get('/{formType}', [App\Http\Controllers\Admin\FarmOSQuickFormController::class, 'embed'])->name('embed');
+            Route::get('/custom/embed', [App\Http\Controllers\Admin\FarmOSQuickFormController::class, 'embedCustom'])->name('custom');
+        });
         
         // Quick Form routes - serve the unified quick form template
         Route::get('/quick/seeding', function () {

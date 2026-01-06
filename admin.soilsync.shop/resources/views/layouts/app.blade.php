@@ -790,6 +790,11 @@
                 <span>System Logs</span>
             </a>
 
+            <a href="/admin/system/updates" class="nav-link {{ request()->is('admin/system/updates*') ? 'active' : '' }}">
+                <i class="fas fa-download"></i>
+                <span>System Updates</span>
+            </a>
+
             <a href="/admin/chatbot-settings" class="nav-link {{ request()->is('admin/chatbot-settings*') ? 'active' : '' }}">
                 <i class="fas fa-robot"></i>
                 <span>Chatbot Settings</span>
