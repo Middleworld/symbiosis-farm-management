@@ -672,9 +672,13 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
 
     // FarmOS Integration routes
     Route::prefix('farmos')->name('admin.farmos.')->group(function () {
-        Route::get('/', [App\Http\Controllers\Admin\FarmOSDataController::class, 'index'])->name('dashboard');
+        Route::get('/', function () {
+            return view('admin.farmos.dashboard');
+        })->name('dashboard');
         Route::get('/planting-chart', [App\Http\Controllers\Admin\FarmOSDataController::class, 'plantingChart'])->name('planting-chart');
-        Route::get('/harvests', [App\Http\Controllers\Admin\FarmOSDataController::class, 'harvests'])->name('harvests');
+        Route::get('/harvests', function () {
+            return view('admin.farmos.harvests');
+        })->name('harvests');
         Route::get('/stock', [App\Http\Controllers\Admin\FarmOSDataController::class, 'stock'])->name('stock');
         Route::post('/stock', [App\Http\Controllers\Admin\FarmOSDataController::class, 'storeStock'])->name('stock.store');
         
