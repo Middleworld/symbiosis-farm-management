@@ -4,278 +4,84 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use App\Models\User;
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
-use App\Services\FarmOSAuthService;
 
+/**
+ * Simplified SSO Controller - Iframe-Only Architecture
+ * 
+ * This controller handles basic authentication for the admin portal.
+ * FarmOS and FieldKit are embedded via iframes and share farmOS session cookies.
+ * No complex OAuth token exchange needed - just login once to farmOS and all iframes work.
+ */
 class SsoController extends Controller
 {
-    private $jwtSecret;
-
-    public function __construct()
-    {
-        $this->jwtSecret = config('app.key');
-    }
-
+    /**
+     * Show login form or redirect authenticated users to dashboard
+     */
     public function login(Request $request)
     {
-        $redirectUrl = $request->get('redirect', '/');
-
-        // Check if this is after logout - force logout and show login form
+        // Check if this is after logout
         if ($request->get('after_logout') === '1') {
             Auth::logout();
-            return view('sso.login', [
-                'redirect' => $redirectUrl,
-                'after_logout' => true
-            ]);
+            return view('sso.login', ['after_logout' => true]);
         }
 
-        // Prevent redirect loops: if redirecting to FarmOS and user is not authenticated,
-        // redirect to WordPress homepage instead to prevent FarmOS -> SSO -> FarmOS loops
-        // COMMENTED OUT: This prevents users from logging in to access FarmOS
-        // if (!Auth::check() && str_contains($redirectUrl, 'farmos.soilsync.shop')) {
-        //     return redirect('https://soilsync.shop');
-        // }
-
-        // Store redirect URL in session if provided and valid
-        if ($request->has('redirect') && $this->isValidRedirectUrl($request->get('redirect'))) {
-            session(['sso_redirect_url' => $request->get('redirect')]);
-        }
-
-        // If already authenticated, show dashboard instead of immediate redirect to prevent loops
+        // If already authenticated, redirect to admin dashboard
         if (Auth::check()) {
-            return view('sso.dashboard', [
-                'user' => Auth::user(),
-                'redirect' => session('sso_redirect_url')
-            ]);
+            return redirect('/dashboard');
         }
 
         // Show login form
-        return view('sso.login', [
-            'redirect' => $redirectUrl
-        ]);
+        return view('sso.login');
     }
 
+    /**
+     * Authenticate user credentials
+     */
     public function authenticate(Request $request)
     {
         $credentials = $request->only('email', 'password');
 
         if (Auth::attempt($credentials)) {
-            // Set admin authentication flag for admin middleware first
+            $request->session()->regenerate();
+            
+            // Set admin authentication flag for middleware
             session(['admin_authenticated' => true]);
 
-            // Also authenticate with farmOS and store tokens in session
-            $this->authenticateWithFarmOS();
-
-            // Regenerate session after setting up authentication
-            $request->session()->regenerate();
-
-            // Redirect to dashboard instead of returning view to prevent refresh issues
-            return redirect()->route('sso.dashboard');
+            // Redirect to admin dashboard
+            return redirect('/dashboard');
         }
 
         return back()->withErrors([
             'email' => 'Invalid credentials.',
         ]);
-    }    /**
-     * Validate redirect URL to prevent open redirect attacks
+    }
+
+    /**
+     * Logout user and clear session
      */
-    private function isValidRedirectUrl(string $url): bool
-    {
-        // Only allow relative URLs or URLs within our trusted domains
-        $allowedHosts = [
-            'soilsync.shop',
-            'admin.soilsync.shop',
-            'farmos.soilsync.shop',
-            'fieldkit.soilsync.shop',
-            'feildkit.soilsync.shop', // With typo as configured
-            config('services.customer_site.url', 'example-farm.com'),
-            config('app.url', 'admin.example-farm.com')
-        ];
-
-        // Allow relative URLs (starting with /)
-        if (str_starts_with($url, '/')) {
-            return true;
-        }
-
-        // Parse URL and check host
-        $parsedUrl = parse_url($url);
-        if (!$parsedUrl || !isset($parsedUrl['host'])) {
-            return false;
-        }
-
-        // Check if host is in allowed list
-        foreach ($allowedHosts as $allowedHost) {
-            if (str_contains($parsedUrl['host'], $allowedHost)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function authenticateWithFarmOS()
-    {
-        try {
-            $authService = FarmOSAuthService::getInstance();
-            $token = $authService->getAccessToken(true); // Force refresh to get fresh token
-            
-            // Store farmOS OAuth token in session for Field Kit access
-            session([
-                'farmos_oauth_token' => $token,
-                'farmos_token_expiry' => now()->addMinutes(55)->toDateTimeString(), // Tokens are valid for 1 hour
-                'farmos_host' => config('farmos.url', 'https://farmos.example-farm.com')
-            ]);
-            
-            \Log::info('FarmOS OAuth token stored in session for SSO');
-        } catch (\Exception $e) {
-            \Log::warning('Failed to authenticate with farmOS during SSO: ' . $e->getMessage());
-            // Don't fail SSO if farmOS auth fails - continue with WordPress/Laravel auth
-        }
-    }
-
-    private function redirectBackWithJwt()
-    {
-        $user = Auth::user();
-        
-        // Create JWT token with user data
-        $payload = [
-            'iss' => config('app.url'), // Issuer
-            'aud' => 'wordpress', // Audience
-            'iat' => time(), // Issued at
-            'exp' => time() + 3600, // Expires in 1 hour
-            'sub' => $user->id, // Subject (user ID)
-            'user' => [
-                'id' => $user->id,
-                'email' => $user->email,
-                'name' => $user->name
-            ]
-        ];
-        
-        $jwt = JWT::encode($payload, $this->jwtSecret, 'HS256');
-        
-        // Check if there's a custom redirect URL (e.g., from FarmOS)
-        $redirectUrl = session('sso_redirect_url') ?: 'https://soilsync.shop/wp-admin/admin-ajax.php?action=mwf_sso_callback&token=' . urlencode($jwt);
-        
-        // Clear the redirect URL from session after use
-        session()->forget('sso_redirect_url');
-        
-        return redirect($redirectUrl);
-    }
-
-    public function generateJwtForUser($user)
-    {
-        // Create JWT token with user data
-        $payload = [
-            'iss' => config('app.url'), // Issuer
-            'aud' => 'wordpress', // Audience
-            'iat' => time(), // Issued at
-            'exp' => time() + 3600, // Expires in 1 hour
-            'sub' => $user->id, // Subject (user ID)
-            'user' => [
-                'id' => $user->id,
-                'email' => $user->email,
-                'name' => $user->name
-            ]
-        ];
-        
-        return JWT::encode($payload, $this->jwtSecret, 'HS256');
-    }
-
     public function logout(Request $request)
     {
-        // Clear farmOS tokens from session and cache
-        session()->forget(['farmos_oauth_token', 'farmos_token_expiry', 'farmos_host']);
-        
-        // Clear FarmOS auth service cache
-        $farmOSAuth = \App\Services\FarmOSAuthService::getInstance();
-        $farmOSAuth->logout();
-        
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         
-        // Clear admin authentication flag
         session()->forget('admin_authenticated');
         
-        // Redirect to login page with logout indicator
         return redirect('/sso/login?after_logout=1');
     }
 
     /**
-     * Endpoint for Field Kit to get pre-authenticated farmOS tokens
+     * Simple dashboard - just redirect to admin dashboard
+     * FarmOS and FieldKit are accessed via sidebar iframes
      */
-    public function getFarmOSTokens(Request $request)
-    {
-        // Only allow requests from Field Kit domain
-        $allowedOrigins = [
-            'https://fieldkit.soilsync.shop',
-            'https://feildkit.soilsync.shop', // With the typo as configured in Plesk
-            'http://localhost:3000', // For development
-        ];
-        
-        $origin = $request->header('Origin');
-        if (!in_array($origin, $allowedOrigins)) {
-            return response()->json(['error' => 'Unauthorized origin'], 403);
-        }
-        
-        // Check if user is authenticated
-        if (!Auth::check()) {
-            return response()->json(['error' => 'Not authenticated'], 401);
-        }
-        
-        // Check if we have valid farmOS tokens in session
-        $token = session('farmos_oauth_token');
-        $expiry = session('farmos_token_expiry');
-        $host = session('farmos_host');
-        
-        if (!$token || !$expiry || !$host) {
-            return response()->json(['error' => 'No farmOS tokens available'], 404);
-        }
-        
-        // Check if token is still valid (with 5 minute buffer)
-        if (now()->greaterThanOrEqualTo(\Carbon\Carbon::parse($expiry)->subMinutes(5))) {
-            // Token expired, refresh it
-            try {
-                $authService = FarmOSAuthService::getInstance();
-                $newToken = $authService->getAccessToken(true);
-                
-                session([
-                    'farmos_oauth_token' => $newToken,
-                    'farmos_token_expiry' => now()->addMinutes(55)->toDateTimeString(),
-                ]);
-                
-                $token = $newToken;
-            } catch (\Exception $e) {
-                \Log::warning('Failed to refresh farmOS token for Field Kit: ' . $e->getMessage());
-                return response()->json(['error' => 'Failed to refresh token'], 500);
-            }
-        }
-        
-        return response()->json([
-            'host' => $host,
-            'token' => [
-                'access_token' => $token,
-                'token_type' => 'Bearer',
-                'expires_in' => 3600,
-                'scope' => config('farmos.oauth_scope', 'farmos_restws_access')
-            ]
-        ])->header('Access-Control-Allow-Origin', $origin)
-          ->header('Access-Control-Allow-Credentials', 'true');
-    }
-
     public function dashboard(Request $request)
     {
-        // Ensure user is authenticated
         if (!Auth::check()) {
             return redirect('/sso/login');
         }
 
-        return view('sso.dashboard', [
-            'user' => Auth::user(),
-            'redirect' => session('sso_redirect_url')
-        ]);
+        // Redirect to main admin dashboard
+        return redirect('/dashboard');
     }
 }

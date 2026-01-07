@@ -19,21 +19,11 @@ Route::get('/dashboard', function () {
     return redirect('/admin');
 });
 
-// SSO routes
+// Simplified SSO routes (iframe-only architecture)
+// No complex OAuth/JWT - just basic login/logout
 Route::get('/sso/login', [App\Http\Controllers\SsoController::class, 'login'])->name('sso.login');
-Route::get('/sso/authenticate', function () {
-    return redirect('/sso/login');
-});
 Route::post('/sso/authenticate', [App\Http\Controllers\SsoController::class, 'authenticate'])->name('sso.authenticate');
 Route::get('/sso/logout', [App\Http\Controllers\SsoController::class, 'logout'])->name('sso.logout');
-Route::get('/sso/farmos-tokens', [App\Http\Controllers\SsoController::class, 'getFarmOSTokens'])->name('sso.farmos.tokens');
-Route::options('/sso/farmos-tokens', function () {
-    return response('', 200)
-        ->header('Access-Control-Allow-Origin', request()->header('Origin'))
-        ->header('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        ->header('Access-Control-Allow-Headers', 'Accept, Content-Type')
-        ->header('Access-Control-Allow-Credentials', 'true');
-});
 Route::get('/sso/dashboard', [App\Http\Controllers\SsoController::class, 'dashboard'])->name('sso.dashboard');
 
 // Route for Passport redirect to login
@@ -750,6 +740,11 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         Route::get('/proxy/quick/seeding', [App\Http\Controllers\Admin\FarmOSProxyController::class, 'proxySeedingForm'])->name('proxy.quick.seeding');
         Route::get('/proxy/quick/transplant', [App\Http\Controllers\Admin\FarmOSProxyController::class, 'proxyTransplantForm'])->name('proxy.quick.transplant');
         Route::get('/proxy/quick/harvest', [App\Http\Controllers\Admin\FarmOSProxyController::class, 'proxyHarvestForm'])->name('proxy.quick.harvest');
+        
+        // Field Kit (embedded farmOS Field Kit)
+        Route::get('/fieldkit', function () {
+            return view('admin.farmos.fieldkit');
+        })->name('fieldkit');
     });
 
     // Test route for AI timing
