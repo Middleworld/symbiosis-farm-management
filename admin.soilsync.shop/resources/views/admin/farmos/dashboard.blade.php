@@ -8,6 +8,8 @@
         src="{{ config('farmos.url') }}/" 
         style="width: 100%; height: 100%; border: none;"
         title="farmOS Dashboard"
+        allow="fullscreen"
+        allowfullscreen
     ></iframe>
 </div>
 @endsection

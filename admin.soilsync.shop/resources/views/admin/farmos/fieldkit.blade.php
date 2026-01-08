@@ -6,7 +6,8 @@
         src="https://fieldkit.soilsync.shop" 
         style="width: 100%; height: 100%; border: none;"
         title="farmOS Field Kit"
-        allow="camera; geolocation"
+        allow="camera; geolocation; fullscreen"
+        allowfullscreen
     ></iframe>
 </div>
 @endsection

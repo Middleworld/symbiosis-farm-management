@@ -7,6 +7,8 @@
         style="width: 100%; height: 100%; border: none;"
         id="farmos-iframe"
         title="farmOS Interface"
+        allow="fullscreen"
+        allowfullscreen
     ></iframe>
 </div>
 
