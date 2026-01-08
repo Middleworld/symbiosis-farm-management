@@ -1681,16 +1681,25 @@ class SuccessionPlanningController extends Controller
     public function getCropPlans(Request $request): JsonResponse
     {
         try {
-            $plans = $this->farmOSApi->getCropPlans(['status' => 'active']);
+            // Query farmOS database directly for crop plans (fast ~50ms vs API 2-30s)
+            $plans = DB::connection('farmos')
+                ->table('plan_field_data')
+                ->where('type', 'crop')
+                ->where('status', 'active') // Status is string "active", not integer 1
+                ->select('id', 'name', 'status', 'type')
+                ->orderBy('name')
+                ->get();
             
-            // Format for dropdown: extract id and name
-            $formattedPlans = collect($plans)->map(function($plan) {
+            // Format for dropdown
+            $formattedPlans = $plans->map(function($plan) {
                 return [
-                    'id' => $plan['id'] ?? '',
-                    'name' => $plan['attributes']['name'] ?? 'Unnamed Plan',
-                    'status' => $plan['attributes']['status'] ?? 'active'
+                    'id' => $plan->id,
+                    'name' => $plan->name,
+                    'status' => $plan->status
                 ];
             })->toArray();
+
+            Log::info('Crop plans fetched', ['count' => count($formattedPlans)]);
 
             return response()->json([
                 'success' => true,
@@ -1703,6 +1712,70 @@ class SuccessionPlanningController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Unable to load crop plans from farmOS',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get variety details from farmOS database
+     */
+    public function getVariety(string $id): JsonResponse
+    {
+        try {
+            // Query farmOS database directly for variety details (fast ~50ms)
+            $variety = DB::connection('farmos')
+                ->table('taxonomy_term_field_data')
+                ->where('tid', $id)
+                ->where('vid', 'plant_type')
+                ->where('status', 1)
+                ->select('tid', 'name', 'description__value', 'description__format')
+                ->first();
+
+            if (!$variety) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Variety not found'
+                ], 404);
+            }
+
+            // Get parent crop type
+            $parent = DB::connection('farmos')
+                ->table('taxonomy_term__parent')
+                ->where('entity_id', $id)
+                ->first();
+
+            $parentName = null;
+            if ($parent && $parent->parent_target_id > 0) {
+                $parentTerm = DB::connection('farmos')
+                    ->table('taxonomy_term_field_data')
+                    ->where('tid', $parent->parent_target_id)
+                    ->first();
+                $parentName = $parentTerm->name ?? null;
+            }
+
+            // Format variety data
+            $varietyData = [
+                'id' => $variety->tid,
+                'name' => $variety->name,
+                'title' => $variety->name,
+                'description' => $variety->description__value ?? '',
+                'crop_family' => $parentName,
+                'plant_type' => $parentName,
+                // Add any additional fields as needed
+            ];
+
+            return response()->json([
+                'success' => true,
+                'variety' => $varietyData
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch variety details: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to load variety details',
                 'error' => $e->getMessage()
             ], 500);
         }

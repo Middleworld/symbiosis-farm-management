@@ -4,21 +4,11 @@
 
 @section('page-title', 'farmOS Succession Planner')
 
-@section('header-hint')
-Only needed if FarmOS varieties have changed
-@endsection
-
 @section('page-header')
-    <div class="d-flex justify-content-between align-items-center w-100">
-        <div>
-            <button id="syncVarietiesBtn" class="btn btn-sm btn-light" onclick="syncFarmOSVarieties()" title="Sync varieties from FarmOS - Only needed if FarmOS varieties have changed">
-                <i class="fas fa-sync-alt"></i> Sync
-            </button>
-        </div>
-        <div class="text-center flex-grow-1">
+    <div class="d-flex justify-content-center align-items-center w-100">
+        <div class="text-center">
             <p class="lead mb-0">Revolutionary backward planning from harvest windows • Real farmOS taxonomy • AI-powered intelligence</p>
         </div>
-        <div></div>
     </div>
 @endsection
 
@@ -5148,43 +5138,6 @@ Calculate for ${contextPayload.planning_year}.`;
     }
 
     // Sync FarmOS Varieties
-    async function syncFarmOSVarieties() {
-        const btn = document.getElementById('syncVarietiesBtn');
-        const originalContent = btn.innerHTML;
-        
-        try {
-            // Show loading state
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
-            
-            const response = await fetch('{{ route('admin.farmos.sync-varieties') }}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                showToast('Plant varieties synced successfully from FarmOS!', 'success');
-                console.log('✅ Sync output:', result.output);
-            } else {
-                showToast('Failed to sync varieties: ' + result.message, 'error');
-            }
-            
-        } catch (error) {
-            console.error('❌ Sync error:', error);
-            showToast('Error syncing varieties from FarmOS', 'error');
-        } finally {
-            // Restore button
-            btn.disabled = false;
-            btn.innerHTML = originalContent;
-        }
-    }
-
     // Week navigation functions
     // ----- Missing helpers (lightweight, safe fallbacks) -----
     // Quick connectivity check placeholder (non-blocking)
