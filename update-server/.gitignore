@@ -1,0 +1,7 @@
+# Updates Directory
+# Contains packaged updates for distribution
+
+packages/
+*.tar.gz
+*.sha256
+*.log
