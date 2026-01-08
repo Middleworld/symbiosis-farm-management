@@ -90,6 +90,11 @@ class SuccessionPlanningController extends Controller
                 'varieties_count' => count($cropData['varieties'])
             ]);
             
+            // DEBUG: Log first 3 varieties to verify structure
+            Log::info('Sample varieties being passed to view', [
+                'sample' => array_slice($cropData['varieties'], 0, 3)
+            ]);
+            
             $beds = $this->farmOSQuery->getBeds();
             $availableBeds = $beds->map(fn($b) => ['id' => $b->id, 'name' => $b->name])->toArray();
             

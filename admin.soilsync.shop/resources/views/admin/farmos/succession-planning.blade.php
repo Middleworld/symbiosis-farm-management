@@ -1657,12 +1657,23 @@ Only needed if FarmOS varieties have changed
                             <label for="varietySelect" class="form-label">Variety</label>
                             <select class="form-select" id="varietySelect" name="varietySelect">
                                 <option value="">Select crop first...</option>
+                                {{-- DEBUG: Check if varieties exist --}}
+                                @php
+                                    \Log::info('Blade rendering varieties', [
+                                        'isset' => isset($cropData['varieties']),
+                                        'count' => isset($cropData['varieties']) ? count($cropData['varieties']) : 'N/A',
+                                        'first_3' => isset($cropData['varieties']) ? array_slice($cropData['varieties'], 0, 3) : []
+                                    ]);
+                                @endphp
                                 @if(isset($cropData['varieties']) && count($cropData['varieties']) > 0)
                                     @foreach($cropData['varieties'] as $variety)
                                         <option value="{{ $variety['id'] }}" data-crop="{{ $variety['parent_id'] ?? '' }}" data-name="{{ $variety['name'] }}" style="display: none;">
                                             {{ $variety['name'] }}
                                         </option>
                                     @endforeach
+                                @else
+                                    {{-- DEBUG: Show why varieties aren't rendering --}}
+                                    <option value="">DEBUG: Varieties not found in cropData</option>
                                 @endif
                             </select>
                         </div>
