@@ -154,15 +154,16 @@ class FarmOSQueryService
     public function getBeds(array $options = []): Collection
     {
         $query = DB::connection('farmos')
-            ->table('asset as a')
-            ->join('asset_field_data as afd', 'a.id', '=', 'afd.id')
-            ->join('asset__land_type as lt', 'a.id', '=', 'lt.entity_id')
-            ->where('lt.land_type_value', 'bed')
-            ->where('afd.status', 1); // 1 = active
+            ->table('asset_field_data as afd')
+            ->join('asset as a', 'afd.id', '=', 'a.id')
+            ->where('afd.type', 'land')
+            // Filter out parent locations (Block 1, Block 2, SoilSync, Block Unknown)
+            ->where('afd.name', 'NOT LIKE', 'Block %')
+            ->where('afd.name', '!=', 'SoilSync');
 
         // Filter by location
         if (!empty($options['location_id'])) {
-            $query->join('asset__location as loc', 'a.id', '=', 'loc.entity_id')
+            $query->join('asset__location as loc', 'afd.id', '=', 'loc.entity_id')
                   ->where('loc.location_target_id', $options['location_id']);
         }
 
@@ -171,8 +172,12 @@ class FarmOSQueryService
             $query->where('afd.name', 'like', '%' . $options['search'] . '%');
         }
 
-        $query->select('a.id', 'a.uuid', 'afd.name', 'afd.status', 'lt.land_type_value as land_type')
-              ->orderBy('afd.name');
+        $query->select('afd.id', 'a.uuid', 'afd.name', 'afd.status', 'afd.type as land_type')
+              ->distinct()
+              ->orderByRaw("
+                  SUBSTRING_INDEX(afd.name, '/', 1) ASC,
+                  CAST(SUBSTRING_INDEX(afd.name, '/', -1) AS UNSIGNED) ASC
+              ");
 
         return $query->get();
     }
@@ -297,36 +302,56 @@ class FarmOSQueryService
      */
     public function getPlantings(array $options = []): Collection
     {
+        // Query transplanting logs to get bed occupancy with dates
         $query = DB::connection('farmos')
-            ->table('asset as a')
-            ->join('asset_field_data as afd', 'a.id', '=', 'afd.id')
-            ->where('a.type', 'plant')
-            ->where('afd.status', 1); // 1 = active
+            ->table('log as l')
+            ->join('log_field_data as lfd', 'l.id', '=', 'lfd.id')
+            ->leftJoin('log__asset as la', 'l.id', '=', 'la.entity_id') // Plant asset reference
+            ->leftJoin('asset_field_data as afd', 'la.asset_target_id', '=', 'afd.id') // Plant asset details
+            ->leftJoin('log__location as ll', 'l.id', '=', 'll.entity_id') // Bed location
+            ->leftJoin('asset_field_data as bed', 'll.location_target_id', '=', 'bed.id') // Bed name
+            ->leftJoin('asset__plant_type as pt', 'afd.id', '=', 'pt.entity_id') // Plant variety
+            ->leftJoin('taxonomy_term_field_data as variety', 'pt.plant_type_target_id', '=', 'variety.tid')
+            ->where('l.type', 'transplanting')
+            ->where('lfd.status', 'done')
+            ->whereNotNull('ll.location_target_id'); // Must have bed location
 
-        // Filter by location (bed)
-        if (!empty($options['location_id'])) {
-            $query->join('asset__location as loc', 'a.id', '=', 'loc.entity_id')
-                  ->where('loc.location_target_id', $options['location_id']);
-        }
-
-        // Filter by plant type
-        if (!empty($options['plant_type_id'])) {
-            $query->join('asset__plant_type as pt', 'a.id', '=', 'pt.entity_id')
-                  ->where('pt.plant_type_target_id', $options['plant_type_id']);
-        }
-
-        // Date range for planting date
+        // Date range filter (transplant date)
         if (!empty($options['start_date'])) {
-            $query->where('afd.created', '>=', strtotime($options['start_date']));
+            $query->where('lfd.timestamp', '>=', strtotime($options['start_date']));
         }
         if (!empty($options['end_date'])) {
-            $query->where('afd.created', '<=', strtotime($options['end_date']));
+            $query->where('lfd.timestamp', '<=', strtotime($options['end_date']));
         }
 
-        $query->select('a.id', 'a.uuid', 'afd.name', 'afd.status', 'afd.created')
-              ->orderBy('afd.created', 'desc');
+        $results = $query->select(
+            'l.id as log_id',
+            'lfd.name as log_name',
+            DB::raw('FROM_UNIXTIME(lfd.timestamp) as transplant_date'),
+            'afd.name as plant_name',
+            'bed.name as bed_id', // Frontend expects bed_id to be bed name (e.g., "B1/1")
+            'bed.name as bed_name',
+            'variety.name as variety_name',
+            'variety.tid as variety_id'
+        )
+        ->orderBy('lfd.timestamp', 'desc')
+        ->get();
 
-        return $query->get();
+        // Transform to match expected frontend format
+        return $results->map(function($planting) {
+            return [
+                'bed_id' => $planting->bed_name, // Frontend filters by bed_id === bed.name
+                'bed_name' => $planting->bed_name,
+                'crop' => $planting->plant_name,
+                'variety' => $planting->variety_name,
+                'transplant_date' => $planting->transplant_date ? date('Y-m-d', strtotime($planting->transplant_date)) : null,
+                'start_date' => $planting->transplant_date ? date('Y-m-d', strtotime($planting->transplant_date)) : null,
+                'is_direct_seeded' => false, // Transplanting logs are never direct seeded
+                'harvest_date' => null, // TODO: Get from harvest logs if needed
+                'end_date' => null, // TODO: Calculate from maturity days
+                'notes' => $planting->log_name
+            ];
+        });
     }
 
     /**

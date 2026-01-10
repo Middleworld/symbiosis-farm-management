@@ -48,29 +48,48 @@ class FarmOSQuickFormService
     }
 
     /**
-     * Generate URLs for all log types for a succession
+     * Generate planting quick form URL for a succession
+     * Uses the unified /quick/planting form instead of separate seeding/transplanting/harvest forms
      */
     public function generateAllFormUrls(array $successionData): array
     {
-        // Generate URLs for our Laravel quick forms with pre-filled parameters
-        $baseUrl = config('app.url', config('services.farmos.url')) . '/admin/farmos';
+        // Use farmOS native /quick/planting form
+        // Cookie session sharing via $cookie_domain = '.soilsync.shop' in farmOS settings.php
+        $farmOSBase = config('services.farmos.url', 'https://farmos.soilsync.shop');
 
         $params = [
-            'crop_name' => $successionData['crop_name'] ?? '',
-            'variety_name' => $successionData['variety_name'] ?? '',
-            'bed_name' => $successionData['bed_name'] ?? '',
-            'quantity' => $successionData['quantity'] ?? '',
-            'succession_number' => $successionData['succession_number'] ?? 1,
-            'seeding_date' => $successionData['seeding_date'] ?? '',
-            'transplant_date' => $successionData['transplant_date'] ?? '',
-            'harvest_date' => $successionData['harvest_date'] ?? '',
-            'season' => $successionData['season'] ?? date('Y') . ' Succession'
+            // Season (required by planting form)
+            'seasons' => $successionData['season'] ?? date('Y') . ' Succession ' . ($successionData['succession_number'] ?? 1),
+            
+            // Crop/variety (required)
+            'crops[0]' => $successionData['variety_name'] ?? $successionData['crop_name'] ?? '',
+            
+            // Enable all log types
+            'log_types[seeding]' => 'seeding',
+            'log_types[transplanting]' => 'transplanting',
+            'log_types[harvest]' => 'harvest',
+            
+            // Seeding log details
+            'seeding[date]' => $successionData['seeding_date'] ?? '',
+            'seeding[location]' => $successionData['seeding_location'] ?? 'Greenhouse',
+            'seeding[quantity][0][measure]' => 'count',
+            'seeding[quantity][0][value]' => $successionData['quantity'] ?? '',
+            'seeding[quantity][0][units]' => 'plants',
+            'seeding[done]' => 0,
+            
+            // Transplanting log details
+            'transplanting[date]' => $successionData['transplant_date'] ?? '',
+            'transplanting[location]' => $successionData['bed_name'] ?? '',
+            'transplanting[done]' => 0,
+            
+            // Harvest log details
+            'harvest[date]' => $successionData['harvest_date'] ?? '',
+            'harvest[done]' => 0,
         ];
 
+        // Single planting quick form URL instead of three separate URLs
         return [
-            'seeding' => $baseUrl . '/quick/seeding?' . http_build_query($params),
-            'transplanting' => $baseUrl . '/quick/transplant?' . http_build_query($params),
-            'harvest' => $baseUrl . '/quick/harvest?' . http_build_query($params)
+            'planting' => $farmOSBase . '/quick/planting?' . http_build_query($params)
         ];
     }
 

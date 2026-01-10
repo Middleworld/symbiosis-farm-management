@@ -1681,13 +1681,15 @@ class SuccessionPlanningController extends Controller
     public function getCropPlans(Request $request): JsonResponse
     {
         try {
-            // Query farmOS database directly for crop plans (fast ~50ms vs API 2-30s)
+            // Query farmOS database directly for crop plans with season data (fast ~50ms vs API 2-30s)
             $plans = DB::connection('farmos')
-                ->table('plan_field_data')
-                ->where('type', 'crop')
-                ->where('status', 'active') // Status is string "active", not integer 1
-                ->select('id', 'name', 'status', 'type')
-                ->orderBy('name')
+                ->table('plan_field_data as p')
+                ->leftJoin('plan__season as ps', 'p.id', '=', 'ps.entity_id')
+                ->leftJoin('taxonomy_term_field_data as t', 'ps.season_target_id', '=', 't.tid')
+                ->where('p.type', 'crop')
+                ->where('p.status', 'active') // Status is string "active", not integer 1
+                ->select('p.id', 'p.name', 'p.status', 'p.type', 't.tid as season_id', 't.name as season_name')
+                ->orderBy('p.name')
                 ->get();
             
             // Format for dropdown
@@ -1695,7 +1697,9 @@ class SuccessionPlanningController extends Controller
                 return [
                     'id' => $plan->id,
                     'name' => $plan->name,
-                    'status' => $plan->status
+                    'status' => $plan->status,
+                    'season_id' => $plan->season_id,
+                    'season_name' => $plan->season_name
                 ];
             })->toArray();
 

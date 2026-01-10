@@ -6168,6 +6168,10 @@ Calculate for ${contextPayload.planning_year}.`;
             console.log('🌾 Generating quick form for planting:', p);
             console.log('🥕 Variety name:', p.variety_name, 'Variety ID:', p.variety_id);
             
+            // Determine seeding location: greenhouse for transplants, bed for direct-seeded
+            const isDirectSeeded = !p.transplant_date;
+            const seedingLocation = isDirectSeeded ? (p.bed_name || 'Unassigned') : 'Greenhouse';
+            
             // Build parameters - conditionally include transplanting for non-direct-sown crops
             const params = {
                 plan: planId, // Link to farmOS crop plan
@@ -6176,7 +6180,7 @@ Calculate for ${contextPayload.planning_year}.`;
                 'log_types[seeding]': 'seeding',
                 'log_types[harvest]': 'harvest',
                 'seeding[date]': p.seeding_date || '',
-                'seeding[location]': 'Greenhouse',
+                'seeding[location]': seedingLocation,
                 'seeding[quantity][0][measure]': 'count',
                 'seeding[quantity][0][value]': p.seeding_quantity || p.quantity || '',
                 'seeding[quantity][0][units]': 'plants',
@@ -6233,7 +6237,7 @@ Calculate for ${contextPayload.planning_year}.`;
                         id="planting-iframe-${i}"
                         data-season="${p.season || new Date().getFullYear() + ' Season'}"
                         data-variety="${p.variety?.name || p.variety || ''}"
-                        data-seeding-location="Greenhouse"
+                        data-seeding-location="${seedingLocation}"
                         data-transplanting-location="${p.bed_name || ''}"
                         sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation"
                         style="width: 100%; min-height: 1200px; border: 1px solid #dee2e6; border-radius: 0.5rem; display: none;"
