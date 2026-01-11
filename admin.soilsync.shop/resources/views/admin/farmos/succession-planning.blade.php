@@ -10404,23 +10404,24 @@ Plantings:`;
                         await new Promise(resolve => {
                             iframe.addEventListener('load', resolve, { once: true });
                         });
-                        await new Promise(resolve => setTimeout(resolve, 500)); // Wait for injection
+                        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for injection
                     }
                     
                     // Access iframe document
                     const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
                     
-                    // Find and submit the form
-                    const form = iframeDoc.querySelector('form');
-                    if (form) {
-                        // Programmatically submit the form
-                        form.submit();
+                    // Find the submit button and click it
+                    const submitButton = iframeDoc.querySelector('input[type="submit"], button[type="submit"], .form-actions input[type="submit"]');
+                    if (submitButton) {
+                        // Click the submit button
+                        submitButton.click();
                         completed++;
+                        console.log(`✅ Clicked submit for succession ${i + 1}`);
                         
-                        // Wait a bit before next submission to avoid overwhelming farmOS
-                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        // Wait before next submission to allow farmOS to process
+                        await new Promise(resolve => setTimeout(resolve, 2000));
                     } else {
-                        console.warn(`No form found in iframe ${i}`);
+                        console.warn(`No submit button found in iframe ${i}`);
                         failed++;
                     }
                 } catch (error) {
@@ -10430,12 +10431,12 @@ Plantings:`;
             }
             
             // Show completion message
-            const message = `Submitted ${completed}/${total} succession forms to farmOS.${failed > 0 ? ` ${failed} failed.` : ''}`;
+            const message = `Clicked submit on ${completed}/${total} succession forms.${failed > 0 ? ` ${failed} failed.` : ''}\n\nNote: Forms will submit to farmOS in the background. Check farmOS logs to verify.`;
             alert(message);
             
             if (completed > 0) {
                 // Redirect to farmOS to see the created logs
-                if (confirm('Forms submitted! Would you like to view them in farmOS?')) {
+                if (confirm('Would you like to open farmOS logs to verify submissions?')) {
                     window.open('https://farmos.soilsync.shop/logs', '_blank');
                 }
             }
