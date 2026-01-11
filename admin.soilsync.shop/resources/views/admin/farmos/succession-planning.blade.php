@@ -2384,9 +2384,6 @@
 
                     <div class="mt-3">
                         <div class="d-grid gap-2 mb-2">
-                            <button class="btn btn-outline-primary btn-sm" onclick="syncVarietiesFromFarmOS()" title="Sync latest variety data from FarmOS">
-                                <i class="fas fa-sync"></i> Sync Varieties from FarmOS
-                            </button>
                             <button class="btn btn-outline-danger btn-sm" onclick="clearAllAllocations()" title="Clear all bed allocations to start fresh">
                                 <i class="fas fa-trash"></i> Clear All Allocations
                             </button>
