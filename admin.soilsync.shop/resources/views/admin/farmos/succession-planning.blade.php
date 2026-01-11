@@ -1692,41 +1692,6 @@
             </div>
 
             <!-- Season/Year Selection - Now conditional/informational -->
-            <div class="planning-card mb-3" id="seasonYearCard">
-                <div class="planning-section">
-                    <h3>
-                        <i class="fas fa-calendar section-icon"></i>
-                        Planning Season & Year <span class="badge bg-secondary">Optional for AI Context</span>
-                    </h3>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <label for="planningYear" class="form-label">Planning Year</label>
-                            <select class="form-select" id="planningYear" name="planningYear">
-                                <option value="2024" {{ date('Y') == '2024' ? 'selected' : '' }}>2024</option>
-                                <option value="2025" {{ date('Y') == '2025' ? 'selected' : '' }}>2025</option>
-                                <option value="2026" {{ date('Y') == '2026' ? 'selected' : '' }}>2026</option>
-                                <option value="2027" {{ date('Y') == '2027' ? 'selected' : '' }}>2027</option>
-                                <option value="2028" {{ date('Y') == '2028' ? 'selected' : '' }}>2028</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="planningSeason" class="form-label">Primary Season</label>
-                            <select class="form-select" id="planningSeason" name="planningSeason">
-                                <option value="spring">Spring (Mar-May)</option>
-                                <option value="summer">Summer (Jun-Aug)</option>
-                                <option value="fall" selected>Fall (Sep-Nov)</option>
-                                <option value="winter">Winter (Dec-Feb)</option>
-                                <option value="year-round">Year-Round Planning</option>
-                            </select>
-                        </div>
-                    </div>
-                    <small class="text-muted">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Used for AI advice context. If using a crop plan, season/year will be pulled from the plan automatically.
-                    </small>
-                </div>
-            </div>
-
             <div class="planning-card">
                 <!-- Step 1: Crop Selection from farmOS -->
                 <div class="planning-section">
