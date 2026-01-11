@@ -13,6 +13,10 @@
 @endsection
 
 @section('styles')
+<!-- Chart.js for timeline visualization -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
 <!-- Force page to start at top -->
 <style>
     html, body {
@@ -808,6 +812,50 @@
         padding: 20px;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         margin: 20px 0;
+        position: relative;
+    }
+
+    /* Scrollable timeline container */
+    .timeline-scroll-container {
+        overflow-x: auto;
+        overflow-y: visible;
+        position: relative;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-top: 10px;
+    }
+
+    .timeline-scroll-content {
+        min-width: 100%;
+        width: max-content;
+        position: relative;
+    }
+
+    /* Timeline zoom controls */
+    .timeline-zoom-controls {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
+        gap: 5px;
+        z-index: 10;
+        background: white;
+        padding: 5px;
+        border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .timeline-zoom-controls button {
+        padding: 5px 10px;
+        border: 1px solid #ddd;
+        background: white;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+    }
+
+    .timeline-zoom-controls button:hover {
+        background: #f8f9fa;
     }
 
     .timeline-header {
@@ -818,6 +866,56 @@
     .timeline-header h5 {
         color: #28a745;
         margin-bottom: 5px;
+    }
+
+    /* Date axis with day markers */
+    .timeline-date-axis {
+        display: flex;
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 5;
+        border-bottom: 2px solid #28a745;
+        padding: 10px 0;
+        margin-bottom: 10px;
+    }
+
+    .timeline-month-marker {
+        position: relative;
+        flex: 1;
+        text-align: center;
+        border-right: 1px solid #ddd;
+        padding: 5px;
+    }
+
+    .timeline-month-marker:last-child {
+        border-right: none;
+    }
+
+    .timeline-month-name {
+        font-weight: bold;
+        font-size: 14px;
+        color: #28a745;
+        margin-bottom: 5px;
+    }
+
+    .timeline-days-container {
+        display: flex;
+        font-size: 10px;
+        color: #666;
+    }
+
+    .timeline-day-marker {
+        flex: 1;
+        text-align: center;
+        border-right: 1px solid #f0f0f0;
+        padding: 2px 0;
+    }
+
+    .timeline-day-marker.week-start {
+        font-weight: bold;
+        color: #333;
+        border-right: 1px solid #ccc;
     }
 
     .beds-container {
@@ -6558,6 +6656,135 @@ Calculate for ${contextPayload.planning_year}.`;
         return data;
     }
 
+    // Timeline zoom level (stored globally)
+    let currentTimelineZoom = 'month'; // 'week', 'month', 'quarter'
+
+    /**
+     * Generate detailed date axis with day markers
+     * @param {Date} minDate - Start of timeline
+     * @param {Date} maxDate - End of timeline
+     * @returns {string} HTML for date axis
+     */
+    function generateDateAxis(minDate, maxDate) {
+        const months = [];
+        const current = new Date(minDate);
+        
+        while (current <= maxDate) {
+            const monthStart = new Date(current.getFullYear(), current.getMonth(), 1);
+            const monthEnd = new Date(current.getFullYear(), current.getMonth() + 1, 0);
+            
+            // Calculate days in this month
+            const daysInMonth = monthEnd.getDate();
+            const days = [];
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayDate = new Date(current.getFullYear(), current.getMonth(), day);
+                const isWeekStart = dayDate.getDay() === 1; // Monday
+                
+                days.push({
+                    day: day,
+                    isWeekStart: isWeekStart,
+                    date: dayDate
+                });
+            }
+            
+            months.push({
+                label: current.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+                date: new Date(current),
+                days: days,
+                daysCount: daysInMonth
+            });
+            
+            current.setMonth(current.getMonth() + 1);
+        }
+        
+        // Generate HTML based on zoom level
+        if (currentTimelineZoom === 'week') {
+            // Show individual days with week highlights
+            return `
+                <div class="timeline-date-axis">
+                    ${months.map(month => `
+                        <div class="timeline-month-marker" style="flex: ${month.daysCount};">
+                            <div class="timeline-month-name">${month.label}</div>
+                            <div class="timeline-days-container">
+                                ${month.days.map(day => `
+                                    <div class="timeline-day-marker ${day.isWeekStart ? 'week-start' : ''}">
+                                        ${day.day}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else if (currentTimelineZoom === 'month') {
+            // Show months with week markers
+            return `
+                <div class="timeline-date-axis">
+                    ${months.map(month => `
+                        <div class="timeline-month-marker" style="flex: ${month.daysCount};">
+                            <div class="timeline-month-name">${month.label}</div>
+                            <div class="timeline-days-container">
+                                ${month.days.filter(d => d.isWeekStart).map(day => `
+                                    <div class="timeline-day-marker week-start">
+                                        W${Math.ceil(day.day / 7)}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else {
+            // Quarter view - just show months
+            return `
+                <div class="timeline-date-axis">
+                    ${months.map(month => `
+                        <div class="timeline-month-marker" style="flex: ${month.daysCount};">
+                            <div class="timeline-month-name">${month.label}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Zoom timeline to different levels
+     * @param {string} level - 'week', 'month', or 'quarter'
+     */
+    function zoomTimeline(level) {
+        currentTimelineZoom = level;
+        
+        // Reload timeline with new zoom
+        const timelineContainer = document.querySelector('.bed-occupancy-timeline');
+        if (!timelineContainer) return;
+        
+        const minDate = new Date(timelineContainer.dataset.minDate);
+        const maxDate = new Date(timelineContainer.dataset.maxDate);
+        
+        // Regenerate date axis
+        const dateAxis = generateDateAxis(minDate, maxDate);
+        const existingAxis = document.querySelector('.timeline-date-axis');
+        if (existingAxis) {
+            existingAxis.outerHTML = dateAxis;
+        }
+        
+        // Adjust scroll container width based on zoom
+        const scrollContent = document.querySelector('.timeline-scroll-content');
+        if (scrollContent) {
+            if (level === 'week') {
+                scrollContent.style.minWidth = '200%'; // Wide for day view
+            } else if (level === 'month') {
+                scrollContent.style.minWidth = '150%'; // Medium for week view
+            } else {
+                scrollContent.style.minWidth = '100%'; // Normal for quarter view
+            }
+        }
+        
+        console.log(`🔍 Timeline zoomed to ${level} view`);
+    }
+
     function createBedOccupancyTimeline(plan, bedData) {
         console.log('🔍 createBedOccupancyTimeline called with bedData:', bedData);
         
@@ -6829,6 +7056,9 @@ Calculate for ${contextPayload.planning_year}.`;
             });
         }
 
+        // Generate detailed date axis with day markers
+        const dateAxisHTML = generateDateAxis(minDate, maxDate);
+
         return `
             <div class="bed-occupancy-timeline" data-min-date="${minDate.toISOString()}" data-max-date="${maxDate.toISOString()}">
                 <div class="timeline-header">
@@ -6836,16 +7066,32 @@ Calculate for ${contextPayload.planning_year}.`;
                     <p class="text-muted small">Live bed availability from your FarmOS database • Yellow stars show planned harvest dates</p>
                 </div>
 
-                <div class="timeline-axis">
-                    ${months.map(month => `<div class="timeline-month">${month.label}</div>`).join('')}
+                <!-- Zoom controls -->
+                <div class="timeline-zoom-controls">
+                    <button onclick="zoomTimeline('week')" title="Week View">
+                        <i class="fas fa-compress"></i> Week
+                    </button>
+                    <button onclick="zoomTimeline('month')" title="Month View">
+                        <i class="fas fa-arrows-alt-h"></i> Month
+                    </button>
+                    <button onclick="zoomTimeline('quarter')" title="Quarter View">
+                        <i class="fas fa-expand"></i> Quarter
+                    </button>
                 </div>
 
-                <div class="beds-container">
-                    ${bedRows}
-                </div>
+                <!-- Scrollable timeline container -->
+                <div class="timeline-scroll-container">
+                    <div class="timeline-scroll-content">
+                        ${dateAxisHTML}
 
-                <div class="timeline-indicators">
-                    ${successionIndicators.join('')}
+                        <div class="beds-container">
+                            ${bedRows}
+                        </div>
+
+                        <div class="timeline-indicators">
+                            ${successionIndicators.join('')}
+                        </div>
+                    </div>
                 </div>
 
                 <div class="timeline-legend">
