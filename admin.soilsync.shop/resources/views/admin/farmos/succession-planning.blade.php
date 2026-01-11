@@ -6343,7 +6343,7 @@ Calculate for ${contextPayload.planning_year}.`;
                         </div>
                     </div>
                     <iframe 
-                        src="${quickFormUrls.planting}"
+                        data-src="${quickFormUrls.planting}"
                         class="farmos-quickform-iframe"
                         title="farmOS Planting Quick Form - Succession ${i + 1}"
                         id="planting-iframe-${i}"
@@ -6356,7 +6356,7 @@ Calculate for ${contextPayload.planning_year}.`;
                         onload="
                             this.style.display='block'; 
                             document.getElementById('loading-planting-${i}').style.display='none';
-                            setTimeout(() => injectIframeValues(this), 1000);
+                            setTimeout(() => injectIframeValues(this), 500);
                         "
                     ></iframe>
                 </div>
@@ -6368,6 +6368,13 @@ Calculate for ${contextPayload.planning_year}.`;
         // Show the tabs container
         // console.log('✅ Showing tabs container');
         tabsWrap.style.display = 'block';
+
+        // Lazy load iframes - only load the first tab's iframe immediately
+        const firstIframe = document.querySelector('#planting-iframe-0');
+        if (firstIframe && firstIframe.dataset.src) {
+            firstIframe.src = firstIframe.dataset.src;
+            delete firstIframe.dataset.src;
+        }
 
         // Initialize form visibility based on default checkbox states
         (plan.plantings || []).forEach((p, i) => {
@@ -6405,6 +6412,13 @@ Calculate for ${contextPayload.planning_year}.`;
         panes.forEach((pane, i) => {
             if (i === index) {
                 pane.classList.add('active');
+                
+                // Lazy load iframe if not already loaded
+                const iframe = pane.querySelector('.farmos-quickform-iframe');
+                if (iframe && iframe.dataset.src) {
+                    iframe.src = iframe.dataset.src;
+                    delete iframe.dataset.src;
+                }
             } else {
                 pane.classList.remove('active');
             }
