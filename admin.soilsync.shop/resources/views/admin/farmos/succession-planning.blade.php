@@ -2397,13 +2397,18 @@
                     <!-- Info about farmOS embedded forms -->
                     <div class="alert alert-info mt-4">
                         <h6><i class="fas fa-info-circle"></i> farmOS Quick Forms</h6>
-                        <p class="mb-2">Each succession has embedded farmOS forms below. Submit each form directly in farmOS:</p>
+                        <p class="mb-2">Succession forms are embedded below with pre-filled data:</p>
                         <ul class="mb-0 small">
-                            <li>Forms are pre-filled with succession data</li>
-                            <li>Submit each form individually when ready</li>
-                            <li>farmOS handles all validation and storage</li>
-                            <li>No need for bulk submission - work at your own pace</li>
+                            <li>All forms pre-filled with succession data</li>
+                            <li>Use "Submit All" button for bulk submission</li>
+                            <li>Or submit individual forms as needed</li>
+                            <li>All logs created directly in farmOS</li>
                         </ul>
+                        <div class="d-grid gap-2 mt-3">
+                            <button class="btn btn-success" onclick="submitAllSuccessions()" id="submitAllBtn">
+                                <i class="fas fa-check-double"></i> Submit All Successions to farmOS
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Page Navigation Buttons -->
@@ -10359,6 +10364,90 @@ Plantings:`;
      */
     function scrollToTop() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /**
+     * Submit all succession forms to farmOS
+     */
+    async function submitAllSuccessions() {
+        const button = document.getElementById('submitAllBtn');
+        const originalText = button.innerHTML;
+        
+        // Disable button and show progress
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+        
+        try {
+            const iframes = document.querySelectorAll('.farmos-quickform-iframe');
+            const total = iframes.length;
+            let completed = 0;
+            let failed = 0;
+            
+            if (total === 0) {
+                alert('No succession forms found to submit.');
+                return;
+            }
+            
+            // Submit each iframe form sequentially with progress updates
+            for (let i = 0; i < iframes.length; i++) {
+                const iframe = iframes[i];
+                
+                // Update progress
+                button.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Submitting ${i + 1}/${total}...`;
+                
+                try {
+                    // Ensure iframe is loaded
+                    if (iframe.dataset.src) {
+                        iframe.src = iframe.dataset.src;
+                        delete iframe.dataset.src;
+                        // Wait for iframe to load
+                        await new Promise(resolve => {
+                            iframe.addEventListener('load', resolve, { once: true });
+                        });
+                        await new Promise(resolve => setTimeout(resolve, 500)); // Wait for injection
+                    }
+                    
+                    // Access iframe document
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    
+                    // Find and submit the form
+                    const form = iframeDoc.querySelector('form');
+                    if (form) {
+                        // Programmatically submit the form
+                        form.submit();
+                        completed++;
+                        
+                        // Wait a bit before next submission to avoid overwhelming farmOS
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    } else {
+                        console.warn(`No form found in iframe ${i}`);
+                        failed++;
+                    }
+                } catch (error) {
+                    console.error(`Error submitting form ${i}:`, error);
+                    failed++;
+                }
+            }
+            
+            // Show completion message
+            const message = `Submitted ${completed}/${total} succession forms to farmOS.${failed > 0 ? ` ${failed} failed.` : ''}`;
+            alert(message);
+            
+            if (completed > 0) {
+                // Redirect to farmOS to see the created logs
+                if (confirm('Forms submitted! Would you like to view them in farmOS?')) {
+                    window.open('https://farmos.soilsync.shop/logs', '_blank');
+                }
+            }
+            
+        } catch (error) {
+            console.error('Error submitting all successions:', error);
+            alert('Error submitting forms. Please try individual submission or check console for details.');
+        } finally {
+            // Re-enable button
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
     }
 
     /**
