@@ -2561,6 +2561,17 @@
                 }
             }
             
+            // Enable "Customize plant asset name" checkbox for all log types
+            const customizeCheckboxes = iframeDoc.querySelectorAll('input[name="seeding[customize_asset_name]"], input[name="transplanting[customize_asset_name]"], input[name="harvest[customize_asset_name]"]');
+            customizeCheckboxes.forEach(checkbox => {
+                if (checkbox && !checkbox.checked) {
+                    checkbox.checked = true;
+                    // Trigger change event to ensure form updates
+                    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                    console.log('✅ Enabled customize asset name checkbox:', checkbox.name);
+                }
+            });
+            
             // Hide farmOS sidebar in succession planner
             const style = iframeDoc.createElement('style');
             style.textContent = `
