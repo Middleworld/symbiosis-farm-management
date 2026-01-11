@@ -295,14 +295,15 @@ class FarmOSQueryService
     }
 
     /**
-     * Get planting assets (plant assets)
+     * Get planting logs (both seeding and transplanting) for timeline occupancy
      * 
      * @param array $options - Filtering options
      * @return Collection
      */
     public function getPlantings(array $options = []): Collection
     {
-        // Query transplanting logs to get bed occupancy with dates
+        // Query BOTH seeding and transplanting logs to get bed occupancy with dates
+        // IMPORTANT: Include BOTH 'done' and 'pending' logs to show planned successions on timeline
         $query = DB::connection('farmos')
             ->table('log as l')
             ->join('log_field_data as lfd', 'l.id', '=', 'lfd.id')
@@ -312,8 +313,8 @@ class FarmOSQueryService
             ->leftJoin('asset_field_data as bed', 'll.location_target_id', '=', 'bed.id') // Bed name
             ->leftJoin('asset__plant_type as pt', 'afd.id', '=', 'pt.entity_id') // Plant variety
             ->leftJoin('taxonomy_term_field_data as variety', 'pt.plant_type_target_id', '=', 'variety.tid')
-            ->where('l.type', 'transplanting')
-            ->where('lfd.status', 'done')
+            ->whereIn('l.type', ['seeding', 'transplanting']) // Include BOTH seeding (direct-sown) AND transplanting
+            ->whereIn('lfd.status', ['done', 'pending']) // Show both completed AND planned plantings
             ->whereNotNull('ll.location_target_id'); // Must have bed location
 
         // Date range filter (transplant date)
@@ -326,8 +327,9 @@ class FarmOSQueryService
 
         $results = $query->select(
             'l.id as log_id',
+            'l.type as log_type',
             'lfd.name as log_name',
-            DB::raw('FROM_UNIXTIME(lfd.timestamp) as transplant_date'),
+            DB::raw('FROM_UNIXTIME(lfd.timestamp) as log_date'),
             'afd.name as plant_name',
             'bed.name as bed_id', // Frontend expects bed_id to be bed name (e.g., "B1/1")
             'bed.name as bed_name',
@@ -339,14 +341,18 @@ class FarmOSQueryService
 
         // Transform to match expected frontend format
         return $results->map(function($planting) {
+            $isDirectSeeded = $planting->log_type === 'seeding';
+            $startDate = $planting->log_date ? date('Y-m-d', strtotime($planting->log_date)) : null;
+            
             return [
                 'bed_id' => $planting->bed_name, // Frontend filters by bed_id === bed.name
                 'bed_name' => $planting->bed_name,
                 'crop' => $planting->plant_name,
                 'variety' => $planting->variety_name,
-                'transplant_date' => $planting->transplant_date ? date('Y-m-d', strtotime($planting->transplant_date)) : null,
-                'start_date' => $planting->transplant_date ? date('Y-m-d', strtotime($planting->transplant_date)) : null,
-                'is_direct_seeded' => false, // Transplanting logs are never direct seeded
+                'transplant_date' => !$isDirectSeeded ? $startDate : null,
+                'seed_date' => $isDirectSeeded ? $startDate : null,
+                'start_date' => $startDate, // Use log date as start date (seeding or transplanting)
+                'is_direct_seeded' => $isDirectSeeded,
                 'harvest_date' => null, // TODO: Get from harvest logs if needed
                 'end_date' => null, // TODO: Calculate from maturity days
                 'notes' => $planting->log_name

@@ -1722,7 +1722,7 @@ class SuccessionPlanningController extends Controller
     }
 
     /**
-     * Get variety details from farmOS database
+     * Get variety details from farmOS database with all available custom fields
      */
     public function getVariety(string $id): JsonResponse
     {
@@ -1758,15 +1758,43 @@ class SuccessionPlanningController extends Controller
                 $parentName = $parentTerm->name ?? null;
             }
 
-            // Format variety data
+            // Get image if available (check taxonomy_term__image table)
+            $image = DB::connection('farmos')
+                ->table('taxonomy_term__image')
+                ->where('entity_id', $id)
+                ->first();
+
+            $imageUrl = null;
+            $imageAlt = null;
+            if ($image && $image->image_target_id) {
+                // Get file URL from file_managed table
+                $file = DB::connection('farmos')
+                    ->table('file_managed')
+                    ->where('fid', $image->image_target_id)
+                    ->first();
+                
+                if ($file && $file->uri) {
+                    // Convert internal URI to web-accessible URL
+                    // e.g., public://variety-photos/carrot.jpg -> /sites/default/files/variety-photos/carrot.jpg
+                    $imageUrl = str_replace('public://', '/sites/default/files/', $file->uri);
+                    $imageUrl = 'https://farmos.soilsync.shop' . $imageUrl;
+                }
+                $imageAlt = $image->image_alt ?? $variety->name;
+            }
+
+            // Format variety data with all available fields
             $varietyData = [
                 'id' => $variety->tid,
                 'name' => $variety->name,
                 'title' => $variety->name,
-                'description' => $variety->description__value ?? '',
+                'description' => $variety->description__value ?? 'No description available for this variety.',
                 'crop_family' => $parentName,
                 'plant_type' => $parentName,
-                // Add any additional fields as needed
+                'image_url' => $imageUrl,
+                'image_alt' => $imageAlt,
+                // Note: farmOS plant_type taxonomy doesn't have custom fields by default
+                // Days to maturity, spacing, etc. would need to be added as custom fields in farmOS
+                // For now, return what's available from the standard taxonomy
             ];
 
             return response()->json([
