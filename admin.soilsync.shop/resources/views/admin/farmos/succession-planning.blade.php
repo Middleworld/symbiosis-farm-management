@@ -6284,12 +6284,14 @@ Calculate for ${contextPayload.planning_year}.`;
                 'seeding[quantity][0][units]': 'plants',
                 'seeding[notes][value]': `Succession ${i + 1} - ${p.in_row_spacing_cm || 15}cm in-row × ${p.between_row_spacing_cm || 20}cm between-row spacing`,
                 'seeding[done]': '0',
+                'seeding[customize_asset_name]': '1', // Enable customize plant asset name checkbox by default
                 'harvest[date]': p.harvest_date || '',
                 'harvest[quantity][0][measure]': 'weight',
                 'harvest[quantity][0][value]': p.estimated_harvest_kg || '',
                 'harvest[quantity][0][units]': 'kg',
                 'harvest[notes][value]': `Succession ${i + 1} harvest - Estimated yield based on ${p.bed_length || 0}m × ${p.bed_width || 0}m bed`,
-                'harvest[done]': '0'
+                'harvest[done]': '0',
+                'harvest[customize_asset_name]': '1' // Enable customize plant asset name checkbox by default
             };
             
             // Only add transplanting if succession has transplant date
@@ -6302,6 +6304,7 @@ Calculate for ${contextPayload.planning_year}.`;
                 params['transplanting[quantity][0][units]'] = 'plants';
                 params['transplanting[notes][value]'] = `Succession ${i + 1} transplant - ${Math.round((p.quantity || 0) * 0.8)} plants selected from ${p.quantity || 0} seedlings`;
                 params['transplanting[done]'] = '0';
+                params['transplanting[customize_asset_name]'] = '1'; // Enable customize plant asset name checkbox by default
                 
                 console.log(`🏡 Succession ${i + 1} transplanting[location] = "${p.bed_name || ''}"`);
             }
