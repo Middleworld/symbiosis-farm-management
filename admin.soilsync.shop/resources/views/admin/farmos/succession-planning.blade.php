@@ -7413,6 +7413,12 @@ Calculate for ${contextPayload.planning_year}.`;
                     method: allocationData.method
                 }, new Date(allocationData.occupationStart), new Date(allocationData.harvestDate), harvestEndDate);
 
+                // Regenerate quick forms with updated bed locations
+                if (window.currentSuccessionPlan) {
+                    console.log('🔄 Regenerating quick forms with updated bed location...');
+                    renderQuickFormTabs(window.currentSuccessionPlan);
+                }
+
                 console.log('✅ Moved succession block to new bed:', bedName);
             }
         } else {
