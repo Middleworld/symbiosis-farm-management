@@ -313,6 +313,8 @@ class FarmOSQueryService
             ->leftJoin('asset_field_data as bed', 'll.location_target_id', '=', 'bed.id') // Bed name
             ->leftJoin('asset__plant_type as pt', 'afd.id', '=', 'pt.entity_id') // Plant variety
             ->leftJoin('taxonomy_term_field_data as variety', 'pt.plant_type_target_id', '=', 'variety.tid')
+            ->leftJoin('taxonomy_term__maturity_days as md', 'variety.tid', '=', 'md.entity_id')
+            ->leftJoin('taxonomy_term__harvest_window_days as hw', 'variety.tid', '=', 'hw.entity_id')
             ->whereIn('l.type', ['seeding', 'transplanting']) // Include BOTH seeding (direct-sown) AND transplanting
             ->whereIn('lfd.status', ['done', 'pending']) // Show both completed AND planned plantings
             ->whereNotNull('ll.location_target_id'); // Must have bed location
@@ -334,7 +336,9 @@ class FarmOSQueryService
             'bed.name as bed_id', // Frontend expects bed_id to be bed name (e.g., "B1/1")
             'bed.name as bed_name',
             'variety.name as variety_name',
-            'variety.tid as variety_id'
+            'variety.tid as variety_id',
+            'md.maturity_days_value as maturity_days',
+            'hw.harvest_window_days_value as harvest_window_days'
         )
         ->orderBy('lfd.timestamp', 'desc')
         ->get();
@@ -351,8 +355,11 @@ class FarmOSQueryService
                 'variety' => $planting->variety_name,
                 'transplant_date' => !$isDirectSeeded ? $startDate : null,
                 'seed_date' => $isDirectSeeded ? $startDate : null,
+                'seeding_date' => $isDirectSeeded ? $startDate : null, // Add seeding_date field
                 'start_date' => $startDate, // Use log date as start date (seeding or transplanting)
                 'is_direct_seeded' => $isDirectSeeded,
+                'maturity_days' => $planting->maturity_days, // Days from seeding to harvest
+                'harvest_window_days' => $planting->harvest_window_days, // Harvest duration
                 'harvest_date' => null, // TODO: Get from harvest logs if needed
                 'end_date' => null, // TODO: Calculate from maturity days
                 'notes' => $planting->log_name

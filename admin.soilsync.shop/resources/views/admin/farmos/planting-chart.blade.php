@@ -545,6 +545,12 @@ function transformFarmOSBedData(bedData) {
         console.warn('No FarmOS bed data to transform');
         return {};
     }
+    
+    console.log('📊 FarmOS Data Structure:', {
+        beds_count: bedData.beds.length,
+        plantings_count: bedData.plantings ? bedData.plantings.length : 0,
+        sample_planting: bedData.plantings && bedData.plantings.length > 0 ? bedData.plantings[0] : null
+    });
 
     const chartData = {};
     const bedsWithoutProperBlock = [];
@@ -618,20 +624,55 @@ function transformFarmOSBedData(bedData) {
             const cropName = planting.crop_name || planting.crop || 'Unknown Crop';
             const varietyName = planting.variety || '';
             
-            // Determine the bed occupation start date (transplant or direct seed, NOT seeding in trays)
+            // Debug: Log all date fields from planting
+            console.log(`🌱 ${cropName} RAW DATA:`, planting);
+            console.log(`📅 ${cropName} dates:`, {
+                seeding_date: planting.seeding_date,
+                seed_date: planting.seed_date,
+                transplant_date: planting.transplant_date,
+                start_date: planting.start_date,
+                harvest_date: planting.harvest_date,
+                maturity_days: planting.maturity_days,
+                harvest_window_days: planting.harvest_window_days
+            });
+            
+            // Seeding date (if available - from trays/propagation)
+            const seedingDate = planting.seeding_date;
+            
+            // Determine the bed occupation start date (transplant or direct seed)
             const bedStartDate = planting.transplant_date || planting.start_date || planting.seeding_date;
-            const harvestStartDate = planting.harvest_date || planting.harvest_start_date || planting.harvest_start;
+            
+            // Calculate harvest dates from maturity days if not provided
+            let harvestStartDate = planting.harvest_date || planting.harvest_start_date || planting.harvest_start;
             let harvestEndDate = planting.harvest_end_date || planting.harvest_end || planting.end_date || planting.bed_end_date;
             
-            // If we have harvest start but no harvest end, calculate a reasonable harvest window
+            // Get maturity and harvest window, with fallback defaults
+            const maturityDays = planting.maturity_days || planting.harvest_window_days || 90; // Use harvest_window if maturity missing
+            const harvestWindowDays = planting.harvest_window_days || 21; // Default 3 weeks
+            
+            // If no harvest start date, calculate from seeding date + maturity days
+            if (!harvestStartDate && seedingDate && maturityDays) {
+                const seedDate = new Date(seedingDate);
+                seedDate.setDate(seedDate.getDate() + parseInt(maturityDays));
+                harvestStartDate = seedDate.toISOString().split('T')[0];
+                console.log(`📅 ${cropName}: Calculated harvest start from maturity: ${harvestStartDate} (${maturityDays} days)`);
+            }
+            
+            // Calculate harvest end from harvest window
             if (harvestStartDate && !harvestEndDate) {
                 const harvestStart = new Date(harvestStartDate);
-                // Default harvest window: 3 weeks for most crops
-                // Can be adjusted based on crop type in the future
-                const defaultHarvestDays = 21; // 3 weeks
-                harvestStart.setDate(harvestStart.getDate() + defaultHarvestDays);
+                harvestStart.setDate(harvestStart.getDate() + parseInt(harvestWindowDays));
                 harvestEndDate = harvestStart.toISOString().split('T')[0];
-                console.log(`📅 ${cropName}: No harvest end date, using ${defaultHarvestDays}-day window: ${harvestStartDate} → ${harvestEndDate}`);
+                console.log(`📅 ${cropName}: Calculated harvest end: ${harvestEndDate} (${harvestWindowDays} day window)`);
+            }
+            
+            // Calculate transplant date if not provided (default 21 days after seeding for transplanted crops)
+            let transplantDate = planting.transplant_date;
+            if (!transplantDate && seedingDate && maturityDays > 60) { // Only for crops likely to be transplanted
+                const seedDate = new Date(seedingDate);
+                seedDate.setDate(seedDate.getDate() + 21); // Default 3 weeks propagation
+                transplantDate = seedDate.toISOString().split('T')[0];
+                console.log(`📅 ${cropName}: Calculated transplant: ${transplantDate}`);
             }
             
             if (!bedStartDate) {
@@ -639,8 +680,26 @@ function transformFarmOSBedData(bedData) {
                 return;
             }
             
+            // Create SEEDING activity (if seeding date exists and differs from bed start)
+            if (seedingDate && transplantDate && seedingDate !== transplantDate) {
+                const seedingActivity = {
+                    id: planting.id ? `${planting.id}_seeding` : `planting_${Date.now()}_${Math.random()}_seeding`,
+                    type: 'seeding',
+                    crop: cropName.toLowerCase(),
+                    variety: varietyName,
+                    location: bedName,
+                    start: seedingDate,
+                    end: transplantDate, // Seeding ends when transplanted to bed
+                    status: planting.status || 'done',
+                    notes: planting.notes || `${cropName} ${varietyName} - Seeding`,
+                    source: 'farmOS'
+                };
+                chartData[bedName].push(seedingActivity);
+            }
+            
             // Create GROWING activity (from transplant/direct seed to harvest start)
             if (harvestStartDate) {
+                const growingStart = transplantDate || bedStartDate;
                 const growingActivity = {
                     id: planting.id ? `${planting.id}_growing` : `planting_${Date.now()}_${Math.random()}_growing`,
                     type: 'growing',
@@ -814,30 +873,36 @@ function createBlockTabs(data) {
     const tabsContainer = document.getElementById('blockTabs');
     tabsContainer.innerHTML = '';
     
-    // Extract blocks from data (anything starting with "Block")
-    // Filter out "Block Unknown" variants (Unknown, Unkown, etc.)
-    const blocks = [];
+    // Extract blocks from data - two methods:
+    // 1. Explicit "Block X" names
+    // 2. Bed names like "X/Y" where X is the block number
+    const blockSet = new Set();
+    
     Object.keys(data).forEach(location => {
         if (location.startsWith('Block ')) {
             // Skip "Block Unknown" or similar variants
             if (!location.match(/Block\s+(Unknown|Unkown)/i)) {
-                blocks.push(location);
+                blockSet.add(location);
+            }
+        } else if (location.includes('/')) {
+            // Extract block number from bed naming pattern "X/Y"
+            const match = location.match(/^(\d+)\//);
+            if (match) {
+                blockSet.add(`Block ${match[1]}`);
             }
         }
     });
     
-    // Sort blocks naturally
-    blocks.sort((a, b) => {
+    // Convert to array and sort naturally
+    const blocks = Array.from(blockSet).sort((a, b) => {
         const aNum = parseInt(a.replace('Block ', ''));
         const bNum = parseInt(b.replace('Block ', ''));
         return aNum - bNum;
     });
     
-    // If no blocks, create default tabs for Block 1-10
+    // If no blocks found, show all locations as a single view
     if (blocks.length === 0) {
-        for (let i = 1; i <= 10; i++) {
-            blocks.push(`Block ${i}`);
-        }
+        blocks.push('All Locations');
     }
     
     // Create tab navigation
@@ -862,30 +927,36 @@ function createBlockTabContent(data) {
     const contentContainer = document.getElementById('blockTabContent');
     contentContainer.innerHTML = '';
     
-    // Extract blocks from data
-    // Filter out "Block Unknown" variants (Unknown, Unkown, etc.)
-    const blocks = [];
+    // Extract blocks from data - two methods:
+    // 1. Explicit "Block X" names
+    // 2. Bed names like "X/Y" where X is the block number
+    const blockSet = new Set();
+    
     Object.keys(data).forEach(location => {
         if (location.startsWith('Block ')) {
             // Skip "Block Unknown" or similar variants
             if (!location.match(/Block\s+(Unknown|Unkown)/i)) {
-                blocks.push(location);
+                blockSet.add(location);
+            }
+        } else if (location.includes('/')) {
+            // Extract block number from bed naming pattern "X/Y"
+            const match = location.match(/^(\d+)\//);
+            if (match) {
+                blockSet.add(`Block ${match[1]}`);
             }
         }
     });
     
-    // Sort blocks naturally
-    blocks.sort((a, b) => {
+    // Convert to array and sort naturally
+    const blocks = Array.from(blockSet).sort((a, b) => {
         const aNum = parseInt(a.replace('Block ', ''));
         const bNum = parseInt(b.replace('Block ', ''));
         return aNum - bNum;
     });
     
-    // If no blocks, create default tabs for Block 1-10
+    // If no blocks found, show all locations as a single view
     if (blocks.length === 0) {
-        for (let i = 1; i <= 10; i++) {
-            blocks.push(`Block ${i}`);
-        }
+        blocks.push('All Locations');
     }
     
     // Create content for each block
@@ -912,12 +983,21 @@ function createBlockTabContent(data) {
 function getBlockData(data, targetBlock) {
     const blockData = {};
     
+    if (targetBlock === 'All Locations') {
+        // Show all locations without filtering
+        return data;
+    }
+    
     // Get beds that belong to this block (look for bed naming patterns)
     const blockNumber = targetBlock.replace('Block ', '');
     Object.keys(data).forEach(location => {
-        // Only include beds with format "X/Y" that match this block number
-        // Exclude "Block X" entries
+        // Include three types:
+        // 1. Beds with format "X/Y" where X matches block number
+        // 2. The "Block X" location itself (if it exists)
+        // 3. Any location that contains the block identifier
         if (location.includes('/') && location.startsWith(`${blockNumber}/`)) {
+            blockData[location] = data[location];
+        } else if (location === targetBlock) {
             blockData[location] = data[location];
         }
     });
@@ -1198,6 +1278,8 @@ function generateTrackBars(activities, startDate, endDate, totalDays, dayWidth) 
         return '<div class="empty-track">No activities scheduled</div>';
     }
     
+    console.log('🎨 Rendering activities:', activities.length, activities);
+    
     return activities.map(activity => {
         const activityStart = new Date(activity.start);
         const activityEnd = new Date(activity.end);
@@ -1334,384 +1416,11 @@ function showError(message) {
 }
 
 function showTestData() {
-    const testData = {
-        'Block 1': [
-            {
-                id: 'test_lettuce_seeding',
-                type: 'seeding',
-                crop: 'lettuce',
-                variety: 'Butter Lettuce',
-                start: '2025-03-15',
-                end: '2025-04-01',
-                color: '#28a745',
-                label: 'Lettuce (Seeding)'
-            },
-            {
-                id: 'test_lettuce_growing',
-                type: 'growing', 
-                crop: 'lettuce',
-                variety: 'Butter Lettuce',
-                start: '2025-04-01',
-                end: '2025-05-15',
-                color: '#007bff',
-                label: 'Lettuce (Growing)'
-            },
-            {
-                id: 'test_lettuce_harvest',
-                type: 'harvest',
-                crop: 'lettuce',
-                variety: 'Butter Lettuce',
-                start: '2025-05-15',
-                end: '2025-05-30',
-                color: '#ffc107',
-                label: 'Lettuce (Harvest)'
-            }
-        ],
-        '1/1': [
-            {
-                id: 'bed_1_1_spinach',
-                type: 'seeding',
-                crop: 'spinach',
-                variety: 'Space Spinach',
-                start: '2025-02-15',
-                end: '2025-03-01',
-                color: '#28a745',
-                label: 'Spinach (Seeding)'
-            },
-            {
-                id: 'bed_1_1_spinach_growing',
-                type: 'growing',
-                crop: 'spinach',
-                variety: 'Space Spinach',
-                start: '2025-03-01',
-                end: '2025-04-15',
-                color: '#007bff',
-                label: 'Spinach (Growing)'
-            }
-        ],
-        '1/2': [
-            {
-                id: 'bed_1_2_radish',
-                type: 'seeding',
-                crop: 'radish',
-                variety: 'Cherry Belle',
-                start: '2025-03-01',
-                end: '2025-03-10',
-                color: '#28a745',
-                label: 'Radish (Seeding)'
-            }
-        ],
-        '1/3': [
-            {
-                id: 'bed_1_3_kale',
-                type: 'seeding',
-                crop: 'kale',
-                variety: 'Red Russian',
-                start: '2025-04-01',
-                end: '2025-04-15',
-                color: '#28a745',
-                label: 'Kale (Seeding)'
-            },
-            {
-                id: 'bed_1_3_kale_growing',
-                type: 'growing',
-                crop: 'kale',
-                variety: 'Red Russian',
-                start: '2025-04-15',
-                end: '2025-07-01',
-                color: '#007bff',
-                label: 'Kale (Growing)'
-            }
-        ],
-        '1/4': [],
-        '1/5': [
-            {
-                id: 'bed_1_5_peas',
-                type: 'seeding',
-                crop: 'peas',
-                variety: 'Sugar Snap',
-                start: '2025-03-15',
-                end: '2025-03-25',
-                color: '#28a745',
-                label: 'Peas (Seeding)'
-            }
-        ],
-        '1/6': [],
-        '1/7': [
-            {
-                id: 'bed_1_7_arugula',
-                type: 'seeding',
-                crop: 'arugula',
-                variety: 'Wild Rocket',
-                start: '2025-05-01',
-                end: '2025-05-10',
-                color: '#28a745',
-                label: 'Arugula (Seeding)'
-            }
-        ],
-        '1/8': [],
-        '1/9': [
-            {
-                id: 'bed_1_9_beets',
-                type: 'seeding',
-                crop: 'beets',
-                variety: 'Detroit Dark Red',
-                start: '2025-06-01',
-                end: '2025-06-15',
-                color: '#28a745',
-                label: 'Beets (Seeding)'
-            }
-        ],
-        '1/10': [],
-        '1/11': [],
-        '1/12': [
-            {
-                id: 'bed_1_12_cilantro',
-                type: 'seeding',
-                crop: 'cilantro',
-                variety: 'Slow Bolt',
-                start: '2025-04-15',
-                end: '2025-04-25',
-                color: '#28a745',
-                label: 'Cilantro (Seeding)'
-            }
-        ],
-        '1/13': [],
-        '1/14': [],
-        '1/15': [
-            {
-                id: 'bed_1_15_chard',
-                type: 'seeding',
-                crop: 'chard',
-                variety: 'Rainbow',
-                start: '2025-07-01',
-                end: '2025-07-15',
-                color: '#28a745',
-                label: 'Chard (Seeding)'
-            }
-        ],
-        '1/16': [],
-        'Block 2': [
-            {
-                id: 'test_tomato_seeding',
-                type: 'seeding',
-                crop: 'tomato',
-                variety: 'Cherry Tomato',
-                start: '2025-02-01',
-                end: '2025-02-20',
-                color: '#28a745',
-                label: 'Tomato (Seeding)'
-            },
-            {
-                id: 'test_tomato_growing',
-                type: 'growing',
-                crop: 'tomato',
-                variety: 'Cherry Tomato',
-                start: '2025-02-20',
-                end: '2025-07-30',
-                color: '#007bff',
-                label: 'Tomato (Growing)'
-            },
-            {
-                id: 'test_tomato_harvest',
-                type: 'harvest',
-                crop: 'tomato',
-                variety: 'Cherry Tomato',
-                start: '2025-07-30',
-                end: '2025-10-15',
-                color: '#ffc107',
-                label: 'Tomato (Harvest)'
-            }
-        ],
-        '2/1': [
-            {
-                id: 'bed_2_1_basil',
-                type: 'seeding',
-                crop: 'basil',
-                variety: 'Genovese',
-                start: '2025-04-15',
-                end: '2025-05-01',
-                color: '#28a745',
-                label: 'Basil (Seeding)'
-            }
-        ],
-        '2/2': [
-            {
-                id: 'bed_2_2_peppers',
-                type: 'seeding',
-                crop: 'peppers',
-                variety: 'Bell Pepper',
-                start: '2025-03-01',
-                end: '2025-03-20',
-                color: '#28a745',
-                label: 'Peppers (Seeding)'
-            },
-            {
-                id: 'bed_2_2_peppers_growing',
-                type: 'growing',
-                crop: 'peppers',
-                variety: 'Bell Pepper',
-                start: '2025-03-20',
-                end: '2025-08-15',
-                color: '#007bff',
-                label: 'Peppers (Growing)'
-            }
-        ],
-        '2/3': [],
-        '2/4': [
-            {
-                id: 'bed_2_4_eggplant',
-                type: 'seeding',
-                crop: 'eggplant',
-                variety: 'Black Beauty',
-                start: '2025-03-15',
-                end: '2025-04-01',
-                color: '#28a745',
-                label: 'Eggplant (Seeding)'
-            }
-        ],
-        '2/5': [],
-        '2/6': [],
-        '2/7': [
-            {
-                id: 'bed_2_7_cucumbers',
-                type: 'seeding',
-                crop: 'cucumbers',
-                variety: 'Boston Pickling',
-                start: '2025-05-01',
-                end: '2025-05-15',
-                color: '#28a745',
-                label: 'Cucumbers (Seeding)'
-            }
-        ],
-        '2/8': [],
-        '2/9': [],
-        '2/10': [
-            {
-                id: 'bed_2_10_zucchini',
-                type: 'seeding',
-                crop: 'zucchini',
-                variety: 'Black Beauty',
-                start: '2025-05-15',
-                end: '2025-06-01',
-                color: '#28a745',
-                label: 'Zucchini (Seeding)'
-            }
-        ],
-        '2/11': [],
-        '2/12': [],
-        '2/13': [
-            {
-                id: 'bed_2_13_herbs',
-                type: 'seeding',
-                crop: 'oregano',
-                variety: 'Greek',
-                start: '2025-04-01',
-                end: '2025-04-15',
-                color: '#28a745',
-                label: 'Oregano (Seeding)'
-            }
-        ],
-        '2/14': [],
-        '2/15': [],
-        '2/16': [
-            {
-                id: 'bed_2_16_parsley',
-                type: 'seeding',
-                crop: 'parsley',
-                variety: 'Flat Leaf',
-                start: '2025-03-15',
-                end: '2025-03-30',
-                color: '#28a745',
-                label: 'Parsley (Seeding)'
-            }
-        ],
-        'Block 3': [
-            {
-                id: 'test_carrot_seeding',
-                type: 'seeding',
-                crop: 'carrot',
-                variety: 'Nantes',
-                start: '2025-06-01',
-                end: '2025-06-15',
-                color: '#28a745',
-                label: 'Carrot (Seeding)'
-            },
-            {
-                id: 'test_carrot_growing',
-                type: 'growing',
-                crop: 'carrot',
-                variety: 'Nantes',
-                start: '2025-06-15',
-                end: '2025-09-15',
-                color: '#007bff',
-                label: 'Carrot (Growing)'
-            }
-        ],
-        '3/1': [],
-        '3/2': [],
-        '3/3': [],
-        '3/4': [],
-        '3/5': [],
-        '3/6': [],
-        '3/7': [],
-        '3/8': [],
-        '3/9': [],
-        '3/10': [],
-        '3/11': [],
-        '3/12': [],
-        '3/13': [],
-        '3/14': [],
-        '3/15': [],
-        '3/16': [],
-        'Block 4': [
-            {
-                id: 'test_winter_prep',
-                type: 'seeding',
-                crop: 'winter cover',
-                variety: 'Rye Grass',
-                start: '2025-10-01',
-                end: '2025-10-15',
-                color: '#28a745',
-                label: 'Winter Cover (Seeding)'
-            },
-            {
-                id: 'test_winter_growing',
-                type: 'growing',
-                crop: 'winter cover',
-                variety: 'Rye Grass',
-                start: '2025-10-15',
-                end: '2025-12-31',
-                color: '#007bff',
-                label: 'Winter Cover (Growing)'
-            }
-        ],
-        '4/1': [],
-        '4/2': [],
-        '4/3': [],
-        '4/4': [],
-        '4/5': [],
-        '4/6': [],
-        '4/7': [],
-        '4/8': [],
-        '4/9': [],
-        '4/10': [],
-        '4/11': [],
-        '4/12': [],
-        '4/13': [],
-        '4/14': [],
-        '4/15': [],
-        '4/16': [],
-        'Block 5': [],
-        'Block 6': [],
-        'Block 7': [],
-        'Block 8': [],
-        'Block 9': [],
-        'Block 10': []
-    };
-    renderTimelineChart(testData);
-    updateStats(testData);
-    showChart();
+    // Show message that we're loading from farmOS instead of hardcoded test data
+    console.log('Loading planting data from farmOS...');
+    
+    // Fetch real data from API instead of using hardcoded blocks
+    fetchPlantingDataFromAPI();
 }
 </script>
 
@@ -2302,7 +2011,7 @@ function showTestData() {
 }
 
 .activity-bar.activity-growing {
-    background: linear-gradient(135deg, #28a745 0%, #34ce57 100%);
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
     border-color: rgba(255,255,255,0.4);
 }
 
@@ -2310,6 +2019,7 @@ function showTestData() {
     background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
     border-color: rgba(255,255,255,0.4);
     color: #212529;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.5);
 }
 
 .activity-content {

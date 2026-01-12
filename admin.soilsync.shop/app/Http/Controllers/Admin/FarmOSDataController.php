@@ -837,25 +837,81 @@ class FarmOSDataController extends Controller
     }
 
     /**
-     * Redirect to native farmOS planning tools
-     * 
-     * The planting chart has been replaced by:
-     * 1. farmOS native crop plan timelines (better integration)
-     * 2. Succession planner bed occupancy view (already built in)
-     * 
-     * This redirect guides users to the right tools.
+     * Display the planting chart
      */
-    public function plantingChart(Request $request): View
+    public function plantingChart(Request $request)
     {
-        $farmosUrl = config('farmos.url');
-        
-        // Show redirect page with options to native farmOS tools
-        return view('admin.farmos.planting-chart-redirect', [
-            'farmosUrl' => $farmosUrl,
-            'successionPlannerUrl' => route('admin.farmos.succession-planning'),
-            'farmosTimelineUrl' => $farmosUrl . '/admin/content/plan',
-            'farmosMapUrl' => $farmosUrl . '/dashboard/map',
-        ]);
+        try {
+            // Get farmOS land assets (your actual farm structure)
+            $geometryAssets = $this->farmOSApi->getGeometryAssets();
+            $cropPlans = $this->farmOSApi->getCropPlanningData();
+            $cropTypesData = $this->farmOSApi->getAvailableCropTypes();
+            
+            // Extract simple crop type names for the filter dropdown
+            $cropTypes = [];
+            if (isset($cropTypesData['types'])) {
+                foreach ($cropTypesData['types'] as $type) {
+                    $cropTypes[] = $type['name'] ?? $type['label'] ?? 'Unknown';
+                }
+            }
+            
+            // Debug: Log the data we're getting
+            Log::info('Planting Chart Debug - Geometry Assets Count: ' . count($geometryAssets['features'] ?? []));
+            Log::info('Planting Chart Debug - Crop Plans Count: ' . count($cropPlans));
+            Log::info('Planting Chart Debug - Crop Types: ', $cropTypes);
+            
+            // Transform land assets into chart data showing your actual blocks and beds
+            $chartData = $this->transformLandAssetsToChart($geometryAssets, $cropPlans);
+            $locations = $this->extractLocationsFromAssets($geometryAssets);
+            
+            // Debug: Log sample of chart data
+            foreach (array_slice($chartData, 0, 3) as $location => $activities) {
+                Log::info("Planting Chart - {$location}: " . count($activities) . " activities", [
+                    'sample' => array_slice($activities, 0, 2)
+                ]);
+            }
+            
+            $usingFarmOSData = true;
+            
+            // Check if we have actual planting data (not just empty locations)
+            $hasPlantingData = false;
+            foreach ($chartData as $location => $plantings) {
+                if (!empty($plantings)) {
+                    $hasPlantingData = true;
+                    break;
+                }
+            }
+            
+            // If we don't have good data or no planting data, use fallback
+            if (empty($chartData) || count($geometryAssets['features'] ?? []) < 5 || !$hasPlantingData) {
+                throw new \Exception('Insufficient farmOS planting data, using fallback');
+            }
+            
+            $usingFarmOSData = true;
+            
+            return view('admin.farmos.planting-chart', compact(
+                'chartData',
+                'locations',
+                'cropTypes', 
+                'usingFarmOSData'
+            ));
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to load planting chart from controller: ' . $e->getMessage());
+            
+            // Don't use test data - pass empty data and let frontend fetch from API
+            $locations = [];
+            $cropTypes = [];
+            $chartData = [];
+            $usingFarmOSData = false;
+            
+            return view('admin.farmos.planting-chart', compact(
+                'chartData',
+                'locations',
+                'cropTypes',
+                'usingFarmOSData'
+            ));
+        }
     }
 
     /**
@@ -1056,55 +1112,135 @@ class FarmOSDataController extends Controller
     }
     
     /**
-     * Generate timeline activities for a specific asset
+     * Generate timeline activities for a specific asset by reading farmOS logs
      */
     private function generateActivitiesForAsset($properties, $cropPlans)
     {
         $activities = [];
+        $assetId = $properties['id'] ?? null;
         $assetName = $properties['name'] ?? 'Unnamed';
         
-        // Look for crop plans that reference this location
-        foreach ($cropPlans as $plan) {
-            if (isset($plan['location']) && $plan['location'] === $assetName) {
-                // Create seeding activity
-                if (!empty($plan['planned_seeding_date'])) {
+        if (!$assetId) {
+            return $activities;
+        }
+        
+        try {
+            // Query farmOS database directly for logs related to this location
+            // Get seeding, transplanting, and harvest logs for plantings in this bed
+            $logs = DB::connection('farmos')
+                ->table('log_field_data as l')
+                ->join('log__location as ll', 'l.id', '=', 'll.entity_id')
+                ->leftJoin('log__asset as la', 'l.id', '=', 'la.entity_id')
+                ->leftJoin('asset_field_data as a', 'la.asset_target_id', '=', 'a.id')
+                ->leftJoin('asset__plant_type as apt', 'a.id', '=', 'apt.entity_id')
+                ->leftJoin('taxonomy_term_field_data as t', 'apt.plant_type_target_id', '=', 't.tid')
+                ->leftJoin('taxonomy_term__maturity_days as md', 't.tid', '=', 'md.entity_id')
+                ->leftJoin('taxonomy_term__harvest_window_days as hw', 't.tid', '=', 'hw.entity_id')
+                ->where('ll.location_target_id', $assetId)
+                ->where('l.status', 'done')
+                ->whereIn('l.type', ['seeding', 'transplanting', 'harvest'])
+                ->select(
+                    'l.id as log_id',
+                    'l.type as log_type',
+                    'l.timestamp',
+                    'a.id as plant_id',
+                    'a.name as plant_name',
+                    't.name as variety',
+                    'md.maturity_days_value as maturity_days',
+                    'hw.harvest_window_days_value as harvest_window_days'
+                )
+                ->orderBy('l.timestamp', 'asc')
+                ->get();
+            
+            Log::info("Activity generation for {$assetName}", [
+                'asset_id' => $assetId,
+                'logs_found' => $logs->count()
+            ]);
+            
+            // Group logs by plant asset to create full timeline
+            $plantTimelines = [];
+            foreach ($logs as $log) {
+                $plantId = $log->plant_id ?? 'unknown';
+                if (!isset($plantTimelines[$plantId])) {
+                    $plantTimelines[$plantId] = [
+                        'name' => $log->plant_name ?? 'Unknown Plant',
+                        'variety' => $log->variety ?? 'Unknown',
+                        'maturity_days' => $log->maturity_days ?? 60,
+                        'harvest_window_days' => $log->harvest_window_days ?? 14,
+                        'seeding' => null,
+                        'transplanting' => null,
+                        'harvest' => null,
+                    ];
+                }
+                
+                $plantTimelines[$plantId][$log->log_type] = $log->timestamp;
+            }
+            
+            // Convert plant timelines to activities
+            foreach ($plantTimelines as $plantId => $timeline) {
+                $cropName = $timeline['variety'] ?? $timeline['name'];
+                
+                if ($timeline['seeding']) {
+                    $seedingDate = date('Y-m-d', $timeline['seeding']);
+                    
+                    // Calculate full timeline from seeding date
+                    $transplantDate = $timeline['transplanting'] 
+                        ? date('Y-m-d', $timeline['transplanting'])
+                        : date('Y-m-d', strtotime($seedingDate . ' +21 days')); // Default 3 weeks
+                    
+                    $harvestStartDate = $timeline['harvest'] 
+                        ? date('Y-m-d', $timeline['harvest'])
+                        : date('Y-m-d', strtotime($seedingDate . ' +' . $timeline['maturity_days'] . ' days'));
+                    
+                    $harvestEndDate = date('Y-m-d', strtotime($harvestStartDate . ' +' . $timeline['harvest_window_days'] . ' days'));
+                    
+                    Log::info("Creating timeline for {$cropName}", [
+                        'seeding' => $seedingDate,
+                        'transplant' => $transplantDate,
+                        'harvest_start' => $harvestStartDate,
+                        'harvest_end' => $harvestEndDate,
+                        'maturity_days' => $timeline['maturity_days']
+                    ]);
+                    
+                    // Create seeding activity (green)
                     $activities[] = [
-                        'id' => 'seeding_' . ($plan['farmos_asset_id'] ?? uniqid()),
+                        'id' => 'seeding_' . $plantId,
                         'type' => 'seeding',
-                        'crop' => $plan['crop_type'] ?? 'Unknown Crop',
-                        'variety' => $plan['variety'] ?? 'Standard',
-                        'start' => $plan['planned_seeding_date'],
-                        'end' => $plan['planned_transplant_date'] ?? date('Y-m-d', strtotime($plan['planned_seeding_date'] . ' +14 days')),
-                        'status' => $plan['status'] ?? 'planned'
+                        'crop' => $cropName,
+                        'variety' => $timeline['variety'],
+                        'start' => $seedingDate,
+                        'end' => $transplantDate,
+                        'status' => 'done'
                     ];
-                }
-                
-                // Create growing activity
-                if (!empty($plan['planned_transplant_date']) && !empty($plan['planned_harvest_start'])) {
+                    
+                    // Create growing activity (blue)
                     $activities[] = [
-                        'id' => 'growing_' . ($plan['farmos_asset_id'] ?? uniqid()),
+                        'id' => 'growing_' . $plantId,
                         'type' => 'growing',
-                        'crop' => $plan['crop_type'] ?? 'Unknown Crop',
-                        'variety' => $plan['variety'] ?? 'Standard',
-                        'start' => $plan['planned_transplant_date'],
-                        'end' => $plan['planned_harvest_start'],
-                        'status' => $plan['status'] ?? 'planned'
+                        'crop' => $cropName,
+                        'variety' => $timeline['variety'],
+                        'start' => $transplantDate,
+                        'end' => $harvestStartDate,
+                        'status' => 'active'
                     ];
-                }
-                
-                // Create harvest activity
-                if (!empty($plan['planned_harvest_start'])) {
+                    
+                    // Create harvest activity (yellow)
                     $activities[] = [
-                        'id' => 'harvest_' . ($plan['farmos_asset_id'] ?? uniqid()),
+                        'id' => 'harvest_' . $plantId,
                         'type' => 'harvest',
-                        'crop' => $plan['crop_type'] ?? 'Unknown Crop',
-                        'variety' => $plan['variety'] ?? 'Standard',
-                        'start' => $plan['planned_harvest_start'],
-                        'end' => $plan['planned_harvest_end'] ?? date('Y-m-d', strtotime($plan['planned_harvest_start'] . ' +21 days')),
-                        'status' => $plan['status'] ?? 'planned'
+                        'crop' => $cropName,
+                        'variety' => $timeline['variety'],
+                        'start' => $harvestStartDate,
+                        'end' => $harvestEndDate,
+                        'status' => 'planned'
                     ];
                 }
             }
+        } catch (\Exception $e) {
+            Log::error('Failed to generate activities for asset: ' . $e->getMessage(), [
+                'asset_id' => $assetId,
+                'asset_name' => $assetName
+            ]);
         }
         
         return $activities;
