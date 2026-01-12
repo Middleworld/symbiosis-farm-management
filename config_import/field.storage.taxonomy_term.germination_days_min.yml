@@ -1,0 +1,20 @@
+uuid: a22a1d30-3fbe-43a8-810c-0c5e349382e7
+langcode: en
+status: true
+dependencies:
+  module:
+    - taxonomy
+id: taxonomy_term.germination_days_min
+field_name: germination_days_min
+entity_type: taxonomy_term
+type: integer
+settings:
+  unsigned: false
+  size: normal
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

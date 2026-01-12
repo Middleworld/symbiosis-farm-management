@@ -696,3 +696,5 @@ function mwf_handle_admin_switch_user() {
     error_log("MWF User Switch: Final redirect URL: {$redirect_url}");
     
     wp_redirect($redirect_url);
+    exit;
+}

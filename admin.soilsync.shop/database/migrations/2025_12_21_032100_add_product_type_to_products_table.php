@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('products', function (Blueprint $table) {
+        Schema::table('woocommerce_products', function (Blueprint $table) {
             $table->string('product_type')->default('simple')->after('sku');
             $table->index('product_type');
         });
@@ -22,7 +22,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('products', function (Blueprint $table) {
+        Schema::table('woocommerce_products', function (Blueprint $table) {
             $table->dropIndex(['product_type']);
             $table->dropColumn('product_type');
         });

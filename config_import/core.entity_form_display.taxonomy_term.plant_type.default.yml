@@ -1,0 +1,186 @@
+uuid: ad4cd0a8-a9a5-4886-a188-d477818af5ef
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.taxonomy_term.plant_type.between_row_spacing_cm
+    - field.field.taxonomy_term.plant_type.companions
+    - field.field.taxonomy_term.plant_type.crop_family
+    - field.field.taxonomy_term.plant_type.frost_tolerance
+    - field.field.taxonomy_term.plant_type.germination_days_max
+    - field.field.taxonomy_term.plant_type.germination_days_min
+    - field.field.taxonomy_term.plant_type.germination_temp_optimal
+    - field.field.taxonomy_term.plant_type.harvest_days
+    - field.field.taxonomy_term.plant_type.harvest_end_month
+    - field.field.taxonomy_term.plant_type.harvest_method
+    - field.field.taxonomy_term.plant_type.harvest_start_month
+    - field.field.taxonomy_term.plant_type.harvest_window_days
+    - field.field.taxonomy_term.plant_type.in_row_spacing_cm
+    - field.field.taxonomy_term.plant_type.maturity_days
+    - field.field.taxonomy_term.plant_type.planting_depth_inches
+    - field.field.taxonomy_term.plant_type.planting_method
+    - field.field.taxonomy_term.plant_type.propagation_days
+    - field.field.taxonomy_term.plant_type.season_type
+    - field.field.taxonomy_term.plant_type.transplant_month_end
+    - field.field.taxonomy_term.plant_type.transplant_month_start
+    - image.style.medium
+    - taxonomy.vocabulary.plant_type
+  module:
+    - farm_field
+    - file
+    - image
+    - text
+id: taxonomy_term.plant_type.default
+targetEntityType: taxonomy_term
+bundle: plant_type
+mode: default
+content:
+  between_row_spacing_cm:
+    type: number
+    weight: 41
+    region: content
+    settings:
+      placeholder: 'e.g. 60'
+    third_party_settings: {  }
+  description:
+    type: text_textfield
+    weight: 0
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  external_uri:
+    type: uri_string
+    weight: 82
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  file:
+    type: file_generic
+    weight: 81
+    region: content
+    settings:
+      progress_indicator: throbber
+    third_party_settings: {  }
+  frost_tolerance:
+    type: options_select
+    weight: 11
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  germination_days_max:
+    type: number
+    weight: 21
+    region: content
+    settings:
+      placeholder: ''
+    third_party_settings: {  }
+  germination_days_min:
+    type: number
+    weight: 20
+    region: content
+    settings:
+      placeholder: ''
+    third_party_settings: {  }
+  germination_temp_optimal:
+    type: number
+    weight: 22
+    region: content
+    settings:
+      placeholder: ''
+    third_party_settings: {  }
+  harvest_end_month:
+    type: number
+    weight: 53
+    region: content
+    settings:
+      placeholder: 'e.g. 9 (September)'
+    third_party_settings: {  }
+  harvest_method:
+    type: options_select
+    weight: 50
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  harvest_start_month:
+    type: number
+    weight: 52
+    region: content
+    settings:
+      placeholder: 'e.g. 6 (June)'
+    third_party_settings: {  }
+  harvest_window_days:
+    type: number
+    weight: 51
+    region: content
+    settings:
+      placeholder: ''
+    third_party_settings: {  }
+  image:
+    type: image_image
+    weight: 80
+    region: content
+    settings:
+      progress_indicator: throbber
+      preview_image_style: medium
+    third_party_settings: {  }
+  in_row_spacing_cm:
+    type: number
+    weight: 40
+    region: content
+    settings:
+      placeholder: 'e.g. 45'
+    third_party_settings: {  }
+  langcode:
+    type: language_select
+    weight: 90
+    region: content
+    settings:
+      include_locked: true
+    third_party_settings: {  }
+  name:
+    type: string_textfield
+    weight: -5
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  planting_depth_inches:
+    type: number
+    weight: 23
+    region: content
+    settings:
+      placeholder: ''
+    third_party_settings: {  }
+  planting_method:
+    type: options_select
+    weight: 12
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  season_type:
+    type: options_select
+    weight: 10
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  status:
+    type: boolean_checkbox
+    weight: 100
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {  }
+hidden:
+  companions: true
+  crop_family: true
+  harvest_days: true
+  maturity_days: true
+  propagation_days: true
+  transplant_month_end: true
+  transplant_month_start: true
+  weight: true

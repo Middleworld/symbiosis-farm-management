@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('products', function (Blueprint $table) {
+        Schema::table('woocommerce_products', function (Blueprint $table) {
             $table->json('product_categories')->nullable()->after('subcategory');
             $table->json('product_tags')->nullable()->after('product_categories');
             $table->string('brand')->nullable()->after('product_tags');
@@ -23,7 +23,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('products', function (Blueprint $table) {
+        Schema::table('woocommerce_products', function (Blueprint $table) {
             $table->dropColumn(['product_categories', 'product_tags', 'brand']);
         });
     }

@@ -1,0 +1,26 @@
+uuid: 1c82d3bb-f0cb-492c-a56d-99417653fe8b
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.germination_days_min
+    - taxonomy.vocabulary.plant_type
+  enforced:
+    module:
+      - farm_plant_type
+id: taxonomy_term.plant_type.germination_days_min
+field_name: germination_days_min
+entity_type: taxonomy_term
+bundle: plant_type
+label: 'Germination Days Minimum'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: 0
+  max: null
+  prefix: ''
+  suffix: ' days'
+field_type: integer

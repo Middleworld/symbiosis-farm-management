@@ -1782,9 +1782,51 @@ class SuccessionPlanningController extends Controller
                 $imageAlt = $image->image_alt ?? $variety->name;
             }
 
+            // Get all custom fields from taxonomy_term__* tables
+            $maturityDays = DB::connection('farmos')
+                ->table('taxonomy_term__maturity_days')
+                ->where('entity_id', $id)
+                ->value('maturity_days_value');
+
+            $inRowSpacing = DB::connection('farmos')
+                ->table('taxonomy_term__in_row_spacing_cm')
+                ->where('entity_id', $id)
+                ->value('in_row_spacing_cm_value');
+
+            $betweenRowSpacing = DB::connection('farmos')
+                ->table('taxonomy_term__between_row_spacing_cm')
+                ->where('entity_id', $id)
+                ->value('between_row_spacing_cm_value');
+
+            $harvestWindowDays = DB::connection('farmos')
+                ->table('taxonomy_term__harvest_window_days')
+                ->where('entity_id', $id)
+                ->value('harvest_window_days_value');
+
+            $frostTolerance = DB::connection('farmos')
+                ->table('taxonomy_term__frost_tolerance')
+                ->where('entity_id', $id)
+                ->value('frost_tolerance_value');
+
+            $plantingMethod = DB::connection('farmos')
+                ->table('taxonomy_term__planting_method')
+                ->where('entity_id', $id)
+                ->value('planting_method_value');
+
+            $germinationDaysMin = DB::connection('farmos')
+                ->table('taxonomy_term__germination_days_min')
+                ->where('entity_id', $id)
+                ->value('germination_days_min_value');
+
+            $germinationDaysMax = DB::connection('farmos')
+                ->table('taxonomy_term__germination_days_max')
+                ->where('entity_id', $id)
+                ->value('germination_days_max_value');
+
             // Format variety data with all available fields
             $varietyData = [
                 'id' => $variety->tid,
+                'farmos_id' => $variety->tid,
                 'name' => $variety->name,
                 'title' => $variety->name,
                 'description' => $variety->description__value ?? 'No description available for this variety.',
@@ -1792,9 +1834,14 @@ class SuccessionPlanningController extends Controller
                 'plant_type' => $parentName,
                 'image_url' => $imageUrl,
                 'image_alt' => $imageAlt,
-                // Note: farmOS plant_type taxonomy doesn't have custom fields by default
-                // Days to maturity, spacing, etc. would need to be added as custom fields in farmOS
-                // For now, return what's available from the standard taxonomy
+                'maturity_days' => $maturityDays,
+                'in_row_spacing_cm' => $inRowSpacing,
+                'between_row_spacing_cm' => $betweenRowSpacing,
+                'harvest_window_days' => $harvestWindowDays,
+                'frost_tolerance' => $frostTolerance,
+                'planting_method' => $plantingMethod,
+                'propagation_days' => $germinationDaysMin ? ($germinationDaysMin + $germinationDaysMax) / 2 : null,
+                'transplant_days' => $germinationDaysMin ? ($germinationDaysMin + $germinationDaysMax) / 2 : null,
             ];
 
             return response()->json([

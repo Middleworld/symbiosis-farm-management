@@ -1,0 +1,24 @@
+uuid: 21f68253-ea05-4120-9c43-21803b347233
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.season_type
+    - taxonomy.vocabulary.plant_type
+  module:
+    - options
+  enforced:
+    module:
+      - farm_plant_type
+id: taxonomy_term.plant_type.season_type
+field_name: season_type
+entity_type: taxonomy_term
+bundle: plant_type
+label: 'Season Type'
+description: 'Season classification for succession planting'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

@@ -1,0 +1,20 @@
+uuid: 24d06fc0-d834-497a-9944-d6b6d5d7613e
+langcode: en
+status: true
+dependencies:
+  module:
+    - taxonomy
+id: taxonomy_term.harvest_start_month
+field_name: harvest_start_month
+entity_type: taxonomy_term
+type: integer
+settings:
+  unsigned: false
+  size: normal
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

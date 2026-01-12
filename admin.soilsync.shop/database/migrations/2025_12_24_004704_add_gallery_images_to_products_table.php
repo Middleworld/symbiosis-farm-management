@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('products', function (Blueprint $table) {
+        Schema::table('woocommerce_products', function (Blueprint $table) {
             $table->json('gallery_images')->nullable()->after('image_url');
         });
     }
@@ -21,7 +21,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('products', function (Blueprint $table) {
+        Schema::table('woocommerce_products', function (Blueprint $table) {
             $table->dropColumn('gallery_images');
         });
     }

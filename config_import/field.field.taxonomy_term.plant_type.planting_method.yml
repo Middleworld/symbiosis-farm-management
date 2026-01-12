@@ -1,0 +1,21 @@
+uuid: cf3b9e67-34ed-48f4-861c-fd34ab11096f
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.planting_method
+    - taxonomy.vocabulary.plant_type
+  module:
+    - options
+id: taxonomy_term.plant_type.planting_method
+field_name: planting_method
+entity_type: taxonomy_term
+bundle: plant_type
+label: 'Planting Method'
+description: 'Primary planting method for this variety'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

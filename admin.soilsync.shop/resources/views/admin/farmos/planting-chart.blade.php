@@ -992,10 +992,11 @@ function getBlockData(data, targetBlock) {
     const blockNumber = targetBlock.replace('Block ', '');
     Object.keys(data).forEach(location => {
         // Include three types:
-        // 1. Beds with format "X/Y" where X matches block number
+        // 1. Beds with format "X/Y" or "BX/Y" where X matches block number
         // 2. The "Block X" location itself (if it exists)
         // 3. Any location that contains the block identifier
-        if (location.includes('/') && location.startsWith(`${blockNumber}/`)) {
+        const bedMatch = location.match(/^B?(\d+)\//);
+        if (bedMatch && bedMatch[1] === blockNumber) {
             blockData[location] = data[location];
         } else if (location === targetBlock) {
             blockData[location] = data[location];

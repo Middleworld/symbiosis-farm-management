@@ -2400,15 +2400,11 @@
                         <p class="mb-2">Succession forms are embedded below with pre-filled data:</p>
                         <ul class="mb-0 small">
                             <li>All forms pre-filled with succession data</li>
-                            <li>Use "Submit All" button for bulk submission</li>
-                            <li>Or submit individual forms as needed</li>
-                            <li>All logs created directly in farmOS</li>
+                            <li>Review each form carefully before submitting</li>
+                            <li>Click "Save" in each form to create logs in farmOS</li>
+                            <li>Tab badges show submission status (✓ = submitted)</li>
+                            <li>Plant assets use auto-generated names: [Season] [Location] [Crop]</li>
                         </ul>
-                        <div class="d-grid gap-2 mt-3">
-                            <button class="btn btn-success" onclick="submitAllSuccessions()" id="submitAllBtn">
-                                <i class="fas fa-check-double"></i> Submit All Successions to farmOS
-                            </button>
-                        </div>
                     </div>
 
                     <!-- Page Navigation Buttons -->
@@ -2527,17 +2523,6 @@
                     console.log('✅ Injected transplanting location:', transplantingLocation);
                 }
             }
-            
-            // Enable "Customize plant asset name" checkbox for all log types
-            const customizeCheckboxes = iframeDoc.querySelectorAll('input[name="seeding[customize_asset_name]"], input[name="transplanting[customize_asset_name]"], input[name="harvest[customize_asset_name]"]');
-            customizeCheckboxes.forEach(checkbox => {
-                if (checkbox && !checkbox.checked) {
-                    checkbox.checked = true;
-                    // Trigger change event to ensure form updates
-                    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-                    console.log('✅ Enabled customize asset name checkbox:', checkbox.name);
-                }
-            });
             
             // Hide farmOS sidebar in succession planner
             const style = iframeDoc.createElement('style');
@@ -3021,12 +3006,12 @@
             // Add visual indicator that value is from database
             inRowSpacingInput.classList.add('border-success');
             inRowSpacingInput.title = `Auto-filled from database: ${varietyData.in_row_spacing_cm} cm`;
-            // console.log('✅ Auto-populated in-row spacing:', varietyData.in_row_spacing_cm, 'cm');
+            console.log('✅ Auto-populated in-row spacing:', varietyData.in_row_spacing_cm, 'cm');
         } else {
             // Keep default value, remove database indicator
             inRowSpacingInput.classList.remove('border-success');
             inRowSpacingInput.title = 'Default spacing - adjust as needed';
-            // console.log('ℹ️ No in-row spacing in database, using default');
+            console.log('ℹ️ No in-row spacing in database, using default');
         }
         
         if (varietyData.between_row_spacing_cm && varietyData.between_row_spacing_cm > 0) {
@@ -3034,7 +3019,7 @@
             // Add visual indicator that value is from database
             betweenRowSpacingInput.classList.add('border-success');
             betweenRowSpacingInput.title = `Auto-filled from database: ${varietyData.between_row_spacing_cm} cm`;
-            // console.log('✅ Auto-populated between-row spacing:', varietyData.between_row_spacing_cm, 'cm');
+            console.log('✅ Auto-populated between-row spacing:', varietyData.between_row_spacing_cm, 'cm');
         } else {
             // Keep default value, remove database indicator
             betweenRowSpacingInput.classList.remove('border-success');
@@ -5558,6 +5543,8 @@ Calculate for ${contextPayload.planning_year}.`;
      * @returns {object} Calculated quantities for seeding and transplanting
      */
     function calculatePlantQuantity(bedLength, bedWidth, inRowSpacing, betweenRowSpacing, method = 'direct') {
+        console.log('🧮 Calculating plant quantity:', { bedLength, bedWidth, inRowSpacing, betweenRowSpacing, method });
+        
         // Convert measurements to consistent units (cm)
         const lengthCm = bedLength * 100;
         const widthCm = bedWidth * 100;
@@ -5597,7 +5584,7 @@ Calculate for ${contextPayload.planning_year}.`;
             seedingQuantity = Math.ceil(totalPlants * 1.2); // 20% extra for transplant trays
         }
         
-        return {
+        const result = {
             totalPlants: totalPlants,
             seedingQuantity: seedingQuantity,
             transplantQuantity: transplantQuantity,
@@ -5605,6 +5592,10 @@ Calculate for ${contextPayload.planning_year}.`;
             plantsPerRow: plantsPerRow,
             bedArea: (bedLength * bedWidth).toFixed(2) // m²
         };
+        
+        console.log('✅ Calculated quantities:', result);
+        
+        return result;
     }
 
     /**
@@ -5729,10 +5720,19 @@ Calculate for ${contextPayload.planning_year}.`;
             const harvestDuration = Math.ceil((harvestEnd - harvestStart) / (1000 * 60 * 60 * 24));
             totalHarvestDuration = harvestDuration;
             
-            // Space successions so their harvest windows OVERLAP to cover the entire duration
-            // Formula: (total duration - harvest window) / (number of gaps between successions)
-            harvestSpacing = successionCount > 1 ? 
-                Math.floor((harvestDuration - harvestWindowDays) / (successionCount - 1)) : 0;
+            // Space successions evenly across the harvest period
+            // If harvest window >> variety harvest duration: space to cover full period with overlap
+            // If harvest window ≈ variety harvest duration: space evenly to extend coverage
+            // Formula: total duration / number of successions (not gaps)
+            if (harvestDuration > harvestWindowDays * 1.5) {
+                // Long period: space to create overlapping coverage
+                harvestSpacing = successionCount > 1 ? 
+                    Math.floor((harvestDuration - harvestWindowDays) / (successionCount - 1)) : 0;
+            } else {
+                // Short period or similar length: evenly distribute successions
+                harvestSpacing = successionCount > 1 ? 
+                    Math.floor(harvestDuration / successionCount) : 0;
+            }
             
             console.log(`📊 Succession spacing: ${harvestSpacing} days between harvest starts (${harvestDuration} day window, ${harvestWindowDays} day harvest duration, ${successionCount} successions)`);
         }
@@ -6164,7 +6164,8 @@ Calculate for ${contextPayload.planning_year}.`;
             const btn = document.createElement('button');
             btn.className = 'tab-button' + (i === 0 ? ' active' : '');
             btn.type = 'button';
-            btn.textContent = `Succession ${i+1}${p.variety_name ? `: ${p.variety_name}` : ''}`;
+            btn.id = `tab-button-${i}`; // Add ID for easy reference
+            btn.innerHTML = `Succession ${i+1}${p.variety_name ? `: ${p.variety_name}` : ''} <span class="submission-badge" id="badge-${i}" style="display: none; margin-left: 8px; color: #28a745; font-weight: bold;">✓</span>`;
             btn.addEventListener('click', () => switchTab(i));
             nav.appendChild(btn);
 
@@ -6243,6 +6244,7 @@ Calculate for ${contextPayload.planning_year}.`;
             
             console.log('🌾 Generating quick form for planting:', p);
             console.log('🥕 Variety name:', p.variety_name, 'Variety ID:', p.variety_id);
+            console.log('📋 Plan ID being used:', planId, 'window.cropPlanId:', window.cropPlanId);
             
             // Determine seeding location: greenhouse for transplants, bed for direct-seeded
             const isDirectSeeded = !p.transplant_date;
@@ -6259,7 +6261,7 @@ Calculate for ${contextPayload.planning_year}.`;
                 'seeding[location]': seedingLocation,
                 'seeding[quantity][0][measure]': 'count',
                 'seeding[quantity][0][value]': p.seeding_quantity || p.quantity || '',
-                'seeding[quantity][0][units]': 'plants',
+                'seeding[quantity][0][units]': 'seeds',
                 'seeding[notes][value]': `Succession ${i + 1} - ${p.in_row_spacing_cm || 15}cm in-row × ${p.between_row_spacing_cm || 20}cm between-row spacing`,
                 'seeding[done]': '0',
                 'seeding[customize_asset_name]': '1', // Enable customize plant asset name checkbox by default
@@ -6282,7 +6284,6 @@ Calculate for ${contextPayload.planning_year}.`;
                 params['transplanting[quantity][0][units]'] = 'plants';
                 params['transplanting[notes][value]'] = `Succession ${i + 1} transplant - ${Math.round((p.quantity || 0) * 0.8)} plants selected from ${p.quantity || 0} seedlings`;
                 params['transplanting[done]'] = '0';
-                params['transplanting[customize_asset_name]'] = '1'; // Enable customize plant asset name checkbox by default
                 
                 console.log(`🏡 Succession ${i + 1} transplanting[location] = "${p.bed_name || ''}"`);
             }
@@ -6294,9 +6295,14 @@ Calculate for ${contextPayload.planning_year}.`;
             // Display embedded farmOS planting quick form
             pane.innerHTML += `
                 <div class="quick-form-container mt-1">
-                    <p class="mb-1 small text-muted">
-                        <i class="fas fa-seedling"></i> Pre-filled with succession data - use form checkboxes to select logs
-                    </p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <p class="mb-0 small text-muted">
+                            <i class="fas fa-seedling"></i> Pre-filled with succession data - use form checkboxes to select logs
+                        </p>
+                        <button class="btn btn-sm btn-success" onclick="markSuccessionSubmitted(${i})" id="mark-submitted-${i}">
+                            <i class="fas fa-check"></i> Mark as Submitted
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Embedded farmOS Planting Quick Form -->
@@ -6390,6 +6396,28 @@ Calculate for ${contextPayload.planning_year}.`;
                 pane.classList.remove('active');
             }
         });
+    }
+
+    /**
+     * Mark a succession as submitted and show checkmark badge
+     */
+    function markSuccessionSubmitted(index) {
+        const badge = document.getElementById(`badge-${index}`);
+        const button = document.getElementById(`mark-submitted-${index}`);
+        
+        if (badge && button) {
+            badge.style.display = 'inline';
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-check-circle"></i> Submitted';
+            button.classList.remove('btn-success');
+            button.classList.add('btn-secondary');
+            
+            // Store submission status in localStorage
+            const submissionKey = `succession_submitted_${window.currentSuccessionPlan?.plantings[index]?.seeding_date}_${index}`;
+            localStorage.setItem(submissionKey, 'true');
+            
+            console.log(`✅ Marked succession ${index + 1} as submitted`);
+        }
     }
 
     async function renderFarmOSTimeline(plan) {
@@ -6917,14 +6945,37 @@ Calculate for ${contextPayload.planning_year}.`;
                 // Match plantings by bed name (e.g., "1/1"), not UUID
                 const bedPlantings = actualBedData.plantings.filter(p => p.bed_id === bed.name);
                 
+                // ALSO get allocated successions from the current plan for this bed
+                const allocatedSuccessions = [];
+                if (plan && plan.plantings) {
+                    plan.plantings.forEach((planting, index) => {
+                        if (planting.bed_name === bed.name) {
+                            allocatedSuccessions.push({
+                                crop: planting.variety_name || planting.crop_name || 'Unknown',
+                                variety: null, // Already in crop name
+                                seeding_date: planting.seeding_date,
+                                transplant_date: planting.transplant_date,
+                                harvest_date: planting.harvest_date,
+                                end_date: planting.harvest_end_date,
+                                is_direct_seeded: !planting.transplant_date,
+                                notes: `Succession ${index + 1} (Planned)`,
+                                isPlanned: true // Flag to style differently
+                            });
+                        }
+                    });
+                }
+                
+                // Combine farmOS plantings and planned successions
+                const allPlantings = [...bedPlantings, ...allocatedSuccessions];
+                
                 // console.log(`🔍 Bed ${bed.name} (id: ${bed.id}):`, {
                 //     bedPlantingsFound: bedPlantings.length,
                 //     allPlantings: actualBedData.plantings.length,
                 //     samplePlanting: actualBedData.plantings[0]
                 // });
 
-                // Create occupancy blocks for this bed
-                const occupancyBlocks = bedPlantings.flatMap(planting => {
+                // Create occupancy blocks for this bed (farmOS plantings + planned successions)
+                const occupancyBlocks = allPlantings.flatMap(planting => {
                     const blocks = [];
                     const varietyText = planting.variety ? ` (${planting.variety})` : '';
                     const notesText = planting.notes ? ` | ${planting.notes}` : '';
@@ -6936,6 +6987,11 @@ Calculate for ${contextPayload.planning_year}.`;
                     
                     const harvestStart = planting.harvest_date;
                     const harvestEnd = planting.end_date;
+                    
+                    // Style differently for planned vs actual plantings
+                    const isPlanned = planting.isPlanned;
+                    const plannedStyle = isPlanned ? 'border: 2px dashed #fff; opacity: 0.85;' : '';
+                    const plannedLabel = isPlanned ? ' 📋' : '';
                     
                     if (!bedOccupancyStart) {
                         return blocks; // Skip if we don't know when it started occupying the bed
@@ -6954,10 +7010,10 @@ Calculate for ${contextPayload.planning_year}.`;
                         const growingTooltip = `${planting.crop}${varietyText}\n${startLabel}: ${bedOccupancyStart}\nMatures: ${harvestStart}${notesText}`;
                         
                         blocks.push(`
-                            <div class="bed-occupancy-block growing"
-                                 style="left: ${Math.max(0, growingLeft)}%; width: ${Math.max(2, Math.min(100 - growingLeft, growingWidth))}%; background: linear-gradient(135deg, #28a745, #20c997);"
+                            <div class="bed-occupancy-block growing ${isPlanned ? 'planned' : ''}"
+                                 style="left: ${Math.max(0, growingLeft)}%; width: ${Math.max(2, Math.min(100 - growingLeft, growingWidth))}%; background: linear-gradient(135deg, #28a745, #20c997); ${plannedStyle}"
                                  title="${growingTooltip}">
-                                <span class="crop-label">${planting.crop}${varietyText}</span>
+                                <span class="crop-label">${planting.crop}${varietyText}${plannedLabel}</span>
                             </div>
                         `);
                         
@@ -6970,10 +7026,10 @@ Calculate for ${contextPayload.planning_year}.`;
                             const harvestTooltip = `${planting.crop}${varietyText}\nHarvest Window: ${harvestStart} → ${harvestEnd}${notesText}`;
                             
                             blocks.push(`
-                                <div class="bed-occupancy-block harvesting"
-                                     style="left: ${Math.max(0, harvestLeft)}%; width: ${Math.max(2, Math.min(100 - harvestLeft, harvestWidth))}%; background: linear-gradient(135deg, #ffc107, #ffb300);"
+                                <div class="bed-occupancy-block harvesting ${isPlanned ? 'planned' : ''}"
+                                     style="left: ${Math.max(0, harvestLeft)}%; width: ${Math.max(2, Math.min(100 - harvestLeft, harvestWidth))}%; background: linear-gradient(135deg, #ffc107, #ffb300); ${plannedStyle}"
                                      title="${harvestTooltip}">
-                                    <span class="crop-label">🌾 ${planting.crop}</span>
+                                    <span class="crop-label">🌾 ${planting.crop}${plannedLabel}</span>
                                 </div>
                             `);
                         }
@@ -6986,10 +7042,10 @@ Calculate for ${contextPayload.planning_year}.`;
                         const tooltip = `${planting.crop}${varietyText}\n${startLabel}: ${bedOccupancyStart}\nStill growing${notesText}`;
                         
                         blocks.push(`
-                            <div class="bed-occupancy-block growing"
-                                 style="left: ${Math.max(0, growingLeft)}%; width: ${Math.max(2, Math.min(100 - growingLeft, growingWidth))}%; background: linear-gradient(135deg, #28a745, #20c997);"
+                            <div class="bed-occupancy-block growing ${isPlanned ? 'planned' : ''}"
+                                 style="left: ${Math.max(0, growingLeft)}%; width: ${Math.max(2, Math.min(100 - growingLeft, growingWidth))}%; background: linear-gradient(135deg, #28a745, #20c997); ${plannedStyle}"
                                  title="${tooltip}">
-                                <span class="crop-label">${planting.crop}${varietyText}</span>
+                                <span class="crop-label">${planting.crop}${varietyText}${plannedLabel}</span>
                             </div>
                         `);
                     }
@@ -7092,7 +7148,11 @@ Calculate for ${contextPayload.planning_year}.`;
                 <div class="timeline-legend">
                     <div class="legend-item">
                         <div class="legend-color active"></div>
-                        <span>Currently Planted</span>
+                        <span>Currently Planted (farmOS)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color active" style="border: 2px dashed #fff; opacity: 0.85;"></div>
+                        <span>Planned 📋 (Not yet submitted)</span>
                     </div>
                     <div class="legend-item">
                         <div class="legend-color completed"></div>
@@ -10375,75 +10435,95 @@ Plantings:`;
         
         // Disable button and show progress
         button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Opening forms...';
         
         try {
-            const iframes = document.querySelectorAll('.farmos-quickform-iframe');
-            const total = iframes.length;
-            let completed = 0;
-            let failed = 0;
-            
-            if (total === 0) {
-                alert('No succession forms found to submit.');
+            // Get all plantings from the current succession plan
+            if (!window.currentSuccessionPlan || !window.currentSuccessionPlan.plantings) {
+                alert('No succession plan found. Please generate a plan first.');
                 return;
             }
             
-            // Submit each iframe form sequentially with progress updates
-            for (let i = 0; i < iframes.length; i++) {
-                const iframe = iframes[i];
+            const plantings = window.currentSuccessionPlan.plantings;
+            const total = plantings.length;
+            
+            if (total === 0) {
+                alert('No successions found to submit.');
+                return;
+            }
+            
+            // Confirm bulk operation
+            const confirmed = confirm(`This will open ${total} farmOS quick form tabs for submission.\n\nYou'll need to click "Save" in each tab manually.\n\nContinue?`);
+            
+            if (!confirmed) {
+                button.disabled = false;
+                button.innerHTML = originalText;
+                return;
+            }
+            
+            // Open each form in a new tab with a delay to prevent browser popup blocking
+            for (let i = 0; i < plantings.length; i++) {
+                const p = plantings[i];
                 
                 // Update progress
-                button.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Submitting ${i + 1}/${total}...`;
+                button.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Opening ${i + 1}/${total}...`;
                 
-                try {
-                    // Ensure iframe is loaded
-                    if (iframe.dataset.src) {
-                        iframe.src = iframe.dataset.src;
-                        delete iframe.dataset.src;
-                        // Wait for iframe to load
-                        await new Promise(resolve => {
-                            iframe.addEventListener('load', resolve, { once: true });
-                        });
-                        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for injection
-                    }
-                    
-                    // Access iframe document
-                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                    
-                    // Find the submit button and click it
-                    const submitButton = iframeDoc.querySelector('input[type="submit"], button[type="submit"], .form-actions input[type="submit"]');
-                    if (submitButton) {
-                        // Click the submit button
-                        submitButton.click();
-                        completed++;
-                        console.log(`✅ Clicked submit for succession ${i + 1}`);
-                        
-                        // Wait before next submission to allow farmOS to process
-                        await new Promise(resolve => setTimeout(resolve, 2000));
-                    } else {
-                        console.warn(`No submit button found in iframe ${i}`);
-                        failed++;
-                    }
-                } catch (error) {
-                    console.error(`Error submitting form ${i}:`, error);
-                    failed++;
+                // Build farmOS quick form URL (same logic as in renderQuickFormTabs)
+                const farmosUrl = 'https://farmos.soilsync.shop';
+                const planId = p.plan_id || window.cropPlanId || '';
+                const seasonName = p.season || window.cropPlanSeason || new Date().getFullYear() + ' Season';
+                
+                const isDirectSeeded = !p.transplant_date;
+                const seedingLocation = isDirectSeeded ? (p.bed_name || 'Unassigned') : 'Greenhouse';
+                
+                const params = {
+                    plan: planId,
+                    seasons: seasonName,
+                    'crops[0]': p.variety_name || '',
+                    'log_types[seeding]': 'seeding',
+                    'log_types[harvest]': 'harvest',
+                    'seeding[date]': p.seeding_date || '',
+                    'seeding[location]': seedingLocation,
+                    'seeding[quantity][0][measure]': 'count',
+                    'seeding[quantity][0][value]': p.seeding_quantity || p.quantity || '',
+                    'seeding[quantity][0][units]': 'seeds',
+                    'seeding[notes][value]': `Succession ${i + 1} - ${p.in_row_spacing || 15}cm in-row × ${p.between_row_spacing || 20}cm between-row spacing`,
+                    'seeding[done]': '0',
+                    'harvest[date]': p.harvest_date || '',
+                    'harvest[quantity][0][measure]': 'weight',
+                    'harvest[quantity][0][value]': p.estimated_harvest_kg || '',
+                    'harvest[quantity][0][units]': 'kg',
+                    'harvest[notes][value]': `Succession ${i + 1} harvest`,
+                    'harvest[done]': '0'
+                };
+                
+                if (p.transplant_date) {
+                    params['log_types[transplanting]'] = 'transplanting';
+                    params['transplanting[date]'] = p.transplant_date;
+                    params['transplanting[location]'] = p.bed_name || '';
+                    params['transplanting[quantity][0][measure]'] = 'count';
+                    params['transplanting[quantity][0][value]'] = p.transplant_quantity || Math.round((p.seeding_quantity || p.quantity || 0) * 0.8);
+                    params['transplanting[quantity][0][units]'] = 'plants';
+                    params['transplanting[notes][value]'] = `Succession ${i + 1} transplant`;
+                    params['transplanting[done]'] = '0';
+                }
+                
+                const quickFormUrl = farmosUrl + '/quick/planting?' + new URLSearchParams(params).toString();
+                
+                // Open in new tab
+                window.open(quickFormUrl, `_blank_succession_${i}`);
+                
+                // Delay between openings to prevent popup blocker
+                if (i < plantings.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
                 }
             }
             
-            // Show completion message
-            const message = `Clicked submit on ${completed}/${total} succession forms.${failed > 0 ? ` ${failed} failed.` : ''}\n\nNote: Forms will submit to farmOS in the background. Check farmOS logs to verify.`;
-            alert(message);
-            
-            if (completed > 0) {
-                // Redirect to farmOS to see the created logs
-                if (confirm('Would you like to open farmOS logs to verify submissions?')) {
-                    window.open('https://farmos.soilsync.shop/logs', '_blank');
-                }
-            }
+            alert(`Opened ${total} quick form tabs. Please review and click "Save" in each tab to submit to farmOS.`);
             
         } catch (error) {
-            console.error('Error submitting all successions:', error);
-            alert('Error submitting forms. Please try individual submission or check console for details.');
+            console.error('Error opening succession forms:', error);
+            alert('Error opening forms. Please try individual submission or check console for details.');
         } finally {
             // Re-enable button
             button.disabled = false;

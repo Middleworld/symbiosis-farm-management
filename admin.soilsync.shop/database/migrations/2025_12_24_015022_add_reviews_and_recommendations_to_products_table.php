@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('products', function (Blueprint $table) {
+        Schema::table('woocommerce_products', function (Blueprint $table) {
             $table->boolean('reviews_enabled')->default(true)->after('shipping_class_id');
             $table->json('upsell_ids')->nullable()->after('reviews_enabled');
             $table->json('crosssell_ids')->nullable()->after('upsell_ids');
@@ -23,7 +23,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('products', function (Blueprint $table) {
+        Schema::table('woocommerce_products', function (Blueprint $table) {
             $table->dropColumn(['reviews_enabled', 'upsell_ids', 'crosssell_ids']);
         });
     }
