@@ -1,0 +1,14 @@
+uuid: 5cf0ba12-ff3d-496d-8a18-ea52ef09c68d
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_product
+_core:
+  default_config_hash: OGQjFaaoTnmbpjL-JKTKZfjmAxA1pTCR3JiOzBQ5z3c
+id: asset_product
+color: blue
+conditions:
+  asset_type:
+    - product

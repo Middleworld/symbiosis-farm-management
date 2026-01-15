@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_fieldkit_qr_scanner
+id: qr-scanner
+label: QR Scanner
+description: Scan QR codes on farm assets to view details and create logs
+library: farm_fieldkit_qr_scanner/qr_scanner

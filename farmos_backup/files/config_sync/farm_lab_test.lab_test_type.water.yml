@@ -1,0 +1,11 @@
+uuid: aa779653-79b9-447a-b763-456ad1424ea2
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_lab_test
+_core:
+  default_config_hash: 3h2Is-gQirJ4Kv1Fz0W5yvhQ5TaXL2u0S352EkhcrYk
+id: water
+label: 'Water test'

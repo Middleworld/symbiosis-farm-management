@@ -1,0 +1,7 @@
+name: 'OpenID Connect Redirect Fix'
+type: module
+description: 'Fixes OpenID Connect post-login redirect to dashboard instead of user page'
+core_version_requirement: ^10 || ^11
+package: 'Custom'
+dependencies:
+  - openid_connect

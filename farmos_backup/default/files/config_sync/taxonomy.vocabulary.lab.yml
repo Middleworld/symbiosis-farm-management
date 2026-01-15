@@ -1,0 +1,14 @@
+uuid: f7777f01-9068-4aa0-8fb7-b4705e144e74
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_lab
+_core:
+  default_config_hash: Pezta6io_hqqwU0FfHhL8i6_0vgfTw1wgKOvO8yrXis
+name: Lab
+vid: lab
+description: 'A list of labs.'
+weight: 0
+new_revision: false

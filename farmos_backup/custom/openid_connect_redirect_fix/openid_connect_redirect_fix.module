@@ -1,0 +1,39 @@
+<?php
+
+/**
+ * @file
+ * Fixes OpenID Connect redirect destination.
+ */
+
+use Drupal\Core\Url;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+
+/**
+ * Implements hook_openid_connect_post_authorize_alter().
+ *
+ * Changes the redirect destination to dashboard instead of user page.
+ */
+function openid_connect_redirect_fix_openid_connect_post_authorize(array &$tokens, array &$userinfo, $client_name) {
+  // This hook is called during authorization, but we need to alter the destination
+  // Set a session variable that will be used by the redirect controller
+  $_SESSION['openid_connect_redirect_destination'] = 'dashboard';
+}
+
+/**
+ * Implements hook_user_login().
+ *
+ * Perform immediate redirect to dashboard after OpenID Connect login.
+ */
+function openid_connect_redirect_fix_user_login($account) {
+  // Check if this is an OpenID Connect login by looking for the session flag
+  if (isset($_SESSION['openid_connect_redirect_destination'])) {
+    $destination = $_SESSION['openid_connect_redirect_destination'];
+    unset($_SESSION['openid_connect_redirect_destination']);
+    
+    // Perform immediate redirect
+    $url = Url::fromUserInput('/' . ltrim($destination, '/'))->toString();
+    $response = new RedirectResponse($url);
+    $response->send();
+    exit();
+  }
+}

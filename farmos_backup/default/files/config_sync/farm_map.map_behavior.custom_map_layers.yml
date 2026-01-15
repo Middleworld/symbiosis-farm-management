@@ -1,0 +1,14 @@
+uuid: bc461f6b-3fe9-4dd9-bcb8-a3cb50fcdd15
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_map_custom_layers
+_core:
+  default_config_hash: Gdu4FN5DA5oKdtbbp0NdO6Pp0utvnFJVum_ikckXwU4
+id: custom_map_layers
+label: 'Custom map layers'
+description: 'Displays custom map layers.'
+library: farm_map_custom_layers/custom_map_layers
+settings: {  }

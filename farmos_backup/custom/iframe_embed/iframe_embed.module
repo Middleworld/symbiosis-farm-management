@@ -1,0 +1,17 @@
+<?php
+
+/**
+ * @file
+ * Iframe embed mode functionality.
+ */
+
+/**
+ * Implements hook_page_attachments().
+ */
+function iframe_embed_page_attachments(array &$attachments) {
+  // Check if iframe_embed parameter is set
+  if (\Drupal::request()->query->get('iframe_embed') == '1') {
+    // Attach CSS library to hide UI elements
+    $attachments['#attached']['library'][] = 'iframe_embed/hide_ui';
+  }
+}

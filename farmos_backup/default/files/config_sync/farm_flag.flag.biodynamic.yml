@@ -1,0 +1,12 @@
+uuid: 4dd04b8d-410c-4880-807f-102785ed96f7
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_biodynamic
+_core:
+  default_config_hash: Mg_o71sF66kKFSuqEf-tiPwNHfWoV-c-Cv9-0HTJVkg
+id: biodynamic
+label: Biodynamic
+entity_types: null

@@ -1,0 +1,13 @@
+uuid: 14c32aa1-feff-45ce-895a-905883d7c89e
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_comment_log
+_core:
+  default_config_hash: H6j39Z-C954ygvB4btWsGvyTAmdtKN-7lqIeW6fd8uE
+id: log
+label: 'Log comment'
+target_entity_type_id: log
+description: ''

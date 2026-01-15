@@ -1,0 +1,13 @@
+uuid: b6e9abdc-fede-41c4-b7aa-da1a97116d3e
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_comment_asset
+_core:
+  default_config_hash: ijn96l0VebNlI9pkaR-zrOM2qI_ZaBv_Ceii9LMhe2k
+id: asset
+label: 'Asset comment'
+target_entity_type_id: asset
+description: ''

@@ -1,0 +1,12 @@
+uuid: e4ba5d74-b163-4b32-a0ab-25358c535723
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_flag
+_core:
+  default_config_hash: f2vIoqxbcvdh1udZQKej39zZ2t_x9ZIXuwxfmR-klxQ
+id: monitor
+label: Monitor
+entity_types: null

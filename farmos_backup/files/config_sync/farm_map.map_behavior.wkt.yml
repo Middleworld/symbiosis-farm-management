@@ -1,0 +1,14 @@
+uuid: f788fdba-b7d2-469c-8478-c8d13c84a5c8
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_map
+_core:
+  default_config_hash: 5DSP9u8VD24b-UkLQ8NTshW6eRoFrWJ-83anEslVi2M
+id: wkt
+label: WKT
+description: 'Displays WKT as a map layer.'
+library: farm_map/behavior_wkt
+settings: {  }

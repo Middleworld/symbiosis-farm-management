@@ -1,0 +1,5 @@
+name: Variety Description Sync
+type: module
+description: 'Syncs field_variety_description to base description field for succession planner compatibility'
+core_version_requirement: ^10
+package: Custom

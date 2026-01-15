@@ -1,0 +1,6 @@
+name: 'FarmOS Allow Any Domain'
+type: module
+description: 'Removes email domain restrictions for user registration'
+package: 'FarmOS Custom'
+core_version_requirement: ^9 || ^10
+version: '1.0.0'

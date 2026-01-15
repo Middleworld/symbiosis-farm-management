@@ -1,0 +1,23 @@
+uuid: 40edfcfd-a32f-4a9b-a1e9-8977b3add1c3
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.harvest_start_month
+    - taxonomy.vocabulary.plant_type
+id: taxonomy_term.plant_type.harvest_start_month
+field_name: harvest_start_month
+entity_type: taxonomy_term
+bundle: plant_type
+label: 'Harvest Start Month'
+description: 'Month (1-12) when harvest typically begins'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: null
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: integer

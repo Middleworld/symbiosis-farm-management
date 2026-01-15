@@ -1,0 +1,26 @@
+uuid: 01f1bd04-3a02-4035-a265-8a63b455e1d3
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.planting_depth_inches
+    - taxonomy.vocabulary.plant_type
+  enforced:
+    module:
+      - farm_plant_type
+id: taxonomy_term.plant_type.planting_depth_inches
+field_name: planting_depth_inches
+entity_type: taxonomy_term
+bundle: plant_type
+label: 'Planting Depth'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: 0.0
+  max: null
+  prefix: ''
+  suffix: ' inches'
+field_type: decimal

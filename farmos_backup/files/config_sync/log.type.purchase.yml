@@ -1,0 +1,21 @@
+uuid: e284776a-e801-42f4-901e-9614a5361b30
+langcode: en
+status: true
+dependencies:
+  module:
+    - farm_log
+    - farm_log_quantity
+  enforced:
+    module:
+      - farm_ledger
+third_party_settings:
+  farm_log_quantity:
+    default_quantity_type: price
+_core:
+  default_config_hash: WnKPTPgIlDPejfbUsQamiDxsuZ7FRoHdForUXWmEzDU
+id: purchase
+label: Purchase
+description: ''
+name_pattern: 'Purchase log [log:id]'
+workflow: farm_log_workflow
+new_revision: true

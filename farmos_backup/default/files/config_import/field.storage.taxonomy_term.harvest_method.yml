@@ -1,0 +1,33 @@
+uuid: 0e2dfdff-f396-4d98-b9b0-f36bfa2f5fac
+langcode: en
+status: true
+dependencies:
+  module:
+    - options
+    - taxonomy
+id: taxonomy_term.harvest_method
+field_name: harvest_method
+entity_type: taxonomy_term
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: single
+      label: 'Single Harvest'
+    -
+      value: continuous
+      label: 'Continuous Harvest'
+    -
+      value: cut-and-come-again
+      label: 'Cut and Come Again'
+    -
+      value: succession
+      label: 'Succession Harvest'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

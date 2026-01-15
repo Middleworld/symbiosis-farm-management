@@ -1,0 +1,14 @@
+uuid: 8cd8e8d0-4d7c-4407-a045-673423a0295a
+langcode: en
+status: true
+dependencies:
+  config:
+    - user.role.farm_worker
+  module:
+    - user
+id: user_remove_role_action.farm_worker
+label: 'Remove the Worker role from the selected user(s)'
+type: user
+plugin: user_remove_role_action
+configuration:
+  rid: farm_worker

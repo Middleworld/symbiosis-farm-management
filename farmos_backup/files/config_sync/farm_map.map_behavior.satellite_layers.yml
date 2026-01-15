@@ -1,0 +1,14 @@
+uuid: 626bdcfd-6c91-4d08-b6d7-13922e1f908e
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_satellite_layers
+_core:
+  default_config_hash: Y6kNBQFBCL_md2MjoV89BFJ6fDQVK86A544Is9rQ5gE
+id: satellite_layers
+label: 'Satellite Layers'
+description: 'Adds satellite imagery base layer options to farmOS maps.'
+library: farm_satellite_layers/satellite_layers
+settings: {  }

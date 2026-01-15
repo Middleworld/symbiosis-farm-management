@@ -1,0 +1,4 @@
+qr_scanner:
+  js:
+    js/qr-scanner.0-0-0.js:
+      preprocess: false

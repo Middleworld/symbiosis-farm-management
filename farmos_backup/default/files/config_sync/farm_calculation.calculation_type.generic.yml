@@ -1,0 +1,11 @@
+uuid: d2f3c547-1026-4f57-aad3-2da5d52c4818
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_calculation
+_core:
+  default_config_hash: IBJaZ4zq6y6nQvta1BVnrutPaRin_uAf5oRBfJWmYFM
+id: generic
+label: 'Generic calculation'

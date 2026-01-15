@@ -1,0 +1,14 @@
+uuid: ff521491-3675-4762-b584-400dd845f5dc
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_fungi
+_core:
+  default_config_hash: XyffLgYTUU0l66jL_7_6L82YLpdyka-E2CBEkV7hGOE
+name: 'Fungi substrate types'
+vid: substrate_type
+description: 'A list of fungi substrate types.'
+weight: 0
+new_revision: false

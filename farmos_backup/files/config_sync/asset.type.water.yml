@@ -1,0 +1,20 @@
+uuid: 5d286672-1a26-4c34-bff3-8480675edae3
+langcode: en
+status: true
+dependencies:
+  module:
+    - farm_location
+  enforced:
+    module:
+      - farm_water
+third_party_settings:
+  farm_location:
+    is_location: true
+    is_fixed: true
+_core:
+  default_config_hash: zssbTEL_UGBGYoEoOTY0RDbI-9Y89uois5Rpu8kaGSE
+id: water
+label: Water
+description: ''
+workflow: asset_default
+new_revision: true

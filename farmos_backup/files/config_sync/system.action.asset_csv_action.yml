@@ -1,0 +1,17 @@
+uuid: dea63fac-9d1a-4485-a258-bcf9b063b6cd
+langcode: en
+status: true
+dependencies:
+  module:
+    - asset
+    - farm_export_csv
+  enforced:
+    module:
+      - farm_export_csv
+_core:
+  default_config_hash: dYiKwSsa2MLHqR7IGMuXrx3mtrfaJzMNEDkvARRsshc
+id: asset_csv_action
+label: 'Export CSV'
+type: asset
+plugin: 'entity:csv_action:asset'
+configuration: {  }

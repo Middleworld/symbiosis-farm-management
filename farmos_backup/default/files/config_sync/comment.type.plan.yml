@@ -1,0 +1,13 @@
+uuid: a5ecbbb6-846e-41fe-81a4-3b087b78171f
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_comment_plan
+_core:
+  default_config_hash: uOCTY_ahV8-ky2Ra2bcPUEFWen2a0Bgso1mouHrxtaA
+id: plan
+label: 'Plan comment'
+target_entity_type_id: plan
+description: ''

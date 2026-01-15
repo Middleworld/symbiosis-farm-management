@@ -1,0 +1,12 @@
+uuid: a6b8bf41-60d8-4c54-b1a5-10e7a0fe88a5
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_crop_plan
+_core:
+  default_config_hash: oRnGCO-vizmeJntupxBTjWTrPkD4Up_wH-y8FbMpS6M
+id: crop_planting
+label: 'Crop planting'
+description: 'Relationship between a Crop plan and Plant asset with metadata.'

@@ -1,0 +1,16 @@
+uuid: 4af81cf8-cc7b-4efb-b324-1924a95b8eb9
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_land_types
+_core:
+  default_config_hash: o85ypk5an_IBMRyrVUYryV2cZWtBweSis2Qyqoao2vk
+id: land_type_property
+color: purple
+conditions:
+  asset_type:
+    - land
+  land_type:
+    - property

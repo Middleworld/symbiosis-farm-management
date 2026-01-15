@@ -1,0 +1,26 @@
+uuid: ad99fef9-4210-4d67-ae51-89ca7370a050
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.germination_days_max
+    - taxonomy.vocabulary.plant_type
+  enforced:
+    module:
+      - farm_plant_type
+id: taxonomy_term.plant_type.germination_days_max
+field_name: germination_days_max
+entity_type: taxonomy_term
+bundle: plant_type
+label: 'Germination Days Maximum'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: 0
+  max: null
+  prefix: ''
+  suffix: ' days'
+field_type: integer

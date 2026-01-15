@@ -1,0 +1,21 @@
+uuid: 89781b60-6c3b-4edd-85aa-07e92bd5874b
+langcode: en
+status: true
+dependencies:
+  module:
+    - farm_log
+    - farm_log_quantity
+  enforced:
+    module:
+      - farm_calculation
+third_party_settings:
+  farm_log_quantity:
+    default_quantity_type: standard
+_core:
+  default_config_hash: pBkQ-5z8pHcUYNTkOzLuo3uT7BYtxZyUFirJihY_2a8
+id: calculation
+label: Calculation
+description: ''
+name_pattern: 'Calculation log [log:id]'
+workflow: farm_log_workflow
+new_revision: true

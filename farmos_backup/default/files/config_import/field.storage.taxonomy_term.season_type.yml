@@ -1,0 +1,30 @@
+uuid: 9ef7c545-9ad5-4af8-a465-10b44ea732b4
+langcode: en
+status: true
+dependencies:
+  module:
+    - options
+    - taxonomy
+id: taxonomy_term.season_type
+field_name: season_type
+entity_type: taxonomy_term
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: early
+      label: 'Early Season'
+    -
+      value: mid
+      label: 'Mid Season'
+    -
+      value: late
+      label: 'Late Season'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

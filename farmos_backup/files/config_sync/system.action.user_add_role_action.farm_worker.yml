@@ -1,0 +1,14 @@
+uuid: 68b2c699-fdc7-4649-bb22-d1ae421a5a36
+langcode: en
+status: true
+dependencies:
+  config:
+    - user.role.farm_worker
+  module:
+    - user
+id: user_add_role_action.farm_worker
+label: 'Add the Worker role to the selected user(s)'
+type: user
+plugin: user_add_role_action
+configuration:
+  rid: farm_worker

@@ -1,0 +1,17 @@
+uuid: e9c9801d-b1ab-45be-a86f-2ff1778ede0e
+langcode: en
+status: true
+dependencies:
+  module:
+    - farm_log
+  enforced:
+    module:
+      - farm_activity
+_core:
+  default_config_hash: OjOfpP_Bh4mp-0nJcp9TVxoNy8RGuDzhoVmKE1acyvE
+id: activity
+label: Activity
+description: ''
+name_pattern: 'Activity log [log:id]'
+workflow: farm_log_workflow
+new_revision: true
