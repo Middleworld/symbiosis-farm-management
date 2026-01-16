@@ -1,3 +1,6 @@
 [submodule "farmos.soilsync.shop"]
 	path = farmos.soilsync.shop
 	url = /var/www/vhosts/soilsync.shop/farmos.soilsync.shop
+[submodule "fieldkit.soilsync.shop"]
+	path = fieldkit.soilsync.shop
+	url = /var/www/vhosts/soilsync.shop/fieldkit.soilsync.shop
