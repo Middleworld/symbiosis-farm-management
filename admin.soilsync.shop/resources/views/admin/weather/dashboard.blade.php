@@ -3,6 +3,7 @@
 @section('title', 'Weather Dashboard - MWF Admin')
 @section('page-title', 'Weather Dashboard')
 
+
 @section('styles')
 <style>
     .weather-card {
@@ -79,13 +80,29 @@
 @section('content')
 <div class="container-fluid">
 
-    <!-- Update indicator -->
+    <!-- Update indicator - only show if we have real weather data -->
+    @if($currentWeather && $currentWeather['source'] === 'weatherapi')
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         <i class="fas fa-check-circle me-2"></i>
         <strong>WeatherAPI Integration Active!</strong> Now showing UV index, air quality, precipitation, cloud cover, and more.
         <span class="badge bg-dark float-end">Updated: {{ now()->format('Y-m-d H:i:s') }}</span>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
+    @elseif($currentWeather)
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="fas fa-info-circle me-2"></i>
+        <strong>Weather Data Available</strong> from {{ ucfirst(str_replace('_', ' ', $currentWeather['source'])) }}
+        <span class="badge bg-dark float-end">Updated: {{ now()->format('Y-m-d H:i:s') }}</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    @else
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>No Weather Data Available</strong> - Configure API keys to enable weather features
+        <span class="badge bg-dark float-end">Updated: {{ now()->format('Y-m-d H:i:s') }}</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    @endif
 
     @if(isset($error))
         <div class="alert alert-danger">
@@ -422,40 +439,25 @@
             <div class="card weather-card">
                 <div class="card-header bg-light">
                     <h6 class="card-title mb-0">
-                        <i class="fas fa-map me-2"></i>
-                        Weather Map
+                        <i class="fas fa-cloud-sun-rain me-2"></i>
+                        Met Office Forecast
                     </h6>
-                    <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" class="btn btn-outline-primary active" data-layer="precipitation">
-                            <i class="fas fa-cloud-rain me-1"></i>Rain
-                        </button>
-                        <button type="button" class="btn btn-outline-primary" data-layer="clouds">
-                            <i class="fas fa-cloud me-1"></i>Clouds
-                        </button>
-                        <button type="button" class="btn btn-outline-primary" data-layer="wind">
-                            <i class="fas fa-wind me-1"></i>Wind
-                        </button>
-                        <button type="button" class="btn btn-outline-primary" data-layer="temp">
-                            <i class="fas fa-thermometer-half me-1"></i>Temperature
-                        </button>
-                    </div>
                 </div>
                 <div class="card-body p-0">
-                    <div id="weather-map" style="height: 800px; width: 100%;">
-                        <!-- OpenWeatherMap integrated map -->
-                        <iframe 
-                            id="weather-map-frame"
-                            src="https://openweathermap.org/weathermap?basemap=map&cities=false&layer=precipitation&lat=51.4934&lon=0.0098&zoom=10"
-                            width="100%" 
-                            height="800" 
-                            frameborder="0" 
-                            style="border: 0;">
-                        </iframe>
+                    <div style="height: 800px; width: 100%;">
+                        <iframe
+                            src="https://weather.metoffice.gov.uk/forecast/gcrwgdr98"
+                            title="Met Office Weather Forecast"
+                            style="width: 100%; height: 100%; border: 0;"
+                            loading="lazy"
+                            referrerpolicy="no-referrer-when-downgrade"
+                            allowfullscreen
+                        ></iframe>
                     </div>
                     <div class="p-3 bg-light">
                         <small class="text-muted">
                             <i class="fas fa-info-circle me-1"></i>
-                            Map shows weather conditions around your farm location. Click layer buttons to switch between rain, clouds, wind, and temperature views.
+                            Embedded Met Office forecast for your local area. Use the forecast controls inside the frame for hourly and daily views.
                         </small>
                     </div>
                 </div>
@@ -480,8 +482,7 @@
                             <ul class="list-unstyled small">
                                 <li><i class="fas fa-cloud me-2 text-primary"></i>WeatherAPI.com (UK priority)</li>
                                 <li><i class="fas fa-cloud-sun me-2 text-success"></i>Met Office Site-Specific (premium)</li>
-                                <li><i class="fas fa-map me-2 text-info"></i>Met Office Maps (visual)</li>
-                                <li><i class="fas fa-globe me-2 text-secondary"></i>OpenWeatherMap (backup)</li>
+                                <li><i class="fas fa-cloud-sun-rain me-2 text-info"></i>Met Office Forecast (embedded)</li>
                             </ul>
                         </div>
                         <div class="col-md-6">
@@ -516,28 +517,6 @@
         document.querySelector('.container-fluid').appendChild(timestampElement);
     });
 
-    // Weather map layer switching
-    document.addEventListener('DOMContentLoaded', function() {
-        const layerButtons = document.querySelectorAll('[data-layer]');
-        const mapFrame = document.getElementById('weather-map-frame');
-        const farmLat = 51.4934; // Farm latitude
-        const farmLon = 0.0098;  // Farm longitude
-        
-        layerButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                // Remove active class from all buttons
-                layerButtons.forEach(btn => btn.classList.remove('active'));
-                // Add active class to clicked button
-                this.classList.add('active');
-                
-                // Get the selected layer
-                const layer = this.getAttribute('data-layer');
-                
-                // Update the iframe src with new layer
-                const newSrc = `https://openweathermap.org/weathermap?basemap=map&cities=false&layer=${layer}&lat=${farmLat}&lon=${farmLon}&zoom=10`;
-                mapFrame.src = newSrc;
-            });
-        });
-    });
+    // Met Office forecast iframe is embedded in the map section.
 </script>
 @endsection

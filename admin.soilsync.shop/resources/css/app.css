@@ -225,3 +225,19 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Custom branding CSS will be injected here by the BrandingComposer */
+
+/* Crop Plan Timeline Iframe Styling */
+.crop-plan-iframe {
+    width: 100%;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background: white;
+    min-height: 1200px;
+}
+
+/* Ensure timeline iframes have maximum space */
+.tab-content .crop-plan-iframe {
+    height: calc(100vh - 200px);
+    min-height: 1200px;
+}

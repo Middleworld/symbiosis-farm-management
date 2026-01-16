@@ -38,11 +38,11 @@ return [
     */
 
     'location' => [
-        'latitude' => env('WEATHER_LATITUDE', 51.4934), // Greenwich, London
-        'longitude' => env('WEATHER_LONGITUDE', 0.0098),
-        'name' => env('WEATHER_LOCATION_NAME', 'Greenwich, London'),
+        'latitude' => env('WEATHER_LATITUDE', 53.2286), // Lincoln, Lincolnshire
+        'longitude' => env('WEATHER_LONGITUDE', -0.5424),
+        'name' => env('WEATHER_LOCATION_NAME', 'Lincoln, Lincolnshire'),
         'timezone' => 'Europe/London',
-        'elevation' => 46, // meters above sea level
+        'elevation' => 20, // meters above sea level
     ],
 
     /*

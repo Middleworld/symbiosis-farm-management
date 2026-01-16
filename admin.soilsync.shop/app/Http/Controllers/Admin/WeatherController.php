@@ -357,6 +357,65 @@ class WeatherController extends Controller
     }
 
     /**
+     * Get Met Office map overlay
+     */
+    public function getMetOfficeMapOverlay(Request $request, $parameter): JsonResponse
+    {
+        try {
+            $hoursAhead = $request->get('hoursAhead', 0);
+            $source = $request->get('source');
+            $result = $this->weatherService->getWeatherMapOverlay($parameter, 'uk', $hoursAhead, $source);
+            
+            if (isset($result['error'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['error']
+                ], 400);
+            }
+            
+            // Handle different response formats
+            if (isset($result['tile_url'])) {
+                // Weather tile layer (RainViewer or OpenWeatherMap)
+                return response()->json([
+                    'success' => true,
+                    'tile_url' => $result['tile_url'],
+                    'timestamp' => $result['timestamp'] ?? null,
+                    'source' => $result['source'],
+                    'attribution' => $result['attribution'] ?? 'Weather data',
+                    'time_frames' => $result['time_frames'] ?? [],
+                    'forecast_frames' => $result['forecast_frames'] ?? [],
+                    'current_index' => $result['current_index'] ?? 0,
+                    'forecast_hours' => $result['forecast_hours'] ?? 0,
+                    'parameter' => $parameter
+                ]);
+            } elseif (isset($result['url'])) {
+                // Direct image URL
+                return response()->json([
+                    'success' => true,
+                    'image_url' => $result['url'],
+                    'parameter' => $parameter
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No overlay data available'
+                ], 404);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Weather map overlay error', [
+                'parameter' => $parameter,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Weather overlay service error'
+            ], 500);
+        }
+    }
+
+    /**
      * Calculate working day rating
      */
     protected function calculateWorkingDayRating($minTemp, $maxTemp, $rainfall, $windSpeed)

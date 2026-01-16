@@ -875,7 +875,7 @@ function createBlockTabs(data) {
     
     // Extract blocks from data - two methods:
     // 1. Explicit "Block X" names
-    // 2. Bed names like "X/Y" where X is the block number
+    // 2. Bed names like "BX/Y" or "X/Y" where X is the block number
     const blockSet = new Set();
     
     Object.keys(data).forEach(location => {
@@ -885,8 +885,8 @@ function createBlockTabs(data) {
                 blockSet.add(location);
             }
         } else if (location.includes('/')) {
-            // Extract block number from bed naming pattern "X/Y"
-            const match = location.match(/^(\d+)\//);
+            // Extract block number from bed naming pattern "BX/Y" or "X/Y"
+            const match = location.match(/^B?(\d+)\//);
             if (match) {
                 blockSet.add(`Block ${match[1]}`);
             }
@@ -939,8 +939,8 @@ function createBlockTabContent(data) {
                 blockSet.add(location);
             }
         } else if (location.includes('/')) {
-            // Extract block number from bed naming pattern "X/Y"
-            const match = location.match(/^(\d+)\//);
+            // Extract block number from bed naming pattern "BX/Y" or "X/Y"
+            const match = location.match(/^B?(\d+)\//);
             if (match) {
                 blockSet.add(`Block ${match[1]}`);
             }

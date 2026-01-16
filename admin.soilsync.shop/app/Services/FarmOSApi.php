@@ -34,23 +34,54 @@ class FarmOSApi
     }
 
     /**
-     * Authenticate with FarmOS using centralized auth service
+     * Make a generic GET request to FarmOS API
      */
-    public function authenticate()
+    public function get($endpoint, $query = [])
     {
         try {
+            // Use centralized auth service
             $authService = FarmOSAuthService::getInstance();
-            $token = $authService->getAccessToken();
-            if ($token) {
-                $this->token = $token;
-                Log::info('FarmOS OAuth2 authentication successful (centralized)');
-                return true;
+            $headers = $authService->getAuthHeaders();
+            
+            // For timeline endpoints, don't use JSON API headers
+            if (str_contains($endpoint, '/timeline/')) {
+                $token = $authService->getAccessToken();
+                $headers = [
+                    'Authorization' => 'Bearer ' . $token,
+                    'Accept' => 'application/json',
+                    'Content-Type' => 'application/json',
+                ];
             }
             
-            throw new \Exception('Failed to get OAuth2 token from auth service');
+            $options = [
+                'headers' => $headers,
+                'http_errors' => false
+            ];
+            
+            if (!empty($query)) {
+                $options['query'] = $query;
+            }
+            
+            $response = $this->client->get($endpoint, $options);
+            $status = $response->getStatusCode();
+            $body = json_decode($response->getBody()->getContents(), true);
+            
+            if ($status === 200) {
+                return $body;
+            }
+            
+            Log::warning('FarmOS API GET request failed', [
+                'endpoint' => $endpoint,
+                'status' => $status,
+                'response' => $body
+            ]);
+            return null;
         } catch (\Exception $e) {
-            Log::error('FarmOS authentication failed: ' . $e->getMessage());
-            throw new \Exception('FarmOS authentication failed: ' . $e->getMessage());
+            Log::error('Error making FarmOS API GET request', [
+                'endpoint' => $endpoint,
+                'error' => $e->getMessage()
+            ]);
+            return null;
         }
     }
 
@@ -96,7 +127,8 @@ class FarmOSApi
             $cacheKey = 'farmos.crop.types.v1';
             
             return Cache::remember($cacheKey, now()->addMinutes(30), function () {
-                $this->authenticate();
+                $authService = FarmOSAuthService::getInstance();
+                $authService->authenticate();
                 
                 $cropData = [
                     'types' => [],
@@ -273,7 +305,8 @@ class FarmOSApi
             if ($resp['status'] === 401 && !$retried) {
                 // Clear auth cache and retry once
                 Cache::forget('farmos_access_token');
-                $this->authenticate();
+                $authService = FarmOSAuthService::getInstance();
+                $authService->authenticate();
                 $retried = true;
                 continue;
             }
@@ -318,7 +351,7 @@ class FarmOSApi
      */
     private function jsonApiRequest($path, $query = [])
     {
-        $this->authenticate();
+        $authService = FarmOSAuthService::getInstance(); $authService->authenticate();
         $headers = $this->getAuthHeaders();
         $options = ['headers' => $headers, 'http_errors' => false];
         
@@ -350,7 +383,8 @@ class FarmOSApi
                 }
             }
 
-            if (!$this->authenticate()) {
+            $authService = FarmOSAuthService::getInstance();
+            if (!$authService->isAuthenticated()) {
                 Log::warning('FarmOS authentication failed');
                 return [
                     'type' => 'FeatureCollection',
@@ -497,7 +531,8 @@ class FarmOSApi
             $cacheKey = 'farmos.crop.planning.data.v1';
             
             return Cache::remember($cacheKey, now()->addMinutes(15), function () {
-                if (!$this->authenticate()) {
+                $authService = FarmOSAuthService::getInstance();
+                if (!$authService->authenticate()) {
                     return [];
                 }
 
@@ -571,7 +606,7 @@ class FarmOSApi
      */
     public function createCropPlan($planData)
     {
-        $this->authenticate();
+        $authService = FarmOSAuthService::getInstance(); $authService->authenticate();
         
         $data = [
             'data' => [
@@ -621,7 +656,7 @@ class FarmOSApi
     public function getCropPlans($filters = [])
     {
         try {
-            $this->authenticate();
+            $authService = FarmOSAuthService::getInstance(); $authService->authenticate();
             $headers = $this->getAuthHeaders();
             
             $query = [];
@@ -661,7 +696,7 @@ class FarmOSApi
     public function updateCropPlan($planId, $planData)
     {
         try {
-            $this->authenticate();
+            $authService = FarmOSAuthService::getInstance(); $authService->authenticate();
             $headers = $this->getAuthHeaders();
             
             $data = [
@@ -732,7 +767,7 @@ class FarmOSApi
     {
         Log::warning('DEPRECATED: FarmOSApi::getHarvestLogs() is slow (2-30s). Use FarmOSQueryService::getHarvestLogs() instead (50ms).');
         try {
-            $this->authenticate();
+            $authService = FarmOSAuthService::getInstance(); $authService->authenticate();
             $headers = $this->getAuthHeaders();
             
             $query = ['filter[status]' => 'done'];
@@ -761,7 +796,7 @@ class FarmOSApi
     public function getAvailableLocations()
     {
         try {
-            $this->authenticate();
+            $authService = FarmOSAuthService::getInstance(); $authService->authenticate();
             $headers = $this->getAuthHeaders();
             
             $locations = [];
@@ -811,7 +846,7 @@ class FarmOSApi
     public function getFileById(string $fileId)
     {
         try {
-            $this->authenticate();
+            $authService = FarmOSAuthService::getInstance(); $authService->authenticate();
             $headers = $this->getAuthHeaders();
             
             // First, get the file entity to get the actual file URL
@@ -869,7 +904,7 @@ class FarmOSApi
     public function getBedOccupancy($startDate, $endDate)
     {
         try {
-            $this->authenticate();
+            $authService = FarmOSAuthService::getInstance(); $authService->authenticate();
             $headers = $this->getAuthHeaders();
 
             // Fetch all beds (land assets) using pagination
@@ -1244,6 +1279,51 @@ class FarmOSApi
     }
 
     /**
+     * Get timeline data for a specific crop plan
+     */
+    public function getTimelineData($planId)
+    {
+        try {
+            $authService = FarmOSAuthService::getInstance();
+            $authService->authenticate();
+
+            $endpoint = "/plan/{$planId}/timeline/crop/location";
+            $response = $this->client->get($endpoint, [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $authService->getAccessToken(),
+                    'Accept' => 'application/json',
+                ],
+                'http_errors' => false
+            ]);
+
+            $status = $response->getStatusCode();
+            $body = $response->getBody()->getContents();
+
+            if ($status === 200) {
+                $data = json_decode($body, true);
+                if ($data && isset($data['rows'])) {
+                    return $data;
+                }
+            }
+
+            Log::warning('Failed to fetch timeline data from farmOS', [
+                'plan_id' => $planId,
+                'status' => $status,
+                'response' => substr($body, 0, 500)
+            ]);
+
+            return null;
+
+        } catch (\Exception $e) {
+            Log::error('Exception fetching timeline data: ' . $e->getMessage(), [
+                'plan_id' => $planId,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    /**
      * Get default harvest duration in days based on crop type
      * These are typical harvest windows for common crops
      */
@@ -1321,7 +1401,7 @@ class FarmOSApi
     private function findPlantTypeByName($name)
     {
         try {
-            $this->authenticate();
+            $authService = FarmOSAuthService::getInstance(); $authService->authenticate();
             $headers = $this->getAuthHeaders();
 
             // Search for exact match first
@@ -1375,7 +1455,7 @@ class FarmOSApi
     public function createPlantingAsset($data, $locationId = null)
     {
         try {
-            $this->authenticate();
+            $authService = FarmOSAuthService::getInstance(); $authService->authenticate();
             $headers = $this->getAuthHeaders();
 
             // Generate planting name
@@ -1469,7 +1549,7 @@ class FarmOSApi
     public function createSeedingLog($logData)
     {
         try {
-            $this->authenticate();
+            $authService = FarmOSAuthService::getInstance(); $authService->authenticate();
             $headers = $this->getAuthHeaders();
 
             // Generate log name
@@ -1590,7 +1670,7 @@ class FarmOSApi
     public function createTransplantingLog($logData)
     {
         try {
-            $this->authenticate();
+            $authService = FarmOSAuthService::getInstance(); $authService->authenticate();
             $headers = $this->getAuthHeaders();
 
             // Generate log name
@@ -1713,7 +1793,7 @@ class FarmOSApi
     public function createHarvestLog($logData)
     {
         try {
-            $this->authenticate();
+            $authService = FarmOSAuthService::getInstance(); $authService->authenticate();
             $headers = $this->getAuthHeaders();
 
             // Generate log name
@@ -1834,7 +1914,7 @@ class FarmOSApi
     private function createQuantity($quantityData)
     {
         try {
-            $this->authenticate();
+            $authService = FarmOSAuthService::getInstance(); $authService->authenticate();
             $headers = $this->getAuthHeaders();
 
             // Find or create the unit term
@@ -1902,7 +1982,7 @@ class FarmOSApi
     private function findOrCreateUnit($unitName)
     {
         try {
-            $this->authenticate();
+            $authService = FarmOSAuthService::getInstance(); $authService->authenticate();
             $headers = $this->getAuthHeaders();
 
             // Search for existing unit
@@ -1951,7 +2031,7 @@ class FarmOSApi
     public function updatePlantTypeTerm(string $termId, array $updateData)
     {
         try {
-            $this->authenticate();
+            $authService = FarmOSAuthService::getInstance(); $authService->authenticate();
             $headers = $this->getAuthHeaders();
 
             // Build JSON:API PATCH payload
@@ -2019,5 +2099,183 @@ class FarmOSApi
                 'error' => $e->getMessage()
             ];
         }
+    }
+
+    /**
+     * Create a season taxonomy term in FarmOS
+     */
+    public function createSeasonTerm(string $name, string $description = '')
+    {
+        try {
+            $authService = FarmOSAuthService::getInstance();
+            $token = $authService->getAccessToken(true); // Force refresh token
+            
+            if (!$token) {
+                return [
+                    'success' => false,
+                    'error' => 'Failed to obtain access token'
+                ];
+            }
+
+            $headers = [
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/vnd.api+json',
+                'Content-Type' => 'application/vnd.api+json',
+            ];
+
+            $payload = [
+                'data' => [
+                    'type' => 'taxonomy_term--season',
+                    'attributes' => [
+                        'name' => $name,
+                        'description' => [
+                            'value' => $description,
+                            'format' => 'default'
+                        ]
+                    ]
+                ]
+            ];
+
+            Log::info('Creating FarmOS season term', [
+                'name' => $name
+            ]);
+
+            $response = $this->client->post('/api/taxonomy_term/season', [
+                'headers' => $headers,
+                'json' => $payload,
+                'http_errors' => false
+            ]);
+
+            $statusCode = $response->getStatusCode();
+            $responseData = json_decode($response->getBody(), true);
+
+            if ($statusCode >= 200 && $statusCode < 300) {
+                Log::info('Successfully created FarmOS season term', [
+                    'name' => $name,
+                    'id' => $responseData['data']['id'] ?? null
+                ]);
+                return [
+                    'success' => true,
+                    'status' => $statusCode,
+                    'data' => $responseData
+                ];
+            } else {
+                Log::error('Failed to create FarmOS season term', [
+                    'name' => $name,
+                    'status' => $statusCode,
+                    'response' => $responseData
+                ]);
+                return [
+                    'success' => false,
+                    'status' => $statusCode,
+                    'error' => 'HTTP ' . $statusCode . ': ' . ($responseData['errors'][0]['detail'] ?? 'Unknown error'),
+                    'body' => $responseData
+                ];
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Exception creating FarmOS season term: ' . $e->getMessage(), [
+                'name' => $name
+            ]);
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Update a season taxonomy term in FarmOS
+     */
+    public function updateSeasonTerm(string $termId, string $name, string $description = '')
+    {
+        try {
+            $authService = FarmOSAuthService::getInstance();
+            $token = $authService->getAccessToken(true); // Force refresh token
+            
+            if (!$token) {
+                return [
+                    'success' => false,
+                    'error' => 'Failed to obtain access token'
+                ];
+            }
+
+            $headers = [
+                'Authorization' => 'Bearer ' . $token,
+                'Accept' => 'application/vnd.api+json',
+                'Content-Type' => 'application/vnd.api+json',
+            ];
+
+            $payload = [
+                'data' => [
+                    'type' => 'taxonomy_term--season',
+                    'id' => $termId,
+                    'attributes' => [
+                        'name' => $name,
+                        'description' => [
+                            'value' => $description,
+                            'format' => 'default'
+                        ]
+                    ]
+                ]
+            ];
+
+            Log::info('Updating FarmOS season term', [
+                'term_id' => $termId,
+                'name' => $name
+            ]);
+
+            $response = $this->client->patch("/api/taxonomy_term/season/{$termId}", [
+                'headers' => $headers,
+                'json' => $payload,
+                'http_errors' => false
+            ]);
+
+            $statusCode = $response->getStatusCode();
+            $responseData = json_decode($response->getBody(), true);
+
+            if ($statusCode >= 200 && $statusCode < 300) {
+                Log::info('Successfully updated FarmOS season term', [
+                    'term_id' => $termId,
+                    'name' => $name
+                ]);
+                return [
+                    'success' => true,
+                    'status' => $statusCode,
+                    'data' => $responseData
+                ];
+            } else {
+                Log::error('Failed to update FarmOS season term', [
+                    'term_id' => $termId,
+                    'name' => $name,
+                    'status' => $statusCode,
+                    'response' => $responseData
+                ]);
+                return [
+                    'success' => false,
+                    'status' => $statusCode,
+                    'error' => 'HTTP ' . $statusCode . ': ' . ($responseData['errors'][0]['detail'] ?? 'Unknown error'),
+                    'body' => $responseData
+                ];
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Exception updating FarmOS season term: ' . $e->getMessage(), [
+                'term_id' => $termId,
+                'name' => $name
+            ]);
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Get all season taxonomy terms from FarmOS
+     */
+    public function getSeasons()
+    {
+        return $this->jsonApiPaginatedFetch('/api/taxonomy_term/season');
     }
 }

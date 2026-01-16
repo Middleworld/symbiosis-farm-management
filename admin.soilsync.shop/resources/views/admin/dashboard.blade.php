@@ -878,20 +878,265 @@ document.addEventListener('DOMContentLoaded', function() {
             opacity: 0.3
         });
         
+        // Base layers object for layer control
+        var baseLayers = {
+            "🗺️ OpenStreetMap": openStreetMap,
+            "🛰️ Satellite": satellite,
+            "🏷️ Satellite + Labels": L.layerGroup([satellite, labels])
+        };
+        
         // Add default layer
         openStreetMap.addTo(map);
         
-        // Layer control
-        var baseLayers = {
-            "🗺️ Street Map": openStreetMap,
-            "🛰️ Satellite": satellite,
-            "🌍 Hybrid": L.layerGroup([hybrid, labels])
+        console.log('🎯 Starting weather overlay setup...');
+        
+        // Weather overlay layers (Met Office) - UK-wide coverage
+        // Note: These are full UK maps overlaid on the farm map
+        // Weather overlay layers - now using tile layers for better radar display
+        var precipOverlay = {
+            name: 'Precipitation Radar',
+            tileLayer: null,
+            isLoading: false
+        };
+
+        var tempOverlay = {
+            name: 'Temperature',
+            tileLayer: null,
+            isLoading: false
+        };
+
+        var pressureOverlay = {
+            name: 'Pressure',
+            tileLayer: null,
+            isLoading: false
         };
         
-        var layerControl = L.control.layers(baseLayers, null, {
-            position: 'topright',
-            collapsed: false
-        }).addTo(map);
+        // Custom weather overlay control
+        var weatherOverlayControl = L.control({position: 'topright'});
+
+        weatherOverlayControl.onAdd = function(map) {
+            var div = L.DomUtil.create('div', 'weather-overlay-control leaflet-control leaflet-bar');
+            div.innerHTML = `
+                <div style="background: white; padding: 10px; border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,0.4); min-width: 200px;">
+                    <h6 style="margin: 0 0 10px 0; font-size: 14px;">🌦️ Weather Radar</h6>
+                    
+                    <!-- Time mode selector -->
+                    <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                        <button id="past-weather" style="flex: 1; padding: 4px 8px; font-size: 11px; background: #007bff; color: white; border: none; border-radius: 3px;">📅 Past</button>
+                        <button id="future-weather" style="flex: 1; padding: 4px 8px; font-size: 11px; background: #6c757d; color: white; border: none; border-radius: 3px;">🔮 Future</button>
+                    </div>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label style="display: flex; align-items: center; font-size: 12px;">
+                            <input type="checkbox" id="weather-precip" style="margin-right: 5px;">
+                            🌧️ Precipitation
+                        </label>
+                    </div>
+                    
+                    <div id="time-controls" style="display: none; margin-top: 10px;">
+                        <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 5px;">
+                            <button id="play-pause" style="padding: 2px 6px; font-size: 11px;">▶️</button>
+                            <span id="current-time" style="font-size: 11px; font-weight: bold;">--:--</span>
+                        </div>
+                        <input type="range" id="time-slider" min="0" max="10" value="10" style="width: 100%; height: 4px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 10px; color: #666; margin-top: 2px;">
+                            <span id="start-time">--:--</span>
+                            <span id="end-time">--:--</span>
+                        </div>
+                    </div>
+                    
+                    <div id="forecast-controls" style="display: none; margin-top: 10px;">
+                        <div style="font-size: 11px; margin-bottom: 5px;">Forecast Hours:</div>
+                        <input type="range" id="forecast-slider" min="3" max="48" value="6" step="3" style="width: 100%; height: 4px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 10px; color: #666; margin-top: 2px;">
+                            <span>+3h</span>
+                            <span id="forecast-hours-display">+6 hours ahead</span>
+                            <span>+48h</span>
+                        </div>
+                        <div style="font-size: 10px; color: #666; margin-top: 2px; text-align: center;">
+                            <span id="forecast-time-display">Loading forecast...</span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 8px; font-size: 11px; color: #666;">
+                        <span id="data-source">Free RainViewer radar</span>
+                    </div>
+                </div>
+            `;
+
+            // Prevent map interactions when clicking the control
+            L.DomEvent.disableClickPropagation(div);
+            L.DomEvent.disableScrollPropagation(div);
+
+            return div;
+        };
+
+        weatherOverlayControl.addTo(map);
+
+        // Time animation variables
+        var timeFrames = [];
+        var currentFrameIndex = 0;
+        var isPlaying = false;
+        var animationInterval = null;
+
+        // Time mode variables
+        var currentMode = 'past'; // 'past' or 'future'
+        var forecastFrames = [];
+        var currentForecastHours = 6; // Start with 6 hours ahead for forecast mode
+
+        // Time mode switching
+        document.getElementById('past-weather').addEventListener('click', function() {
+            currentMode = 'past';
+            this.style.background = '#007bff';
+            document.getElementById('future-weather').style.background = '#6c757d';
+            document.getElementById('time-controls').style.display = 'block';
+            document.getElementById('forecast-controls').style.display = 'none';
+            document.getElementById('data-source').textContent = 'Free RainViewer radar';
+            
+            // Reload with historical data if precipitation is enabled
+            if (document.getElementById('weather-precip').checked) {
+                loadWeatherOverlay(precipOverlay, 'precipitation_rate', 0);
+            }
+        });
+
+        document.getElementById('future-weather').addEventListener('click', function() {
+            currentMode = 'future';
+            this.style.background = '#007bff';
+            document.getElementById('past-weather').style.background = '#6c757d';
+            document.getElementById('time-controls').style.display = 'none';
+            document.getElementById('forecast-controls').style.display = 'block';
+            document.getElementById('data-source').textContent = 'OpenWeatherMap forecast';
+            
+            // Reload with forecast data if precipitation is enabled
+            if (document.getElementById('weather-precip').checked) {
+                loadWeatherOverlay(precipOverlay, 'precipitation_rate', currentForecastHours);
+            }
+        });
+
+        // Initialize forecast display
+        document.getElementById('forecast-hours-display').textContent = '+6 hours ahead';
+        document.getElementById('forecast-time-display').textContent = 'Loading forecast...';
+
+        // Forecast slider event listener
+        document.getElementById('forecast-slider').addEventListener('input', function(e) {
+            currentForecastHours = parseInt(e.target.value);
+            document.getElementById('forecast-hours-display').textContent = '+' + currentForecastHours + ' hours ahead';
+            
+            // Reload forecast overlay if precipitation is enabled
+            if (document.getElementById('weather-precip').checked && currentMode === 'future') {
+                loadWeatherOverlay(precipOverlay, 'precipitation_rate', currentForecastHours);
+            }
+        });
+
+        // Handle checkbox changes
+        document.getElementById('weather-precip').addEventListener('change', function(e) {
+            if (e.target.checked) {
+                var hoursAhead = currentMode === 'future' ? currentForecastHours : 0;
+                loadWeatherOverlay(precipOverlay, 'precipitation_rate', hoursAhead);
+            } else {
+                if (precipOverlay.tileLayer && map.hasLayer(precipOverlay.tileLayer)) {
+                    map.removeLayer(precipOverlay.tileLayer);
+                }
+                // Hide time controls when overlay is disabled
+                document.getElementById('time-controls').style.display = 'none';
+                document.getElementById('forecast-controls').style.display = 'none';
+                stopAnimation();
+            }
+        });
+
+        // Time control functions
+        function updateTimeDisplay() {
+            if (timeFrames.length > 0) {
+                document.getElementById('current-time').textContent = timeFrames[currentFrameIndex].time_formatted;
+                document.getElementById('start-time').textContent = timeFrames[0].time_formatted;
+                document.getElementById('end-time').textContent = timeFrames[timeFrames.length - 1].time_formatted;
+                document.getElementById('time-slider').max = timeFrames.length - 1;
+                document.getElementById('time-slider').value = currentFrameIndex;
+            }
+        }
+
+        function showFrame(frameIndex) {
+            if (frameIndex >= 0 && frameIndex < timeFrames.length && precipOverlay.tileLayer) {
+                currentFrameIndex = frameIndex;
+                var newUrl = timeFrames[frameIndex].tile_url;
+                precipOverlay.tileLayer.setUrl(newUrl);
+                updateTimeDisplay();
+            }
+        }
+
+        function startAnimation() {
+            if (timeFrames.length > 1) {
+                isPlaying = true;
+                document.getElementById('play-pause').textContent = '⏸️';
+                animationInterval = setInterval(function() {
+                    currentFrameIndex = (currentFrameIndex + 1) % timeFrames.length;
+                    showFrame(currentFrameIndex);
+                }, 500); // Change frame every 500ms
+            }
+        }
+
+        function stopAnimation() {
+            isPlaying = false;
+            document.getElementById('play-pause').textContent = '▶️';
+            if (animationInterval) {
+                clearInterval(animationInterval);
+                animationInterval = null;
+            }
+        }
+
+        // Time control event listeners
+        document.getElementById('play-pause').addEventListener('click', function() {
+            if (isPlaying) {
+                stopAnimation();
+            } else {
+                startAnimation();
+            }
+        });
+
+        document.getElementById('time-slider').addEventListener('input', function(e) {
+            stopAnimation();
+            showFrame(parseInt(e.target.value));
+        });
+        
+        console.log('Layer control added to map. Base layers:', Object.keys(baseLayers), 'Overlays:', Object.keys(overlayLayers));
+        
+        // Force expand any collapsed overlay sections
+        setTimeout(function() {
+            var layerControlEl = document.querySelector('.leaflet-control-layers');
+            if (layerControlEl) {
+                console.log('✅ Layer control element found');
+                
+                // Check for overlay sections
+                var overlaySections = layerControlEl.querySelectorAll('.leaflet-control-layers-overlays, [data-overlays]');
+                console.log('Overlay sections found:', overlaySections.length);
+                
+                overlaySections.forEach(function(section, index) {
+                    console.log('Overlay section ' + index + ':', section);
+                    console.log('Section HTML:', section.innerHTML.substring(0, 200) + '...');
+                });
+                
+                // Try to expand any collapsed sections
+                var collapsedSections = layerControlEl.querySelectorAll('.leaflet-control-layers-overlays.collapsed, .leaflet-control-layers-group.collapsed');
+                collapsedSections.forEach(function(section) {
+                    section.classList.remove('collapsed');
+                    console.log('Expanded collapsed section');
+                });
+                
+            } else {
+                console.log('❌ Layer control element NOT found');
+            }
+        }, 1500);
+        
+        // Load weather overlays when toggled
+        map.on('overlayadd', function(e) {
+            if (e.name === '🌧️ Precipitation (UK)') {
+                loadWeatherOverlay(precipOverlay, 'precipitation_rate');
+            } else if (e.name === '🌡️ Temperature (UK)') {
+                loadWeatherOverlay(tempOverlay, 'temperature');
+            } else if (e.name === '📊 Pressure (UK)') {
+                loadWeatherOverlay(pressureOverlay, 'pressure');
+            }
+        });
         
         // Add fullscreen control
         map.addControl(new L.Control.Fullscreen({
@@ -907,6 +1152,154 @@ document.addEventListener('DOMContentLoaded', function() {
             metric: true,
             imperial: false
         }).addTo(map);
+
+        // Weather overlay loading function
+        function loadWeatherOverlay(overlay, parameter, hoursAhead = 0) {
+            if (overlay.isLoading) return;
+            
+            overlay.isLoading = true;
+            
+            // Clear existing overlay
+            if (overlay.tileLayer && map.hasLayer(overlay.tileLayer)) {
+                map.removeLayer(overlay.tileLayer);
+            }
+            if (map.hasLayer(overlay)) {
+                map.removeLayer(overlay);
+            }
+            
+            fetch('/admin/weather/metoffice/map/' + parameter + '?hoursAhead=' + hoursAhead)
+                .then(response => {
+                    if (!response.ok) {
+                        if (response.status === 401 || response.status === 403) {
+                            // Free weather services don't require authorization
+                            throw new Error('Weather service temporarily unavailable. Using free RainViewer radar.');
+                        }
+                        throw new Error('Failed to load weather data: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        if (data.tile_url) {
+                            // RainViewer tile layer - better for radar data
+                            overlay.tileLayer = L.tileLayer(data.tile_url, {
+                                attribution: data.attribution || 'Weather data',
+                                opacity: 0.6,
+                                maxZoom: 18
+                            });
+                            overlay.tileLayer.addTo(map);
+                            console.log('Weather tile layer loaded:', parameter);
+
+                            // Handle time frames for precipitation radar (historical) or forecast frames
+                            if (parameter === 'precipitation_rate') {
+                                if (hoursAhead > 0 && data.forecast_frames && data.forecast_frames.length > 0) {
+                                    // Forecast mode - single frame with time display
+                                    forecastFrames = data.forecast_frames;
+                                    var currentIndex = data.current_index || 0;
+                                    var currentFrame = forecastFrames[currentIndex] || forecastFrames[0];
+                                    if (currentFrame && currentFrame.time_formatted) {
+                                        document.getElementById('forecast-time-display').textContent = currentFrame.time_formatted;
+                                    } else {
+                                        document.getElementById('forecast-time-display').textContent = 'Forecast data unavailable';
+                                    }
+                                    document.getElementById('forecast-controls').style.display = 'block';
+                                } else if (data.time_frames && data.time_frames.length > 0) {
+                                    // Historical mode - multiple frames for animation
+                                    timeFrames = data.time_frames;
+                                    currentFrameIndex = data.current_index || timeFrames.length - 1;
+                                    if (currentFrameIndex >= timeFrames.length) {
+                                        currentFrameIndex = timeFrames.length - 1;
+                                    }
+                                    updateTimeDisplay();
+                                    document.getElementById('time-controls').style.display = 'block';
+                                }
+                            }
+                        } else if (data.image_url) {
+                            // Traditional image overlay
+                            overlay.setUrl(data.image_url);
+                            overlay.addTo(map);
+                            console.log('Weather image overlay loaded:', parameter);
+                        } else {
+                            throw new Error('No overlay URL provided');
+                        }
+
+                        // Hide loading indicator
+                        document.getElementById('weather-loading').style.display = 'none';
+                    } else {
+                        // Handle error - show in UI instead of throwing for better UX
+                        document.getElementById('weather-loading').style.display = 'none';
+                        
+                        if (hoursAhead > 0) {
+                            // Forecast error - show in forecast display
+                            document.getElementById('forecast-time-display').textContent = data.message || 'Forecast unavailable';
+                            document.getElementById('forecast-controls').style.display = 'block';
+                            document.getElementById('data-source').textContent = 'Forecast requires API key';
+                        } else {
+                            // Historical error - show alert
+                            alert('Weather overlay error: ' + (data.message || 'Unknown error'));
+                        }
+                        
+                        // Remove any existing overlay
+                        if (overlay.tileLayer && map.hasLayer(overlay.tileLayer)) {
+                            map.removeLayer(overlay.tileLayer);
+                        }
+                        if (map.hasLayer(overlay)) {
+                            map.removeLayer(overlay);
+                        }
+                    }
+                .catch(error => {
+                    console.error('Weather overlay error:', error);
+                    document.getElementById('weather-loading').style.display = 'none';
+                    
+                    // Only show alert for network errors, not for handled API errors
+                    if (error.message.includes('Failed to load weather data') || 
+                        error.message.includes('Weather service temporarily unavailable')) {
+                        alert('Weather overlay error: ' + error.message);
+                    }
+                    
+                    // Remove the overlay from the map if it was added
+                    if (overlay.tileLayer && map.hasLayer(overlay.tileLayer)) {
+                        map.removeLayer(overlay.tileLayer);
+                    }
+                    if (map.hasLayer(overlay)) {
+                        map.removeLayer(overlay);
+                    }
+                })
+                .finally(() => {
+                    overlay.isLoading = false;
+                });
+        }
+        
+        // Function to add Met Office authorization button
+        function addMetOfficeAuthButton() {
+            // Check if button already exists
+            if (document.getElementById('metoffice-auth-btn')) {
+                return;
+            }
+
+            // Create authorization button
+            var authButton = document.createElement('button');
+            authButton.id = 'metoffice-auth-btn';
+            authButton.className = 'btn btn-warning btn-sm ms-2';
+            authButton.innerHTML = '<i class="fas fa-key me-1"></i>Authorize Met Office Access';
+            authButton.onclick = function() {
+                window.open(window.location.origin + '/admin/metoffice/auth', '_blank', 'width=600,height=700');
+                // Hide the button after clicking
+                authButton.style.display = 'none';
+            };
+
+            // Find the layer control and add the button nearby
+            var layerControl = document.querySelector('.leaflet-control-layers');
+            if (layerControl) {
+                layerControl.appendChild(authButton);
+            } else {
+                // Fallback: add to a visible location
+                var container = document.querySelector('.card-body');
+                if (container) {
+                    container.insertBefore(authButton, container.firstChild);
+                }
+            }
+        }
 
         fetch(window.location.origin + '/admin/farmos-map-data', {credentials:'same-origin'})
             .then(function(response) { 

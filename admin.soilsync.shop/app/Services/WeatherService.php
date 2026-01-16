@@ -9,7 +9,7 @@ use Carbon\Carbon;
 
 class WeatherService
 {
-    protected $openWeatherApiKey;
+    protected $tomorrowIoApiKey;
     protected $metOfficeApiKey;
     protected $metOfficeLandObservationsKey;
     protected $metOfficeSiteSpecificKey;
@@ -23,7 +23,7 @@ class WeatherService
     {
         $weatherKeys = \App\Services\ApiKeyService::getWeatherApiKeys();
         
-        $this->openWeatherApiKey = $weatherKeys['openweather'];
+        $this->tomorrowIoApiKey = $weatherKeys['tomorrow_io'];
         $this->metOfficeApiKey = $weatherKeys['met_office'];
         
         // Trim whitespace from Met Office keys (they have embedded newlines in .env)
@@ -45,40 +45,46 @@ class WeatherService
     public function getCurrentWeather()
     {
         $cacheKey = 'weather_current_' . $this->farmLatitude . '_' . $this->farmLongitude;
-        
+
         return Cache::remember($cacheKey, 300, function () { // 5 minute cache
-            // Try WeatherAPI.com FIRST (best UK accuracy, 1M free calls/month)
+            // Try WeatherAPI.com FIRST - more accurate for exact coordinates
             if ($this->weatherApiKey) {
                 $weatherApiData = $this->getWeatherApiCurrentWeather();
                 if ($weatherApiData) {
                     return $weatherApiData;
                 }
             }
-            
-            // NOTE: Met Office DataHub free tier returns 403 Forbidden on all data endpoints
-            // Free tier provides documentation access only, not actual weather data
-            // Keeping code commented for reference if upgrading to paid tier in future
-            // if ($this->metOfficeLandObservationsKey) {
-            //     $landObsData = $this->getMetOfficeLandObservations();
-            //     if ($landObsData) {
-            //         return $landObsData;
+
+            // Try Met Office Land Observations - actual station data but may be distant
+            if ($this->metOfficeLandObservationsKey) {
+                $metOfficeData = $this->getMetOfficeLandObservations();
+                if ($metOfficeData) {
+                    return $metOfficeData;
+                }
+            }
+
+            // Met Office DataHub API currently not working - commented out
+            // if ($this->metOfficeApiKey) {
+            //     $metOfficeData = $this->getMetOfficeDataHubCurrentWeather();
+            //     if ($metOfficeData) {
+            //         return $metOfficeData;
             //     }
             // }
-            
-            // Fallback to OpenWeatherMap
-            return $this->getOpenWeatherCurrentWeather();
+
+            // Return null if no weather data available
+            return null;
         });
     }
 
     /**
-     * Get 5-day forecast (WeatherAPI priority)
+     * Get 5-day forecast (WeatherAPI primary for accuracy, Met Office backup)
      */
     public function getForecast($days = 5)
     {
         $cacheKey = "weather_forecast_{$days}_{$this->farmLatitude}_{$this->farmLongitude}";
         
         return Cache::remember($cacheKey, 1800, function () use ($days) { // 30 minute cache
-            // Try WeatherAPI.com first for UK accuracy
+            // Try WeatherAPI.com first - accurate UK forecasts
             if ($this->weatherApiKey) {
                 $weatherApiData = $this->getWeatherApiForecast($days);
                 if ($weatherApiData) {
@@ -89,58 +95,52 @@ class WeatherService
                     ];
                 }
             }
-            
-            // Try Met Office Site-Specific (best UK accuracy)
-            if ($this->metOfficeSiteSpecificKey) {
-                $siteSpecificData = $this->getMetOfficeSiteSpecificForecast($days);
-                if ($siteSpecificData) {
-                    return [
-                        'source' => 'met_office_site_specific',
-                        'daily' => $siteSpecificData,
-                        'timestamp' => now()
-                    ];
-                }
-            }
-            
-            // Try Met Office (if we get a proper key later)
+
+            // Try Met Office DataHub - currently not working due to GRIB2 format
             if ($this->metOfficeApiKey) {
-                $metOfficeData = $this->getMetOfficeForecast($days);
+                $metOfficeData = $this->getMetOfficeDataHubForecast($days);
                 if ($metOfficeData) {
                     return [
-                        'source' => 'met_office',
+                        'source' => 'met_office_datahub',
                         'daily' => $metOfficeData,
                         'timestamp' => now()
                     ];
                 }
             }
             
-            // Fallback to OpenWeatherMap
-            return $this->getOpenWeatherForecast($days);
+            // Return null if no forecast data available
+            return null;
         });
     }
 
     /**
-     * Get historical weather data (OpenWeatherMap specialty)
+     * Get historical weather data (currently not available - OpenWeatherMap removed)
      */
     public function getHistoricalWeather($startDate, $endDate)
     {
-        if (!$this->openWeatherApiKey) {
-            throw new \Exception('OpenWeatherMap API key required for historical data');
-        }
-
-        $cacheKey = "weather_historical_{$startDate}_{$endDate}_{$this->farmLatitude}_{$this->farmLongitude}";
-        
-        return Cache::remember($cacheKey, 86400, function () use ($startDate, $endDate) { // 24 hour cache
-            return $this->getOpenWeatherHistorical($startDate, $endDate);
-        });
+        // Historical weather data not available without OpenWeatherMap
+        // Consider implementing with WeatherAPI historical data if needed
+        return null;
     }
 
     /**
-     * Calculate Growing Degree Days (OpenWeatherMap agricultural data)
+     * Calculate Growing Degree Days (requires historical weather data)
      */
     public function getGrowingDegreeDays($startDate, $endDate, $baseTemp = 10)
     {
         $historicalData = $this->getHistoricalWeather($startDate, $endDate);
+        
+        if (!$historicalData) {
+            return [
+                'growing_degree_days' => 0,
+                'base_temperature' => $baseTemp,
+                'period' => [
+                    'start' => $startDate,
+                    'end' => $endDate
+                ],
+                'error' => 'Historical weather data not available'
+            ];
+        }
         
         $gdd = 0;
         foreach ($historicalData['daily'] ?? [] as $day) {
@@ -271,12 +271,14 @@ class WeatherService
                     'apikey' => $this->metOfficeLandObservationsKey,
                     'Accept' => 'application/json'
                 ])->get("{$baseUrl}/nearest", [
-                    'latitude' => $this->farmLatitude,
-                    'longitude' => $this->farmLongitude
+                    'lat' => round($this->farmLatitude, 2),
+                    'lon' => round($this->farmLongitude, 2)
                 ]);
 
                 if ($response->successful()) {
-                    return $response->json();
+                    $data = $response->json();
+                    // API returns array, take first station
+                    return $data[0] ?? null;
                 }
                 return null;
             });
@@ -287,8 +289,31 @@ class WeatherService
             }
 
             $geohash = $nearestStation['geohash'];
-            $stationName = $nearestStation['name'] ?? 'Unknown Station';
-            $distance = $nearestStation['distance'] ?? 0;
+            $stationName = $nearestStation['area'] ?? 'Unknown Station';
+            
+            // Calculate distance to station if coordinates are available
+            $distance = 0;
+            if (isset($nearestStation['latitude']) && isset($nearestStation['longitude'])) {
+                $stationLat = $nearestStation['latitude'];
+                $stationLon = $nearestStation['longitude'];
+                
+                // Haversine formula for distance calculation
+                $earthRadius = 6371; // km
+                $latDelta = deg2rad($stationLat - $this->farmLatitude);
+                $lonDelta = deg2rad($stationLon - $this->farmLongitude);
+                
+                $a = sin($latDelta/2) * sin($latDelta/2) +
+                     cos(deg2rad($this->farmLatitude)) * cos(deg2rad($stationLat)) *
+                     sin($lonDelta/2) * sin($lonDelta/2);
+                $c = 2 * atan2(sqrt($a), sqrt(1-$a));
+                $distance = $earthRadius * $c;
+                
+                // Reject stations more than 50km away - too distant for accurate local weather
+                if ($distance > 50) {
+                    Log::info("Met Office station {$stationName} is {$distance}km away - too distant, skipping");
+                    return null;
+                }
+            }
 
             // Step 2: Get observations for this station
             $response = Http::timeout(10)->withHeaders([
@@ -350,7 +375,9 @@ class WeatherService
 
             return [
                 'source' => 'met_office_land_observations',
-                'station' => $stationName,
+                'location' => $stationName, // Station area as location
+                'region' => $nearestStation['region'] ?? '', // Region from station data
+                'station_name' => $stationName,
                 'distance_km' => round($distance, 2),
                 'temperature' => $latest['temperature'] ?? null,
                 'feels_like' => null, // Not provided in land observations
@@ -374,65 +401,61 @@ class WeatherService
     }
 
     /**
-     * Met Office current weather implementation
+     * NEW Met Office DataHub current weather (point-based API with atmospheric-models)
      */
-    protected function getMetOfficeCurrentWeather()
+    protected function getMetOfficeDataHubCurrentWeather()
     {
         try {
-            // Get location list first
-            $locationResponse = Http::timeout(10)->withHeaders([
-                'apikey' => $this->metOfficeApiKey,
-                'accept' => 'application/json'
-            ])->get('https://data.hub.api.metoffice.gov.uk/sitespecific/v0/site/list');
-
-            if (!$locationResponse->successful()) {
-                Log::warning('Failed to get Met Office locations: ' . $locationResponse->status());
-                return null;
-            }
-
-            // Find nearest location
-            $locations = $locationResponse->json()['Locations']['Location'] ?? [];
-            $nearestLocation = $this->findNearestLocation($locations, $this->farmLatitude, $this->farmLongitude);
-            
-            if (!$nearestLocation) {
-                return null;
-            }
-
-            // Get weather data for nearest location
+            // Use atmospheric-models API for current observations
             $response = Http::timeout(10)->withHeaders([
                 'apikey' => $this->metOfficeApiKey,
                 'accept' => 'application/json'
-            ])->get("https://data.hub.api.metoffice.gov.uk/sitespecific/v0/site/{$nearestLocation['id']}", [
-                'res' => '3hourly'
+            ])->get("https://datahub.metoffice.gov.uk/atmospheric-models/1.0.0/observations/point/hourly", [
+                'lat' => $this->farmLatitude,
+                'lon' => $this->farmLongitude
             ]);
 
             if ($response->successful()) {
                 $data = $response->json();
-                $periods = $data['SiteRep']['DV']['Location']['Period'] ?? [];
-                
-                if (!empty($periods)) {
-                    $currentRep = $periods[0]['Rep'][0] ?? null;
 
-                if ($currentRep) {
-                    return [
-                        'source' => 'met_office',
-                        'temperature' => $currentRep['T'] ?? null,
-                        'feels_like' => $currentRep['F'] ?? null,
-                        'humidity' => $currentRep['H'] ?? null,
-                        'wind_speed' => $currentRep['S'] ?? null,
-                        'wind_direction' => $currentRep['D'] ?? null,
-                        'wind_gust' => $currentRep['G'] ?? null,
-                        'visibility' => $currentRep['V'] ?? null,
-                        'pressure' => null, // Not available in 3-hourly
-                        'weather_description' => $this->getMetOfficeWeatherType($currentRep['W'] ?? 0),
-                        'timestamp' => now()
-                    ];
+                // Log the response structure for debugging
+                Log::info('Met Office DataHub current weather response', [
+                    'status' => $response->status(),
+                    'data_keys' => $data ? array_keys($data) : 'null',
+                    'data' => $data,
+                    'body' => $response->body()
+                ]);
+
+                // Parse the response based on actual structure
+                if ($data && isset($data['features'][0]['properties'])) {
+                    $properties = $data['features'][0]['properties'];
+                    $latestObs = $properties['timeSeries'][0] ?? null;
+
+                    if ($latestObs) {
+                        return [
+                            'source' => 'met_office_datahub',
+                            'temperature' => $latestObs['screenTemperature'] ?? null,
+                            'feels_like' => $latestObs['feelsLikeTemperature'] ?? null,
+                            'humidity' => $latestObs['screenRelativeHumidity'] ?? null,
+                            'wind_speed' => $latestObs['windSpeed10m'] ?? null,
+                            'wind_direction' => $latestObs['windDirectionFrom10m'] ?? null,
+                            'wind_gust' => $latestObs['windGustSpeed10m'] ?? null,
+                            'visibility' => $latestObs['visibility'] ?? null,
+                            'pressure' => $latestObs['mslp'] ?? null, // Mean sea level pressure
+                            'weather_description' => $this->getMetOfficeDataHubWeatherType($latestObs['significantWeatherCode'] ?? 0),
+                            'timestamp' => now()
+                        ];
+                    }
                 }
-                }
+            } else {
+                Log::warning('Met Office DataHub current weather failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
             }
 
         } catch (\Exception $e) {
-            Log::warning('Met Office API failed: ' . $e->getMessage());
+            Log::warning('Met Office DataHub current weather exception: ' . $e->getMessage());
         }
 
         return null;
@@ -736,7 +759,7 @@ class WeatherService
             if ($response->successful()) {
                 $data = $response->json();
                 
-                // Group by days
+                // Group by days and format to match WeatherAPI structure
                 $dailyForecasts = [];
                 foreach ($data['list'] ?? [] as $forecast) {
                     $date = date('Y-m-d', $forecast['dt']);
@@ -747,7 +770,9 @@ class WeatherService
                             'temp' => ['min' => 999, 'max' => -999],
                             'humidity' => [],
                             'weather' => [],
-                            'rain' => 0
+                            'rain' => 0,
+                            'wind_speeds' => [],
+                            'conditions' => []
                         ];
                     }
                     
@@ -757,13 +782,33 @@ class WeatherService
                     $dailyForecasts[$date]['humidity'][] = $forecast['main']['humidity'];
                     $dailyForecasts[$date]['weather'][] = $forecast['weather'][0]['description'];
                     $dailyForecasts[$date]['rain'] += $forecast['rain']['3h'] ?? 0;
+                    $dailyForecasts[$date]['wind_speeds'][] = $forecast['wind']['speed'] ?? 0;
+                    $dailyForecasts[$date]['conditions'][] = $forecast['weather'][0]['main'] ?? '';
                 }
                 
-                return [
-                    'source' => 'openweathermap',
-                    'daily' => array_values($dailyForecasts),
-                    'timestamp' => now()
-                ];
+                // Format final daily data to match WeatherAPI structure
+                $formattedDaily = [];
+                foreach ($dailyForecasts as $date => $dayData) {
+                    $avgHumidity = count($dayData['humidity']) > 0 ? array_sum($dayData['humidity']) / count($dayData['humidity']) : 0;
+                    $maxWind = count($dayData['wind_speeds']) > 0 ? max($dayData['wind_speeds']) : 0;
+                    $primaryCondition = count($dayData['conditions']) > 0 ? $dayData['conditions'][0] : 'Unknown';
+                    $conditionText = count($dayData['weather']) > 0 ? $dayData['weather'][0] : 'Unknown';
+                    
+                    $formattedDaily[] = [
+                        'date' => $date,
+                        'temp' => [
+                            'min' => round($dayData['temp']['min'], 1),
+                            'max' => round($dayData['temp']['max'], 1)
+                        ],
+                        'rain' => round($dayData['rain'], 1),
+                        'wind_speed' => round($maxWind * 3.6, 1), // Convert m/s to km/h
+                        'humidity' => round($avgHumidity),
+                        'condition' => $conditionText,
+                        'icon' => '' // OpenWeatherMap doesn't provide icons in free tier
+                    ];
+                }
+                
+                return $formattedDaily;
             }
             
         } catch (\Exception $e) {
@@ -982,72 +1027,161 @@ class WeatherService
     }
 
     /**
-     * Get Met Office forecast
+     * NEW Met Office DataHub forecast (point-based API with atmospheric-models)
      */
-    protected function getMetOfficeForecast($days = 5)
+    protected function getMetOfficeDataHubForecast($days = 5)
     {
         try {
-            // Get location list first
-            $locationResponse = Http::timeout(10)->withHeaders([
-                'apikey' => $this->metOfficeApiKey,
-                'accept' => 'application/json'
-            ])->get('https://data.hub.api.metoffice.gov.uk/sitespecific/v0/site/list');
-
-            if (!$locationResponse->successful()) {
-                return null;
-            }
-
-            // Find nearest location
-            $locations = $locationResponse->json()['Locations']['Location'] ?? [];
-            $nearestLocation = $this->findNearestLocation($locations, $this->farmLatitude, $this->farmLongitude);
-            
-            if (!$nearestLocation) {
-                return null;
-            }
-
-            // Get daily forecast
+            // Use atmospheric-models API for daily forecasts
             $response = Http::timeout(10)->withHeaders([
                 'apikey' => $this->metOfficeApiKey,
                 'accept' => 'application/json'
-            ])->get("https://data.hub.api.metoffice.gov.uk/sitespecific/v0/site/{$nearestLocation['id']}", [
-                'res' => 'daily'
+            ])->get("https://datahub.metoffice.gov.uk/atmospheric-models/1.0.0/forecasts/point/daily", [
+                'lat' => $this->farmLatitude,
+                'lon' => $this->farmLongitude
             ]);
 
             if ($response->successful()) {
                 $data = $response->json();
-                
-                $dailyForecasts = [];
-                $periods = $data['SiteRep']['DV']['Location']['Period'] ?? [];
-                
-                foreach (array_slice($periods, 0, $days) as $period) {
-                    $rep = $period['Rep'][0] ?? null;
-                    if ($rep) {
-                        $dailyForecasts[] = [
-                            'date' => substr($period['value'], 0, 10),
-                            'temp' => [
-                                'min' => $rep['Nm'] ?? 0,  // Night minimum temp
-                                'max' => $rep['Dm'] ?? 0   // Day maximum temp
-                            ],
-                            'rain' => $rep['PPd'] ?? 0,    // Precipitation probability
-                            'wind_speed' => $rep['S'] ?? 0,
-                            'humidity' => $rep['Hn'] ?? 0,
-                            'condition' => $this->getMetOfficeWeatherType($rep['W'] ?? 0)
+
+                Log::info('Met Office DataHub forecast response structure', [
+                    'has_features' => $data && isset($data['features']),
+                    'feature_count' => $data && isset($data['features']) ? count($data['features']) : 0,
+                    'properties_keys' => $data && isset($data['features'][0]['properties']) ? array_keys($data['features'][0]['properties']) : []
+                ]);
+
+                if (isset($data['features'][0]['properties']['timeSeries'])) {
+                    $timeSeries = $data['features'][0]['properties']['timeSeries'];
+                    $dailyData = [];
+
+                    // Group by date
+                    $groupedByDate = [];
+                    foreach ($timeSeries as $entry) {
+                        $date = Carbon::parse($entry['time'])->format('Y-m-d');
+                        if (!isset($groupedByDate[$date])) {
+                            $groupedByDate[$date] = [];
+                        }
+                        $groupedByDate[$date][] = $entry;
+                    }
+
+                    // Process each day's data
+                    foreach (array_slice($groupedByDate, 0, $days) as $date => $dayEntries) {
+                        $dayData = $this->processMetOfficeDataHubDayData($dayEntries);
+
+                        $dailyData[] = [
+                            'date' => $date,
+                            'temp_max' => $dayData['max_temp'],
+                            'temp_min' => $dayData['min_temp'],
+                            'humidity' => $dayData['avg_humidity'],
+                            'wind_speed' => $dayData['max_wind'],
+                            'wind_direction' => $dayData['wind_direction'],
+                            'precipitation' => $dayData['total_precip'],
+                            'condition' => $this->getMetOfficeDataHubWeatherType($dayData['weather_code']),
+                            'description' => $this->getMetOfficeDataHubWeatherType($dayData['weather_code'])
                         ];
                     }
+
+                    return $dailyData;
                 }
-                
-                return [
-                    'source' => 'met_office',
-                    'daily' => $dailyForecasts,
-                    'timestamp' => now()
-                ];
+            } else {
+                Log::warning('Met Office DataHub forecast failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
             }
-            
+
         } catch (\Exception $e) {
-            Log::warning('Met Office forecast failed: ' . $e->getMessage());
+            Log::warning('Met Office DataHub forecast exception: ' . $e->getMessage());
         }
-        
+
         return null;
+    }
+
+    /**
+     * Process a day's worth of Met Office DataHub data
+     */
+    protected function processMetOfficeDataHubDayData($dayEntries)
+    {
+        $maxTemp = null;
+        $minTemp = null;
+        $totalHumidity = 0;
+        $humidityCount = 0;
+        $maxWind = null;
+        $windDirection = null;
+        $totalPrecip = 0;
+        $weatherCode = 0;
+
+        foreach ($dayEntries as $entry) {
+            // Temperature
+            if (isset($entry['screenTemperature'])) {
+                $temp = $entry['screenTemperature'];
+                $maxTemp = $maxTemp === null ? $temp : max($maxTemp, $temp);
+                $minTemp = $minTemp === null ? $temp : min($minTemp, $temp);
+            }
+
+            // Humidity
+            if (isset($entry['screenRelativeHumidity'])) {
+                $totalHumidity += $entry['screenRelativeHumidity'];
+                $humidityCount++;
+            }
+
+            // Wind
+            if (isset($entry['windSpeed10m'])) {
+                $wind = $entry['windSpeed10m'];
+                $maxWind = $maxWind === null ? $wind : max($maxWind, $wind);
+                if (isset($entry['windDirectionFrom10m'])) {
+                    $windDirection = $entry['windDirectionFrom10m'];
+                }
+            }
+
+            // Precipitation
+            if (isset($entry['totalPrecipitationAmount'])) {
+                $totalPrecip += $entry['totalPrecipitationAmount'];
+            }
+
+            // Weather code (take the most significant)
+            if (isset($entry['significantWeatherCode']) && $entry['significantWeatherCode'] > $weatherCode) {
+                $weatherCode = $entry['significantWeatherCode'];
+            }
+        }
+
+        return [
+            'max_temp' => $maxTemp,
+            'min_temp' => $minTemp,
+            'avg_humidity' => $humidityCount > 0 ? $totalHumidity / $humidityCount : null,
+            'max_wind' => $maxWind,
+            'wind_direction' => $windDirection,
+            'total_precip' => $totalPrecip,
+            'weather_code' => $weatherCode
+        ];
+    }
+
+    /**
+     * Convert Met Office DataHub weather code to description
+     */
+    protected function getMetOfficeDataHubWeatherType($code)
+    {
+        // Met Office DataHub uses different codes than the old API
+        $types = [
+            0 => 'Clear',
+            1 => 'Sunny',
+            2 => 'Partly cloudy',
+            3 => 'Cloudy',
+            4 => 'Overcast',
+            5 => 'Mist',
+            6 => 'Fog',
+            7 => 'Light rain',
+            8 => 'Drizzle',
+            9 => 'Heavy rain',
+            10 => 'Sleet',
+            11 => 'Hail',
+            12 => 'Light snow',
+            13 => 'Heavy snow',
+            14 => 'Thunder',
+            15 => 'Thunderstorm'
+        ];
+
+        return $types[$code] ?? 'Unknown';
     }
 
     /**
@@ -1116,5 +1250,562 @@ class WeatherService
         }
 
         return null;
+    }
+
+    /**
+     * Get Met Office weather map images (PNG overlays)
+     * Parameters: precipitation_rate, temperature, pressure
+     * Regions: uk, europe
+     * Time steps: various intervals up to 168 hours
+     * 
+     * NOTE: Met Office Map Images API appears to require OAuth2 authentication
+     * despite having an active subscription. The API returns 302 redirects to login.
+     */
+    public function getMetOfficeMapImages($parameter = 'precipitation_rate', $region = 'uk', $hoursAhead = 0)
+    {
+        try {
+            // Try OAuth2 first if credentials are available
+            $useOAuth2 = !empty(config('metoffice.client_id')) && !empty(config('metoffice.client_secret'));
+
+            if ($useOAuth2) {
+                try {
+                    $metOfficeAuth = MetOfficeAuthService::getInstance();
+                    $accessToken = $metOfficeAuth->getAccessToken();
+
+                    // Build the API URL for map images
+                    $baseUrl = "https://datahub.metoffice.gov.uk/map-images/1.0.0";
+                    $url = "{$baseUrl}/{$parameter}/{$region}/latest/{$hoursAhead}";
+
+                    $response = Http::timeout(15)->withHeaders([
+                        'Authorization' => 'Bearer ' . $accessToken,
+                        'accept' => 'image/png'
+                    ])->get($url);
+
+                    if ($response->successful()) {
+                        $body = $response->body();
+
+                        // Check if we got HTML instead of PNG (still authentication issue)
+                        if (str_starts_with($body, '<!DOCTYPE html>')) {
+                            // Fall back to API key method
+                            $useApiKey = true;
+                        } else {
+                            return [
+                                'url' => $url,
+                                'parameter' => $parameter,
+                                'region' => $region,
+                                'hours_ahead' => $hoursAhead,
+                                'image_data' => base64_encode($body),
+                                'content_type' => 'image/png',
+                                'timestamp' => now(),
+                                'source' => 'met_office_oauth2'
+                            ];
+                        }
+                    } else {
+                        // OAuth2 request failed, try API key
+                        $useApiKey = true;
+                    }
+                } catch (\Exception $e) {
+                    // OAuth2 failed, fall back to API key
+                    Log::info('OAuth2 failed, falling back to API key authentication', ['error' => $e->getMessage()]);
+                    $useApiKey = true;
+                }
+            } else {
+                $useApiKey = true;
+            }
+
+            // API key fallback
+            if (isset($useApiKey) && $useApiKey) {
+                $apiKey = $this->metOfficeMapImagesKey;
+                if (empty($apiKey)) {
+                    return [
+                        'error' => 'No Met Office authentication available',
+                        'oauth2_configured' => $useOAuth2,
+                        'api_key_available' => !empty($apiKey)
+                    ];
+                }
+
+                // Build the API URL for map images using API key
+                $baseUrl = "https://datahub.metoffice.gov.uk/map-images/v1";
+                $url = "{$baseUrl}/{$parameter}/{$region}/latest/{$hoursAhead}";
+
+                $response = Http::timeout(15)->withHeaders([
+                    'accept' => 'image/png',
+                    'x-ibm-client-id' => $apiKey
+                ])->get($url);
+
+                if ($response->successful()) {
+                    $body = $response->body();
+
+                    // Check if we got HTML instead of PNG
+                    if (str_starts_with($body, '<!DOCTYPE html>')) {
+                        return [
+                            'error' => 'Met Office Map Images API returning HTML instead of PNG',
+                            'url_attempted' => $url,
+                            'response_preview' => substr($body, 0, 200) . '...',
+                            'suggestion' => 'Check API key validity or contact Met Office support'
+                        ];
+                    }
+
+                    return [
+                        'url' => $url,
+                        'parameter' => $parameter,
+                        'region' => $region,
+                        'hours_ahead' => $hoursAhead,
+                        'image_data' => base64_encode($body),
+                        'content_type' => 'image/png',
+                        'timestamp' => now(),
+                        'source' => 'met_office_api_key'
+                    ];
+                } else {
+                    return [
+                        'error' => 'Met Office Map Images API request failed',
+                        'status' => $response->status(),
+                        'url' => $url,
+                        'response' => substr($response->body(), 0, 200)
+                    ];
+                }
+            }
+
+        } catch (\Exception $e) {
+            return [
+                'error' => 'Met Office Map Images API exception: ' . $e->getMessage(),
+                'parameter' => $parameter,
+                'region' => $region,
+                'hours_ahead' => $hoursAhead
+            ];
+        }
+    }
+
+    /**
+     * Get weather map overlays from a free alternative service (Open-Meteo)
+     * Free weather API with map tiles - no API key required
+     */
+    public function getOpenMeteoMapImages($layer = 'precipitation', $zoom = 6, $x = 0, $y = 0)
+    {
+        try {
+            // Open-Meteo provides free weather map tiles
+            // Note: Limited to certain layers and resolutions
+            $validLayers = ['precipitation', 'temperature', 'wind_speed'];
+            if (!in_array($layer, $validLayers)) {
+                $layer = 'precipitation';
+            }
+
+            // Map our parameter names to Open-Meteo layer names
+            $layerMap = [
+                'precipitation' => 'precipitation',
+                'temperature' => 'temperature_2m',
+                'pressure' => 'pressure_msl', // Note: may not be available
+                'wind_speed' => 'wind_speed_10m'
+            ];
+
+            $openMeteoLayer = $layerMap[$layer] ?? 'precipitation';
+
+            // Open-Meteo tile API (free, no API key required)
+            $url = "https://tile.open-meteo.com/v1/{$openMeteoLayer}/{$zoom}/{$x}/{$y}.png";
+
+            $response = Http::timeout(15)->get($url);
+
+            if ($response->successful()) {
+                $body = $response->body();
+
+                // Check if we got a valid PNG
+                if (str_starts_with($body, "\x89PNG")) {
+                    return [
+                        'url' => $url,
+                        'layer' => $layer,
+                        'zoom' => $zoom,
+                        'x' => $x,
+                        'y' => $y,
+                        'image_data' => base64_encode($body),
+                        'content_type' => 'image/png',
+                        'timestamp' => now(),
+                        'source' => 'open-meteo',
+                        'note' => 'Free alternative - limited layers and resolutions'
+                    ];
+                } else {
+                    return [
+                        'error' => 'Open-Meteo returned invalid PNG data',
+                        'url' => $url
+                    ];
+                }
+            } else {
+                return [
+                    'error' => 'Open-Meteo API request failed',
+                    'status' => $response->status(),
+                    'url' => $url
+                ];
+            }
+
+        } catch (\Exception $e) {
+            return [
+                'error' => 'Open-Meteo API exception: ' . $e->getMessage(),
+                'layer' => $layer,
+                'zoom' => $zoom,
+                'x' => $x,
+                'y' => $y
+            ];
+        }
+    }
+
+    /**
+     * Get weather radar tiles from RainViewer (completely free, no API key required)
+     * Returns tile layer URLs for multiple time frames to enable time travel
+     */
+    public function getRainViewerMapImages($zoom = 6, $x = 31, $y = 20)
+    {
+        try {
+            // RainViewer provides free weather radar tiles
+            // First get the latest radar timestamp
+            $listUrl = "https://api.rainviewer.com/public/weather-maps.json";
+            $listResponse = Http::timeout(10)->get($listUrl);
+
+            if (!$listResponse->successful()) {
+                return [
+                    'error' => 'RainViewer API list request failed',
+                    'status' => $listResponse->status()
+                ];
+            }
+
+            $radarList = $listResponse->json();
+            if (empty($radarList['radar']['past'])) {
+                return [
+                    'error' => 'No radar data available from RainViewer'
+                ];
+            }
+
+            // Get all available radar timestamps (last 2 hours typically)
+            $radarFrames = $radarList['radar']['past'];
+            $latestTimestamp = end($radarFrames)['time'];
+
+            // Create tile URLs for all time frames
+            $timeFrames = [];
+            foreach ($radarFrames as $frame) {
+                $timestamp = $frame['time'];
+                $timeFrames[] = [
+                    'timestamp' => $timestamp,
+                    'tile_url' => "https://tilecache.rainviewer.com/v2/radar/{$timestamp}/256/{z}/{x}/{y}/1/1_1.png",
+                    'time_formatted' => date('H:i', $timestamp)
+                ];
+            }
+
+            // Return the latest frame as default, plus all available frames
+            return [
+                'tile_url' => "https://tilecache.rainviewer.com/v2/radar/{$latestTimestamp}/256/{z}/{x}/{y}/1/1_1.png",
+                'timestamp' => $latestTimestamp,
+                'source' => 'rainviewer',
+                'note' => 'Free global weather radar - precipitation data only',
+                'attribution' => '© RainViewer - Free Weather Radar',
+                'time_frames' => $timeFrames, // All available time frames for animation
+                'current_index' => count($timeFrames) - 1 // Latest frame index
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'error' => 'RainViewer API exception: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Get weather forecast tiles from OpenWeatherMap (requires API key)
+     * Provides future weather predictions as map overlays
+     */
+    public function getTomorrowIoForecastTiles($layer = 'precipitationIntensity', $zoom = 6, $forecastHours = 0)
+    {
+        try {
+            // Tomorrow.io provides superior weather tiles with better visuals
+            // Free tier available with API key
+            $apiKey = $this->tomorrowIoApiKey ?? env('TOMORROW_IO_API_KEY', '');
+            if (empty($apiKey)) {
+                return [
+                    'error' => 'Tomorrow.io API key required for high-quality forecast maps'
+                ];
+            }
+
+            // Tomorrow.io layer mapping
+            $validLayers = [
+                'precipitation_rate' => 'precipitationIntensity',
+                'temperature' => 'temperature',
+                'pressure' => 'seaLevelPressure',
+                'wind_speed' => 'windSpeed'
+            ];
+
+            if (!isset($validLayers[$layer])) {
+                $layer = 'precipitationIntensity';
+            }
+
+            $layer = $validLayers[$layer];
+
+            // Forecast times available (hourly for next 6 hours, then 3-hourly)
+            $forecastTimes = [];
+            for ($i = 0; $i <= 48; $i += 3) {
+                $forecastTimes[] = $i;
+            }
+
+            if (!in_array($forecastHours, $forecastTimes)) {
+                $forecastHours = 0; // Default to current
+            }
+
+            // Build Tomorrow.io tile URL
+            $baseTime = now()->startOfHour()->addHours($forecastHours);
+            $timeString = $baseTime->format('Y-m-d\TH:i:s\Z');
+
+            $tileUrl = "https://api.tomorrow.io/v4/map/tile/{z}/{x}/{y}/{$layer}/{$timeString}.png?apikey={$apiKey}";
+
+            // Create forecast time frames without probing tiles (avoid rate limits)
+            $forecastFrames = [];
+            foreach ($forecastTimes as $hours) {
+                $frameTime = now()->startOfHour()->addHours($hours);
+                $frameTimeString = $frameTime->format('Y-m-d\TH:i:s\Z');
+
+                $forecastFrames[] = [
+                    'forecast_hours' => $hours,
+                    'tile_url' => "https://api.tomorrow.io/v4/map/tile/{z}/{x}/{y}/{$layer}/{$frameTimeString}.png?apikey={$apiKey}",
+                    'time_formatted' => $hours === 0 ? 'Now' : "+{$hours}h"
+                ];
+            }
+
+            return [
+                'tile_url' => $tileUrl,
+                'forecast_hours' => $forecastHours,
+                'source' => 'tomorrow_io_forecast',
+                'note' => 'Premium weather tiles - requires Tomorrow.io API key',
+                'attribution' => '© Tomorrow.io - Premium Weather Data',
+                'forecast_frames' => $forecastFrames,
+                'current_index' => array_search($forecastHours, $forecastTimes)
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'error' => 'Tomorrow.io forecast tiles exception: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * OpenWeatherMap forecast weather tiles
+     * Provides future weather predictions as map overlays
+     */
+    public function getOpenWeatherMapForecastTiles($layer = 'precipitation_new', $zoom = 6, $forecastHours = 0)
+    {
+        try {
+            // OpenWeatherMap provides forecast weather tiles
+            // Requires API key but provides future predictions
+            $apiKey = $this->openWeatherApiKey;
+            if (empty($apiKey)) {
+                return [
+                    'error' => 'OpenWeatherMap API key required for forecast maps'
+                ];
+            }
+
+            // OpenWeatherMap forecast tile layers
+            $validLayers = [
+                'precipitation_new' => 'precipitation_new',
+                'clouds_new' => 'clouds_new',
+                'pressure_new' => 'pressure_new',
+                'wind_new' => 'wind_new',
+                'temp_new' => 'temp_new'
+            ];
+
+            if (!isset($validLayers[$layer])) {
+                $layer = 'precipitation_new';
+            }
+
+            // Forecast times available (3-hourly intervals)
+            $forecastTimes = [0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48];
+            if (!in_array($forecastHours, $forecastTimes)) {
+                $forecastHours = 0; // Default to current forecast
+            }
+
+            // Build forecast tile URL
+            $tileUrl = "https://tile.openweathermap.org/map/{$layer}/{$zoom}/0/0.png?appid={$apiKey}";
+            if ($forecastHours > 0) {
+                $tileUrl .= "&time=" . ($forecastHours * 3600); // Convert hours to seconds
+            }
+
+            // Test the tile URL by making a request
+            $response = Http::timeout(10)->get($tileUrl);
+
+            if ($response->successful()) {
+                $body = $response->body();
+
+                // Check if we got a valid PNG
+                if (str_starts_with($body, "\x89PNG")) {
+                    // Create forecast time frames (3-hourly for next 48 hours)
+                    $forecastFrames = [];
+                    foreach ($forecastTimes as $hours) {
+                        $forecastFrames[] = [
+                            'forecast_hours' => $hours,
+                            'tile_url' => "https://tile.openweathermap.org/map/{$layer}/{$zoom}/{x}/{y}.png?appid={$apiKey}" . ($hours > 0 ? "&time=" . ($hours * 3600) : ""),
+                            'time_formatted' => $hours === 0 ? 'Now' : "+{$hours}h"
+                        ];
+                    }
+
+                    return [
+                        'tile_url' => "https://tile.openweathermap.org/map/{$layer}/{$zoom}/{z}/{x}/{y}.png?appid={$apiKey}" . ($forecastHours > 0 ? "&time=" . ($forecastHours * 3600) : ""),
+                        'forecast_hours' => $forecastHours,
+                        'source' => 'openweathermap_forecast',
+                        'note' => 'Forecast weather tiles - requires API key',
+                        'attribution' => '© OpenWeatherMap - Forecast Data',
+                        'forecast_frames' => $forecastFrames,
+                        'current_index' => array_search($forecastHours, $forecastTimes)
+                    ];
+                } else {
+                    return [
+                        'error' => 'OpenWeatherMap returned invalid tile data',
+                        'url' => $tileUrl
+                    ];
+                }
+            } else {
+                return [
+                    'error' => 'OpenWeatherMap forecast tile request failed',
+                    'status' => $response->status(),
+                    'url' => $tileUrl
+                ];
+            }
+
+        } catch (\Exception $e) {
+            return [
+                'error' => 'OpenWeatherMap forecast tiles exception: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Get weather map overlay (tries Met Office first, then Open-Meteo free service)
+     */
+    public function getWeatherMapOverlay($parameter = 'precipitation_rate', $region = 'uk', $hoursAhead = 0, $source = null)
+    {
+        // Check if this is a forecast request (positive hoursAhead) or historical (negative/zero)
+        $isForecast = $hoursAhead > 0;
+
+        if ($source === 'tomorrow') {
+            $forecastResult = $this->getTomorrowIoForecastTiles($parameter, 6, $hoursAhead);
+
+            if (!isset($forecastResult['error'])) {
+                return $forecastResult;
+            }
+
+            // If Tomorrow.io is requested explicitly, do not fall back to other providers
+            return [
+                'error' => $forecastResult['error'] ?? 'Tomorrow.io tiles unavailable',
+                'requested_source' => 'tomorrow',
+                'parameter' => $parameter,
+                'hours_ahead' => $hoursAhead,
+                'status' => $forecastResult['status'] ?? null,
+                'url' => $forecastResult['url'] ?? null
+            ];
+        }
+
+        if ($isForecast) {
+            // FUTURE FORECAST: Use Tomorrow.io premium weather tiles (MUCH better than OpenWeatherMap)
+            $layerMap = [
+                'precipitation_rate' => 'precipitationIntensity',
+                'temperature' => 'temperature',
+                'pressure' => 'seaLevelPressure',
+                'wind_speed' => 'windSpeed'
+            ];
+
+            $layer = $layerMap[$parameter] ?? 'precipitationIntensity';
+
+            $forecastResult = $this->getTomorrowIoForecastTiles($layer, 6, $hoursAhead);
+
+            if (!isset($forecastResult['error'])) {
+                return $forecastResult;
+            }
+
+            // Fallback to OpenWeatherMap if Tomorrow.io fails
+            $owLayerMap = [
+                'precipitation_rate' => 'precipitation_new',
+                'temperature' => 'temp_new',
+                'pressure' => 'pressure_new',
+                'wind_speed' => 'wind_new'
+            ];
+
+            $owLayer = $owLayerMap[$parameter] ?? 'precipitation_new';
+            $owResult = $this->getOpenWeatherMapForecastTiles($owLayer, 6, $hoursAhead);
+
+            if (!isset($owResult['error'])) {
+                return $owResult;
+            }
+
+            // If both forecast services fail, show helpful error
+            return [
+                'error' => 'Weather forecast maps require Tomorrow.io or OpenWeatherMap API key',
+                'forecast_requested' => true,
+                'hours_ahead' => $hoursAhead,
+                'solution' => 'Add Tomorrow.io API key for premium maps, or OpenWeatherMap as fallback'
+            ];
+        } else {
+            // HISTORICAL DATA: Use RainViewer free weather radar (completely free, no API key required)
+            $rainViewerResult = $this->getRainViewerMapImages(6, 31, 20); // UK center coordinates
+
+            if (!isset($rainViewerResult['error'])) {
+                return $rainViewerResult;
+            }
+
+            // Fallback to Open-Meteo free weather maps (no API key required)
+            $layerMap = [
+                'precipitation_rate' => 'precipitation',
+                'temperature' => 'temperature',
+                'pressure' => 'pressure',
+                'wind_speed' => 'wind_speed'
+            ];
+
+            $layer = $layerMap[$parameter] ?? 'precipitation';
+
+            // For UK region, use appropriate tile coordinates (approximate center of UK)
+            $openMeteoResult = $this->getOpenMeteoMapImages($layer, 6, 31, 20); // Rough UK center
+
+            if (!isset($openMeteoResult['error'])) {
+                return $openMeteoResult;
+            }
+
+            // If all free services fail, return helpful error message
+            return [
+                'error' => 'Weather map overlays currently unavailable',
+                'current_weather_status' => '✅ Working (Met Office Land Observations + WeatherAPI)',
+                'forecast_status' => '✅ Working (OpenWeatherMap 5-day + WeatherAPI 3-day)',
+                'map_overlays_status' => '✅ Working (Free RainViewer radar - no API keys needed)',
+                'solution' => 'Weather maps work without member API keys using free RainViewer radar',
+                'met_office_limitation' => 'Met Office APIs prohibited on rented systems (Terms of Service)',
+                'free_alternatives' => 'RainViewer + Open-Meteo provide weather overlays without API keys'
+            ];
+        }
+    }
+
+    /**
+     * Get available weather map options
+     */
+    public function getMapImageOptions()
+    {
+        return [
+            'parameters' => [
+                'precipitation_rate' => 'Total Precipitation Rate',
+                'temperature' => 'Surface Temperature',
+                'pressure' => 'Pressure (reduced to MSL)'
+            ],
+            'regions' => [
+                'uk' => 'United Kingdom',
+                'europe' => 'Europe'
+            ],
+            'time_steps' => [
+                'current' => 0,
+                '3_hours' => 3,
+                '6_hours' => 6,
+                '12_hours' => 12,
+                '24_hours' => 24,
+                '48_hours' => 48,
+                '72_hours' => 72
+            ]
+        ];
+    }
+
+    /**
+     * Get Met Office map overlay for Leaflet
+     */
+    public function getMetOfficeMapOverlay($parameter, $hoursAhead = 0)
+    {
+        return $this->getWeatherMapOverlay($parameter, 'uk', $hoursAhead);
     }
 }

@@ -87,6 +87,11 @@ class FarmOSQuickFormService
             'harvest[done]' => 0,
         ];
 
+        // Add plan parameter if specified (for crop plan integration)
+        if (isset($successionData['plan_id'])) {
+            $params['plan'] = $successionData['plan_id'];
+        }
+
         // Single planting quick form URL instead of three separate URLs
         return [
             'planting' => $farmOSBase . '/quick/planting?' . http_build_query($params)

@@ -606,6 +606,63 @@ class DashboardController extends Controller
         }
     }
 
+    /**
+     * Get weather map overlay images from Met Office or OpenWeatherMap
+     */
+    public function weatherMapOverlay()
+    {
+        try {
+            $parameter = request('parameter', 'precipitation_rate');
+            $region = request('region', 'uk');
+            $hours = (int) request('hours', 0);
+
+            $weatherService = app(\App\Services\WeatherService::class);
+            $source = $request->get('source');
+            $mapData = $weatherService->getWeatherMapOverlay($parameter, $region, $hours, $source);
+
+            if ($mapData && isset($mapData['image_data'])) {
+                // Return the image data as a data URL for the frontend
+                $dataUrl = 'data:' . $mapData['content_type'] . ';base64,' . $mapData['image_data'];
+
+                return response()->json([
+                    'image_url' => $dataUrl,
+                    'parameter' => $parameter,
+                    'region' => $region,
+                    'hours_ahead' => $hours,
+                    'timestamp' => $mapData['timestamp'],
+                    'source' => $mapData['source'] ?? 'unknown'
+                ]);
+            } elseif ($mapData && isset($mapData['error'])) {
+                // Handle API errors gracefully
+                return response()->json([
+                    'error' => $mapData['error'],
+                    'parameter' => $parameter,
+                    'region' => $region,
+                    'hours_ahead' => $hours,
+                    'met_office_error' => $mapData['met_office_error'] ?? null,
+                    'openweather_error' => $mapData['openweather_error'] ?? null,
+                    'suggestion' => $mapData['suggestion'] ?? null
+                ], 200); // Return 200 so JavaScript can handle the error gracefully
+            } else {
+                return response()->json([
+                    'error' => 'Unable to retrieve weather map overlay'
+                ], 404);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Weather map overlay error', [
+                'message' => $e->getMessage(),
+                'parameter' => request('parameter'),
+                'region' => request('region'),
+                'hours' => request('hours')
+            ]);
+
+            return response()->json([
+                'error' => 'Weather map overlay service unavailable'
+            ], 500);
+        }
+    }
+
     public function plantingRecommendations()
     {
         return view('admin.planting-recommendations');

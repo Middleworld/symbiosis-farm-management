@@ -82,9 +82,10 @@ class ApiKeyService
             'met_office_atmospheric' => self::get('met_office_atmospheric_key') ?: env('MET_OFFICE_ATMOSPHERIC_KEY', ''),
             'met_office_map_images' => self::get('met_office_map_images_key') ?: env('MET_OFFICE_MAP_IMAGES_KEY', ''),
             'openweather' => self::get('openweather_api_key') ?: env('OPENWEATHER_API_KEY', ''),
-            'latitude' => env('WEATHER_LATITUDE', env('FARM_LATITUDE', '51.4934')),
-            'longitude' => env('WEATHER_LONGITUDE', env('FARM_LONGITUDE', '0.0098')),
-            'location_name' => env('WEATHER_LOCATION_NAME', 'Greenwich, London'),
+            'tomorrow_io' => self::get('tomorrow_io_api_key') ?: env('TOMORROW_IO_API_KEY', ''),
+            'latitude' => env('WEATHER_LATITUDE', env('FARM_LATITUDE', '53.2286')),
+            'longitude' => env('WEATHER_LONGITUDE', env('FARM_LONGITUDE', '-0.5424')),
+            'location_name' => env('WEATHER_LOCATION_NAME', 'Lincoln, Lincolnshire'),
         ];
     }
 

@@ -151,6 +151,14 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
 
     // FarmOS map data endpoint
     Route::get('/farmos-map-data', [DashboardController::class, 'farmosMapData'])->name('admin.farmos-map-data');
+    
+    // Weather map overlay endpoint
+    Route::get('/weather-map-overlay', [DashboardController::class, 'weatherMapOverlay'])->name('admin.weather-map-overlay');
+
+    // Met Office OAuth2 routes
+    Route::get('/metoffice/auth', [App\Http\Controllers\Admin\MetOfficeController::class, 'redirectToProvider'])->name('admin.metoffice.auth');
+    Route::get('/metoffice/callback', [App\Http\Controllers\Admin\MetOfficeController::class, 'handleProviderCallback'])->name('admin.metoffice.callback');
+    Route::get('/metoffice/status', [App\Http\Controllers\Admin\MetOfficeController::class, 'getAuthStatus'])->name('admin.metoffice.status');
 
     // Delivery management routes
     Route::get('/deliveries', [DeliveryController::class, 'index'])->name('admin.deliveries.index');
@@ -706,6 +714,9 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         // Variety details endpoint for AI processing
         Route::get('/succession-planning/varieties/{varietyId}', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'getVariety'])->name('succession-planning.variety');
         
+        // Generate quick form URLs for succession planting
+        Route::post('/succession-planning/generate-quick-form-urls', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'generateQuickFormUrls'])->name('succession-planning.generate-quick-form-urls');
+        
         // Varieties by season type for varietal succession
         Route::get('/succession-planning/varieties-by-season/{cropId}', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'getVarietiesBySeason'])->name('succession-planning.varieties-by-season');
         
@@ -715,9 +726,19 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         // Crop plans for dropdown population
         Route::get('/succession-planning/crop-plans', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'getCropPlans'])->name('succession-planning.crop-plans');
         
+        // Crop Plan Timeline routes
+        Route::get('/crop-plans/timeline/{type}', [App\Http\Controllers\Admin\CropPlanController::class, 'renderTimeline'])->name('crop-plans.timeline');
+        Route::get('/crop-plans/timeline-chart/{planId?}', [App\Http\Controllers\Admin\CropPlanController::class, 'renderTimelineChart'])->name('crop-plans.timeline-chart');
+
+        
         // AI service management routes
         Route::get('/succession-planning/ai-status', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'getAIStatus'])->name('succession-planning.ai-status');
         Route::post('/succession-planning/wake-ai', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'wakeUpAI'])->name('succession-planning.wake-ai');
+        
+        // Crop Plan Management - redirect to working planting-chart page
+        Route::get('/crop-plans', function () {
+            return redirect()->route('admin.farmos.planting-chart');
+        })->name('crop-plans');
         
         // Image proxy for FarmOS variety images
         Route::get('/variety-image/{fileId}', [App\Http\Controllers\Admin\FarmOSDataController::class, 'proxyVarietyImage'])->name('variety-image');
@@ -767,6 +788,18 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         Route::get('/historical', [App\Http\Controllers\Admin\WeatherController::class, 'getHistoricalWeather'])->name('historical');
         Route::get('/alerts', [App\Http\Controllers\Admin\WeatherController::class, 'getWeatherAlerts'])->name('alerts');
         Route::get('/field-work', [App\Http\Controllers\Admin\WeatherController::class, 'getFieldWorkRecommendations'])->name('field-work');
+        
+        // Met Office map overlays
+        Route::prefix('metoffice')->name('metoffice.')->group(function () {
+            Route::get('/map/{parameter}', [App\Http\Controllers\Admin\WeatherController::class, 'getMetOfficeMapOverlay'])->name('map');
+        });
+
+        // API endpoint for farmOS to get weather API keys
+        Route::get('/api/get-weather-api-key', function () {
+            return response()->json([
+                'tomorrow_io_api_key' => app(App\Services\ApiKeyService::class)->get('tomorrow_io_api_key') ?: env('TOMORROW_IO_API_KEY', '')
+            ]);
+        });
     });
 
     // AI API routes (outside farmOS group since they might be called differently)
