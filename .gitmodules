@@ -1,0 +1,3 @@
+[submodule "farmos.soilsync.shop"]
+	path = farmos.soilsync.shop
+	url = /var/www/vhosts/soilsync.shop/farmos.soilsync.shop
