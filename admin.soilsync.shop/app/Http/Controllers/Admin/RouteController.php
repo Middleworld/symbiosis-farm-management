@@ -7,6 +7,7 @@ use App\Services\RouteOptimizationService;
 use App\Services\DeliveryScheduleService;
 use App\Services\DriverNotificationService;
 use App\Services\WPGoMapsService;
+use App\Services\CsaSubscriptionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -16,17 +17,20 @@ class RouteController extends Controller
     private $deliveryService;
     private $driverService;
     private $wpGoMapsService;
+    private $csaService;
 
     public function __construct(
         RouteOptimizationService $routeService,
         DeliveryScheduleService $deliveryService,
         DriverNotificationService $driverService,
-        WPGoMapsService $wpGoMapsService
+        WPGoMapsService $wpGoMapsService,
+        CsaSubscriptionService $csaService
     ) {
         $this->routeService = $routeService;
         $this->deliveryService = $deliveryService;
         $this->driverService = $driverService;
         $this->wpGoMapsService = $wpGoMapsService;
+        $this->csaService = $csaService;
     }
 
     /**
@@ -495,16 +499,15 @@ class RouteController extends Controller
     }
 
     /**
-     * Get specific deliveries by their IDs from WooCommerce API
+     * Get specific deliveries by their IDs from local subscription database
      */
     private function getDeliveriesByIds($deliveryIds)
     {
         $deliveries = [];
-        $wpApi = app(\App\Services\WpApiService::class);
         
         try {
-            // Get all subscription data
-            $allSubscriptions = $wpApi->getDeliveryScheduleData(100);
+            // Get all subscription data from local database
+            $allSubscriptions = $this->csaService->getDeliveryScheduleData(500);
             
             // Filter to only the requested IDs and format for routing
             foreach ($allSubscriptions as $subscription) {
@@ -513,7 +516,7 @@ class RouteController extends Controller
                 
                 // Only include active subscriptions, exclude on-hold
                 if (in_array($subscriptionId, $deliveryIds) && 
-                    in_array(strtolower($status), ['wc-active', 'active'])) {
+                    in_array(strtolower($status), ['active', 'pending'])) {
                     $deliveries[] = [
                         'id' => $subscriptionId,
                         'name' => $this->extractCustomerName($subscription),
