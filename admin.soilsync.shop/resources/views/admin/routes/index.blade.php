@@ -38,7 +38,7 @@
                                         <h5><i class="fas fa-truck"></i> Deliveries ({{ count($deliveries) }})</h5>
                                         <button type="button" id="btn-optimize-enhanced" class="btn btn-primary btn-sm" onclick="optimizeRouteEnhanced()">
                                             <span class="btn-text">
-                                                <i class="fas fa-magic"></i> Optimize Route (WP Go Maps Pro)
+                                                <i class="fas fa-magic"></i> Optimize Route (Google Maps API)
                                             </span>
                                             <span class="btn-loading" style="display: none;">
                                                 <i class="fas fa-spinner fa-spin"></i> Optimizing...
@@ -717,9 +717,9 @@ function createShareableMap() {
     });
 }
 
-// Enhanced route optimization with WP Go Maps data
+// Enhanced route optimization using Google Maps API
 function optimizeRouteEnhanced() {
-    console.log('optimizeRouteEnhanced() called');
+    console.log('optimizeRouteEnhanced() called - using Google Maps API');
     
     if (!window.deliveriesData || window.deliveriesData.length === 0) {
         console.log('No deliveries data available for enhanced optimization');
@@ -728,26 +728,55 @@ function optimizeRouteEnhanced() {
     }
 
     console.log('Starting enhanced optimization with', window.deliveriesData.length, 'deliveries');
-    showLoading('Optimizing route with WP Go Maps Pro...', 'btn-optimize-enhanced');
+    showLoading('Optimizing route with Google Maps API...', 'btn-optimize-enhanced');
 
-    // First, get WP Go Maps data for customers
-    const customerEmails = window.deliveriesData
-        .map(d => d.email)
-        .filter(email => email);
+    // Prepare delivery data for Google Maps optimization
+    const deliveryAddresses = window.deliveriesData.map(delivery => ({
+        id: delivery.id,
+        address: delivery.address,
+        name: delivery.name
+    }));
 
-    Promise.all(customerEmails.map(email => 
-        fetch('/admin/routes/wp-go-maps-data?customer_email=' + encodeURIComponent(email))
-        .then(response => response.json())
-        .catch(() => ({ success: false }))
-    ))
-    .then(locationResults => {
-        // Enhance deliveries with location data
-        const enhancedDeliveries = window.deliveriesData.map((delivery, index) => {
-            const locationData = locationResults[index];
-            if (locationData && locationData.success) {
-                delivery.wp_maps_location = locationData.location_data;
+    // Call Google Maps optimization API
+    fetch('/admin/routes/optimize-google-maps', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+            deliveries: deliveryAddresses,
+            start_location: 'Middle World Farms, Bradney Road, Washingborough, Lincoln, LN4 1AQ, UK'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading('btn-optimize-enhanced');
+        
+        if (data.success) {
+            console.log('Route optimized successfully:', data);
+            
+            // Update the deliveries list with optimized order
+            updateDeliveriesList(data.optimized_deliveries);
+            
+            // Update the map with optimized route
+            if (data.route_details) {
+                updateMapWithOptimizedRoute(data.route_details);
             }
-            return delivery;
+            
+            // Show success message
+            showAlert('success', `Route optimized! Total distance: ${data.total_distance || 'N/A'}, Duration: ${data.total_duration || 'N/A'}`);
+        } else {
+            console.error('Route optimization failed:', data.error);
+            showAlert('error', 'Route optimization failed: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        hideLoading('btn-optimize-enhanced');
+        console.error('Route optimization error:', error);
+        showAlert('error', 'Route optimization failed due to network error');
+    });
+}
         });
 
         // Now optimize with enhanced data

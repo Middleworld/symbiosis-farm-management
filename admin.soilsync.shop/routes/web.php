@@ -6,8 +6,8 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Services\DeliveryScheduleService;
 use Illuminate\Support\Facades\Route;
 
-// AI Helper API routes (outside admin prefix to avoid nginx routing conflicts)
-Route::middleware(['admin.auth'])->post('/ai-helper/contextual-help', [App\Http\Controllers\AIController::class, 'contextualHelp'])->name('admin.ai.contextual-help');
+// AI Helper API routes
+Route::post('/admin/ai-helper/contextual-help', [App\Http\Controllers\AIController::class, 'contextualHelp']);
 
 // Public routes (no authentication required)
 Route::get('/', function () {
@@ -19,28 +19,23 @@ Route::get('/dashboard', function () {
     return redirect('/admin');
 });
 
-// Simplified SSO routes (iframe-only architecture)
-// No complex OAuth/JWT - just basic login/logout
-Route::get('/sso/login', [App\Http\Controllers\SsoController::class, 'login'])->name('sso.login');
-Route::post('/sso/authenticate', [App\Http\Controllers\SsoController::class, 'authenticate'])->name('sso.authenticate');
-Route::get('/sso/logout', [App\Http\Controllers\SsoController::class, 'logout'])->name('sso.logout');
-Route::get('/sso/dashboard', [App\Http\Controllers\SsoController::class, 'dashboard'])->name('sso.dashboard');
-
-// Route for Passport redirect to login
+// Route for login redirect
 Route::get('/login', function () {
-    return redirect('/sso/login');
+    return redirect('/admin/login');
 })->name('login');
 
 // Authentication routes
 Route::prefix('admin')->group(function () {
+    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('admin.login');
+    Route::post('/login', [LoginController::class, 'login'])->name('admin.login.submit');
     Route::post('/logout', [LoginController::class, 'logout'])->name('admin.logout');
 });
 
 // Protected admin routes (require authentication)
 Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
     
-    // AI Helper API routes
-    Route::post('/help/ai-helper/contextual-help', [App\Http\Controllers\AIController::class, 'contextualHelp'])->name('admin.ai.contextual-help');
+    // AI Helper API routes (no additional auth needed since user is already in admin)
+    Route::post('/ai-helper/contextual-help', [App\Http\Controllers\AIController::class, 'contextualHelp']);
     
     // Admin dashboard route
     Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
@@ -53,12 +48,7 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
     Route::get('/docs/user-manual/{page}', function ($page) {
         $validPages = [
             'subscription-management',
-            'delivery-management',
-            'succession-planning',
-            'task-system',
-            'crm-usage',
-            'user-management',
-            'pos-integration'
+            'setup-installation'
         ];
         
         if (in_array($page, $validPages)) {
@@ -662,6 +652,7 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         Route::get('/map-data', [App\Http\Controllers\Admin\RouteController::class, 'getMapData'])->name('map-data');
         Route::post('/create-shareable-map', [App\Http\Controllers\Admin\RouteController::class, 'createShareableMap'])->name('create-shareable-map');
         Route::get('/wp-go-maps-data', [App\Http\Controllers\Admin\RouteController::class, 'getWPGoMapsData'])->name('wp-go-maps-data');
+        Route::post('/optimize-google-maps', [App\Http\Controllers\Admin\RouteController::class, 'optimizeGoogleMaps'])->name('optimize-google-maps');
     });
 
     // New route planner page

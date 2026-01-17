@@ -108,6 +108,49 @@ class RouteController extends Controller
     }
 
     /**
+     * Optimize route using Google Maps API directly (no WP Go Maps dependency)
+     */
+    public function optimizeGoogleMaps(Request $request)
+    {
+        try {
+            $deliveries = $request->get('deliveries', []);
+            $startLocation = $request->get('start_location', config('services.delivery.depot_address'));
+
+            if (empty($deliveries)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No deliveries provided'
+                ]);
+            }
+
+            // Use RouteOptimizationService for Google Maps optimization
+            $result = $this->routeService->optimizeRoute($deliveries, $startLocation, false);
+
+            if (isset($result['error'])) {
+                return response()->json([
+                    'success' => false,
+                    'error' => $result['error']
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'optimized_deliveries' => $result['optimized_deliveries'] ?? [],
+                'total_distance' => $result['total_distance'] ?? null,
+                'total_duration' => $result['total_duration'] ?? null,
+                'route_details' => $result['route_details'] ?? null
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Google Maps route optimization failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Route optimization failed: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
      * Optimize route for given deliveries
      */
     public function optimize(Request $request)

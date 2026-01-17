@@ -18,9 +18,9 @@ class RouteOptimizationService
     }
 
     /**
-     * Optimize delivery route using Google Maps API with WP Go Maps Pro enhancement
+     * Optimize delivery route using Google Maps API with optional WP Go Maps Pro enhancement
      */
-    public function optimizeRoute($deliveries, $startLocation = null)
+    public function optimizeRoute($deliveries, $startLocation = null, $useWpGoMaps = true)
     {
         if (empty($deliveries)) {
             return ['error' => 'No deliveries provided'];
@@ -30,11 +30,13 @@ class RouteOptimizationService
             // Default start location (your farm/depot)
             $start = $startLocation ?? config('services.delivery.depot_address', 'Middleworld Farms, UK');
             
-            // Try to enhance with WP Go Maps Pro data first
-            $wpMapsResult = $this->wpGoMapsService->optimizeRouteWithWPGoMaps($deliveries);
-            if ($wpMapsResult['success'] && isset($wpMapsResult['optimized_route'])) {
-                Log::info('Using WP Go Maps Pro optimization');
-                $deliveries = $wpMapsResult['deliveries'] ?? $deliveries;
+            // Try to enhance with WP Go Maps Pro data first (if enabled)
+            if ($useWpGoMaps) {
+                $wpMapsResult = $this->wpGoMapsService->optimizeRouteWithWPGoMaps($deliveries);
+                if ($wpMapsResult['success'] && isset($wpMapsResult['optimized_route'])) {
+                    Log::info('Using WP Go Maps Pro optimization');
+                    $deliveries = $wpMapsResult['deliveries'] ?? $deliveries;
+                }
             }
             
             // Extract addresses from deliveries
