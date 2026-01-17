@@ -235,7 +235,7 @@ let markers = [];
 let optimizedRoute = null;
 
 // Initialize Google Map
-function initMap() {
+window.initMap = function() {
     map = new google.maps.Map(document.getElementById('map'), {
         zoom: 11,
         center: { lat: 53.214542, lng: -0.421672 } // Middle World Farms driveway
