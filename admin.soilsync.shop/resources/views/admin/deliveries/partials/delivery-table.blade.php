@@ -29,7 +29,9 @@
             <tr>
                 @if(isset($type) && ($type === 'delivery' || $type === 'collection'))
                 <th>
-                    <input type="checkbox" class="form-check-input {{ $type === 'delivery' ? 'select-all-checkbox' : 'select-all-collection-checkbox' }} table-select-all" title="Select all {{ $type === 'delivery' ? 'deliveries' : 'collections' }}" data-type="{{ $type }}">
+                    <input type="checkbox" class="form-check-input {{ $type === 'delivery' ? 'select-all-checkbox' : 'select-all-collection-checkbox' }} table-select-all" 
+                           id="{{ $type === 'delivery' ? 'selectAllCheckbox' : 'selectAllCollectionCheckbox' }}"
+                           title="Select all {{ $type === 'delivery' ? 'deliveries' : 'collections' }}" data-type="{{ $type }}">
                 </th>
                 @endif
                 <th>Customer</th>
