@@ -2,10 +2,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\VegboxSubscription;
 use App\Models\WordPressUser;
 use App\Models\WooCommerceOrder;
-use App\Services\CustomerSMSService;
 use App\Services\WpApiService;
+use App\Services\CustomerSMSService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -30,7 +31,33 @@ class CustomerManagementController extends Controller
         $recentCustomers = [];
         $total = 0;
         
+        // Get basic customer stats for iframe view
         try {
+            $customerStats = [
+                'total_wordpress_users' => \App\Models\WordPressUser::count(),
+                'active_subscriptions' => \App\Models\VegboxSubscription::query()->active()->count(),
+                'total_orders' => DB::connection('wordpress')->table('posts')->where('post_type', 'shop_order')->count(),
+                'recent_orders' => DB::connection('wordpress')->table('posts')
+                    ->where('post_type', 'shop_order')
+                    ->where('post_date', '>=', now()->subDays(30))
+                    ->count(),
+            ];
+        } catch (\Exception $e) {
+            $customerStats = ['error' => 'Unable to load stats: ' . $e->getMessage()];
+        }
+        
+        // Customer processing
+        try {
+            // Get subscriber IDs from vegbox subscriptions using the same active criteria as VegboxSubscription model
+            $subscriberIds = \App\Models\VegboxSubscription::query()
+                ->active()
+                ->pluck('subscriber_id')
+                ->unique()
+                ->toArray();
+            
+            $debug['subscriber_ids_count'] = count($subscriberIds);
+            $debug['subscriber_ids_sample'] = array_slice($subscriberIds, 0, 5);
+            
             $query = WordPressUser::query();
             
             if (!empty($search)) {
@@ -41,13 +68,17 @@ class CustomerManagementController extends Controller
                 });
             }
             
-            $query->whereHas('meta', function($q) {
+            // Include users who have customer/subscriber roles OR are in the subscriber list
+            $query->where(function($mainQuery) use ($subscriberIds) {
                 $prefix = config('database.connections.wordpress.prefix', 'D6sPMX_');
-                $q->where('meta_key', $prefix . 'capabilities')
-                  ->where(function($roleQuery) {
-                      $roleQuery->where('meta_value', 'LIKE', '%customer%')
-                               ->orWhere('meta_value', 'LIKE', '%subscriber%');
-                  });
+                $mainQuery->whereHas('meta', function($q) use ($prefix) {
+                    $q->where('meta_key', $prefix . 'capabilities')
+                      ->where(function($roleQuery) {
+                          $roleQuery->where('meta_value', 'LIKE', '%customer%')
+                                   ->orWhere('meta_value', 'LIKE', '%subscriber%');
+                      });
+                })
+                ->orWhereIn('ID', $subscriberIds);
             });
             
             if ($dateFilter !== 'any') {
@@ -65,13 +96,49 @@ class CustomerManagementController extends Controller
                           ->take($perPage)
                           ->get();
             
+            $debug['total_users_found'] = $total;
+            $debug['users_retrieved_count'] = $users->count();
+            $debug['users_sample'] = $users->take(3)->pluck('ID', 'user_login')->toArray();
+            $debug['loop_started'] = true;
+            $debug['users_processed'] = 0;
+            $debug['users_included'] = 0;
+            
             foreach ($users as $user) {
+                try {
+                    $debug['users_processed']++;
                 $orderCount = WooCommerceOrder::where('post_type', 'shop_order')
                     ->whereHas('meta', function($q) use ($user) {
                         $q->where('meta_key', '_customer_user')->where('meta_value', $user->ID);
                     })->count();
                 
-                $wcData = $user->getWooCommerceData();
+                $wcData = []; // Initialize empty array since getWooCommerceData() doesn't exist
+                
+                // Fetch WooCommerce billing data from usermeta
+                $prefix = config('database.connections.wordpress.prefix', 'D6sPMX_');
+                $billingMeta = DB::connection('wordpress')
+                    ->table('usermeta')
+                    ->where('user_id', $user->ID)
+                    ->whereIn('meta_key', [
+                        $prefix . 'billing_first_name',
+                        $prefix . 'billing_last_name', 
+                        $prefix . 'billing_phone',
+                        $prefix . 'billing_address_1',
+                        $prefix . 'billing_city',
+                        $prefix . 'billing_postcode'
+                    ])
+                    ->pluck('meta_value', 'meta_key')
+                    ->toArray();
+                
+                // Map to wcData array
+                $wcData = [
+                    'billing_first_name' => $billingMeta[$prefix . 'billing_first_name'] ?? '',
+                    'billing_last_name' => $billingMeta[$prefix . 'billing_last_name'] ?? '',
+                    'billing_phone' => $billingMeta[$prefix . 'billing_phone'] ?? '',
+                    'billing_address_1' => $billingMeta[$prefix . 'billing_address_1'] ?? '',
+                    'billing_city' => $billingMeta[$prefix . 'billing_city'] ?? '',
+                    'billing_postcode' => $billingMeta[$prefix . 'billing_postcode'] ?? '',
+                ];
+                
                 $email = $user->user_email;
                 
                 // Build customer name from billing info or username
@@ -109,13 +176,20 @@ class CustomerManagementController extends Controller
                 $includeUser = true;
                 if ($filter === 'has_orders') $includeUser = $orderCount > 0;
                 if ($filter === 'subscribers') {
-                    // Check for active subscriptions
-                    $subscriptionCount = WooCommerceOrder::where('post_type', 'shop_subscription')
+                    // Check for active subscriptions in both WooCommerce and native vegbox systems
+                    $wcSubscriptionCount = WooCommerceOrder::where('post_type', 'shop_subscription')
                         ->where('post_status', 'wc-active')
                         ->whereHas('meta', function($q) use ($user) {
                             $q->where('meta_key', '_customer_user')->where('meta_value', $user->ID);
                         })->count();
-                    $includeUser = $subscriptionCount > 0;
+                    
+                    // Also check native vegbox subscriptions
+                    $vegboxSubscriptionCount = \App\Models\VegboxSubscription::where('subscriber_id', $user->ID)
+                        ->whereNull('canceled_at')
+                        ->whereNull('ends_at')
+                        ->count();
+                    
+                    $includeUser = ($wcSubscriptionCount > 0) || ($vegboxSubscriptionCount > 0);
                 }
                 if ($filter === 'recent') $includeUser = $user->user_registered >= now()->subDays(30);
                 
@@ -127,12 +201,19 @@ class CustomerManagementController extends Controller
                 
                 if (!$includeUser) continue;
                 
-                // Check for active subscriptions
-                $subscriptionCount = WooCommerceOrder::where('post_type', 'shop_subscription')
+                // Check for active subscriptions (both WooCommerce and native vegbox)
+                $wcSubscriptionCount = WooCommerceOrder::where('post_type', 'shop_subscription')
                     ->where('post_status', 'wc-active')
                     ->whereHas('meta', function($q) use ($user) {
                         $q->where('meta_key', '_customer_user')->where('meta_value', $user->ID);
                     })->count();
+                
+                $vegboxSubscriptionCount = \App\Models\VegboxSubscription::query()
+                    ->active()
+                    ->where('subscriber_id', $user->ID)
+                    ->count();
+                
+                $subscriptionCount = $wcSubscriptionCount + $vegboxSubscriptionCount;
                 
                 $lastOrder = WooCommerceOrder::where('post_type', 'shop_order')
                     ->whereHas('meta', function($q) use ($user) {
@@ -149,6 +230,16 @@ class CustomerManagementController extends Controller
                     'orders_count' => $orderCount,
                     'last_order' => $lastOrder ? $lastOrder->post_date->format('Y-m-d H:i:s') : null,
                 ];
+                
+                $debug['users_included']++;
+                $debug['last_user_added'] = $user->user_login;
+                } catch (\Exception $e) {
+                    $debug['user_errors'][] = [
+                        'user_id' => $user->ID,
+                        'user_login' => $user->user_login,
+                        'error' => $e->getMessage()
+                    ];
+                }
             }
         } catch (\Exception $e) {
             $debug['error'] = $e->getMessage();
@@ -171,7 +262,6 @@ class CustomerManagementController extends Controller
             'prev_page' => $page > 1 ? $page - 1 : null,
             'next_page' => $page < $totalPages ? $page + 1 : null,
         ];
-        
         return view('admin.customers.index', [
             'recentCustomers' => $recentCustomers,
             'debug' => $debug,
@@ -189,19 +279,13 @@ class CustomerManagementController extends Controller
         try {
             // Validate user ID
             if (!$userId || !is_numeric($userId)) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Invalid user ID provided'
-                ], 400);
+                return redirect()->back()->with('error', 'Invalid user ID provided');
             }
 
             // Check if WordPress user exists
             $wpUser = WordPressUser::find($userId);
             if (!$wpUser) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'WordPress user not found'
-                ], 404);
+                return redirect()->back()->with('error', 'WordPress user not found');
             }
 
             // Get redirect destination from request, default to My Account page
@@ -215,10 +299,7 @@ class CustomerManagementController extends Controller
             );
 
             if (!$switchUrl) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Failed to generate switch URL - WordPress API connection failed'
-                ], 400);
+                return redirect()->back()->with('error', 'Failed to generate switch URL - WordPress API connection failed');
             }
 
             \Log::info("Customer page user switch successful", [
@@ -227,11 +308,8 @@ class CustomerManagementController extends Controller
                 'redirect_to' => $redirectTo
             ]);
 
-            return response()->json([
-                'success' => true,
-                'switch_url' => $switchUrl,
-                'message' => 'Switch URL generated successfully'
-            ]);
+            // Redirect directly to the switch URL instead of returning JSON
+            return redirect($switchUrl);
         } catch (\Exception $e) {
             \Log::error("Customer page user switch failed", [
                 'user_id' => $userId,
@@ -239,10 +317,7 @@ class CustomerManagementController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
 
-            return response()->json([
-                'success' => false,
-                'error' => 'Server error: ' . $e->getMessage()
-            ], 500);
+            return redirect()->back()->with('error', 'Server error: ' . $e->getMessage());
         }
     }
     
