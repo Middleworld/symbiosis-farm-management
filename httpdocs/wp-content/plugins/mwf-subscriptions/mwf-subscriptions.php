@@ -3,7 +3,7 @@
  * Plugin Name: MWF Custom Subscriptions
  * Plugin URI: https://example-farm.com
  * Description: Custom subscription management powered by Laravel backend. Replaces WooCommerce Subscriptions addon.
- * Version: 1.1.0
+ * Version: 1.2.1
  * Author: Middle World Farms
  * Author URI: https://example-farm.com
  * Requires at least: 6.0
@@ -20,12 +20,12 @@ if (!defined('ABSPATH')) {
 }
 
 // Define constants
-define('MWF_SUBS_VERSION', '1.1.0');
+define('MWF_SUBS_VERSION', '1.2.1');
 define('MWF_SUBS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('MWF_SUBS_PLUGIN_URL', plugin_dir_url(__FILE__));
-// Default API URL - can be overridden in plugin settings
-define('MWF_SUBS_API_URL', get_option('mwf_api_url', 'https://admin.example-farm.com/api/subscriptions'));
-define('MWF_SUBS_API_KEY', 'Ffsh8yhsuZEGySvLrP0DihCDDwhPwk4h');
+// API settings stored in WordPress options
+define('MWF_SUBS_API_URL', get_option('mwf_api_url', ''));
+define('MWF_SUBS_API_KEY', get_option('mwf_api_key', ''));
 
 // Load core dependencies
 require_once MWF_SUBS_PLUGIN_DIR . 'includes/class-mwf-settings.php';
@@ -33,6 +33,8 @@ require_once MWF_SUBS_PLUGIN_DIR . 'includes/class-mwf-api-client.php';
 require_once MWF_SUBS_PLUGIN_DIR . 'includes/class-mwf-my-account.php';
 require_once MWF_SUBS_PLUGIN_DIR . 'includes/class-mwf-checkout.php';
 require_once MWF_SUBS_PLUGIN_DIR . 'includes/class-mwf-subscription-updater.php';
+require_once MWF_SUBS_PLUGIN_DIR . 'includes/class-mwf-shipping-calculator.php';
+require_once MWF_SUBS_PLUGIN_DIR . 'includes/class-mwf-blocks-integration.php';
 require_once MWF_SUBS_PLUGIN_DIR . 'includes/class-mwf-admin.php';
 
 // Load product classes after WooCommerce is available
@@ -95,6 +97,8 @@ class MWF_Subscriptions {
         MWF_My_Account::instance();
         MWF_Checkout::instance();
         MWF_Subscription_Updater::instance();
+        MWF_Shipping_Calculator::instance();
+        MWF_Blocks_Integration::instance(); // NEW: WooCommerce Blocks support
         
         // Initialize admin interface
         if (is_admin() && class_exists('MWF_Product_Manager')) {
@@ -178,25 +182,82 @@ class MWF_Subscriptions {
     }
     
     public function activate() {
-        // Flush rewrite rules on activation
+        // Check WooCommerce is active
+        if (!class_exists('WooCommerce')) {
+            deactivate_plugins(plugin_basename(__FILE__));
+            wp_die(__('MWF Custom Subscriptions requires WooCommerce to be installed and active.', 'mwf-subscriptions'));
+        }
+        
+        // 1. Enable WooCommerce REST API
+        update_option('woocommerce_api_enabled', 'yes');
+        
+        // 2. Add WooCommerce capabilities to all administrators
+        $admins = get_users(['role' => 'administrator']);
+        foreach ($admins as $admin) {
+            $admin->add_cap('manage_woocommerce');
+            $admin->add_cap('edit_shop_orders');
+            $admin->add_cap('read_shop_orders');
+            $admin->add_cap('edit_products');
+            $admin->add_cap('read_products');
+        }
+        
+        // 3. Set up permalinks if not configured
+        $permalink_structure = get_option('permalink_structure');
+        if (empty($permalink_structure)) {
+            global $wp_rewrite;
+            $wp_rewrite->set_permalink_structure('/%year%/%monthnum%/%day%/%postname%/');
+        }
+        
+        // Flush rewrite rules
         flush_rewrite_rules();
         
-        // Sync subscription products on activation
-        $products = [226084, 226083, 226081, 226082];
-        foreach ($products as $product_id) {
-            $children = get_posts([
-                'post_parent' => $product_id,
-                'post_type' => 'product_variation',
-                'post_status' => 'publish',
-                'numberposts' => -1,
-                'fields' => 'ids'
-            ]);
+        // 4. Sync all variable products
+        $variable_products = get_posts([
+            'post_type' => 'product',
+            'post_status' => 'publish',
+            'numberposts' => -1,
+            'meta_query' => [
+                [
+                    'key' => '_product_type',
+                    'value' => 'variable'
+                ]
+            ]
+        ]);
+        
+        foreach ($variable_products as $product_post) {
+            $product_id = $product_post->ID;
+            $product = wc_get_product($product_id);
             
-            update_post_meta($product_id, '_children', $children);
+            if ($product && $product->is_type('variable')) {
+                // Sync variations
+                WC_Product_Variable::sync($product);
+                
+                // Update children meta
+                $children = get_posts([
+                    'post_parent' => $product_id,
+                    'post_type' => 'product_variation',
+                    'post_status' => 'publish',
+                    'numberposts' => -1,
+                    'fields' => 'ids'
+                ]);
+                
+                if (!empty($children)) {
+                    update_post_meta($product_id, '_children', $children);
+                }
+            }
+        }
+        
+        // 5. Clear all caches
+        wp_cache_flush();
+        if (function_exists('wc_delete_product_transients')) {
+            foreach ($variable_products as $product_post) {
+                wc_delete_product_transients($product_post->ID);
+            }
         }
         
         // Log activation
         error_log('[MWF Subscriptions] Plugin v' . MWF_SUBS_VERSION . ' activated at ' . date('Y-m-d H:i:s'));
+        error_log('[MWF Subscriptions] Auto-setup completed: API enabled, capabilities added, ' . count($variable_products) . ' products synced');
     }
     
     public function woocommerce_missing_notice() {
