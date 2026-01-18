@@ -40,15 +40,31 @@
                                         </div>
                                     </div>
                                 </div>
+                                
                                 <div class="col-md-6 mb-3">
                                     <div class="card h-100">
                                         <div class="card-body">
                                             <h5 class="card-title">
-                                                <i class="fas fa-cogs text-success"></i> 
+                                                <i class="fas fa-truck text-success"></i> 
+                                                Deliveries & Collections
+                                            </h5>
+                                            <p class="card-text">Manage delivery schedules, optimize routes with Google Maps, and handle collection logistics for efficient farm operations.</p>
+                                            <a href="{{ route('admin.docs.page', 'deliveries-collections') }}" class="btn btn-sm btn-outline-success">
+                                                Read Guide <i class="fas fa-arrow-right"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <h5 class="card-title">
+                                                <i class="fas fa-cogs text-info"></i> 
                                                 Setup & Installation
                                             </h5>
                                             <p class="card-text">Complete setup guide for new customers including automated scripts, manual configuration, and troubleshooting.</p>
-                                            <a href="{{ route('admin.docs.page', 'setup-installation') }}" class="btn btn-sm btn-outline-success">
+                                            <a href="{{ route('admin.docs.page', 'setup-installation') }}" class="btn btn-sm btn-outline-info">
                                                 Read Guide <i class="fas fa-arrow-right"></i>
                                             </a>
                                         </div>

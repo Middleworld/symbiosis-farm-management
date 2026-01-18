@@ -48,7 +48,8 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
     Route::get('/docs/user-manual/{page}', function ($page) {
         $validPages = [
             'subscription-management',
-            'setup-installation'
+            'setup-installation',
+            'deliveries-collections'
         ];
         
         if (in_array($page, $validPages)) {
