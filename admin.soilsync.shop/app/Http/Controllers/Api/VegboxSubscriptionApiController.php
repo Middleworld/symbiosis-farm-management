@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\VegboxSubscription;
 use App\Models\VegboxPlan;
 use App\Models\User;
+use App\Models\UserPaymentMethod;
 use App\Services\VegboxPaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use Stripe\StripeClient;
+use Stripe\Exception\ApiErrorException;
 
 class VegboxSubscriptionApiController extends Controller
 {
@@ -106,12 +109,17 @@ class VegboxSubscriptionApiController extends Controller
             'wordpress_order_id' => 'required|integer',
             'product_id' => 'required|integer', // WooCommerce product ID
             'variation_id' => 'nullable|integer', // WooCommerce variation ID
+            'plan_id' => 'nullable|integer',
             'billing_period' => 'required|string|in:week,month',
             'billing_interval' => 'required|integer|min:1',
             'billing_amount' => 'required|numeric|min:0',
             'delivery_day' => 'required|string|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
             'payment_method' => 'nullable|string',
             'payment_method_token' => 'nullable|string',
+            'stripe_customer_id' => 'nullable|string',
+            'stripe_payment_method_id' => 'nullable|string',
+            'stripe_source_id' => 'nullable|string',
+            'stripe_payment_intent' => 'nullable|string',
             'customer_email' => 'required|email',
             'billing_address' => 'nullable|array', // Optional - WooCommerce shipping address
         ]);
@@ -129,9 +137,9 @@ class VegboxSubscriptionApiController extends Controller
         }
 
         try {
-            // Store WordPress user ID directly (WordPress is source of truth for users)
-            // No need to validate - WordPress only sends valid user IDs from logged-in customers
+            // Map WordPress user to Laravel user for renewals
             $wordpress_user_id = $request->wordpress_user_id;
+            $laravelUser = $this->getOrCreateLaravelUser($wordpress_user_id);
 
             // Check if subscription already exists for this order
             $existingSubscription = VegboxSubscription::where('woo_subscription_id', $request->wordpress_order_id)->first();
@@ -152,11 +160,22 @@ class VegboxSubscriptionApiController extends Controller
             }
 
             // Map WooCommerce product_id to plan_id
-            // For now, use a simple mapping or create plan on the fly
-            // TODO: Implement proper product_id → plan_id mapping
-            $plan = \App\Models\VegboxPlan::first(); // Temporary: get first plan
+            $plan = null;
+            if ($request->plan_id) {
+                $plan = \App\Models\VegboxPlan::find($request->plan_id);
+            }
+
             if (!$plan) {
-                // Create a default plan if none exist
+                Log::warning('API: Plan not found for subscription, using fallback', [
+                    'wordpress_order_id' => $request->wordpress_order_id,
+                    'plan_id' => $request->plan_id,
+                    'product_id' => $request->product_id,
+                ]);
+
+                $plan = \App\Models\VegboxPlan::first();
+            }
+
+            if (!$plan) {
                 $plan = \App\Models\VegboxPlan::create([
                     'name' => ['en' => 'Vegbox Subscription'],
                     'price' => $request->billing_amount,
@@ -168,9 +187,9 @@ class VegboxSubscriptionApiController extends Controller
 
             $subscription = VegboxSubscription::create([
                 'wordpress_user_id' => $wordpress_user_id,
-                'subscriber_id' => null, // Not needed - WordPress users don't exist in Laravel database
-                'subscriber_type' => null,
-                'plan_id' => $plan->id,
+                'subscriber_id' => $laravelUser->id,
+                'subscriber_type' => User::class,
+                'vegbox_plan_id' => $plan->id,
                 'name' => ['en' => $request->variation_name ?? $request->product_name ?? $plan->name ?? 'Vegbox Subscription'],
                 'price' => $request->billing_amount,
                 'billing_frequency' => $request->billing_interval,
@@ -184,6 +203,7 @@ class VegboxSubscriptionApiController extends Controller
                 'wc_order_id' => $request->wc_order_id ?? $request->wordpress_order_id, // WooCommerce order ID
                 // 'woocommerce_product_id' => $request->product_id, // TODO: Add this field to migration
                 'imported_from_woo' => false,
+                'stripe_customer_id' => $request->stripe_customer_id ?: $laravelUser->stripe_customer_id,
             ]);
 
             // Clear ends_at if it was set by parent package
@@ -195,6 +215,8 @@ class VegboxSubscriptionApiController extends Controller
 
             // TODO: Store delivery address in separate table if provided
             // $request->billing_address is optional
+
+            $this->syncStripePaymentDetails($laravelUser, $request);
 
             Log::info('API: Subscription created successfully', [
                 'subscription_id' => $subscription->id,
@@ -1183,6 +1205,96 @@ class VegboxSubscriptionApiController extends Controller
             ]);
             throw $e;
         }
+    }
+
+    /**
+     * Sync Stripe customer/payment method details from Woo checkout payload
+     */
+    protected function syncStripePaymentDetails(User $user, Request $request): void
+    {
+        $stripeCustomerId = $request->input('stripe_customer_id') ?: null;
+        $paymentMethodId = $request->input('stripe_payment_method_id') ?: null;
+        $stripeSourceId = $request->input('stripe_source_id') ?: null;
+        $paymentIntentId = $request->input('stripe_payment_intent') ?: null;
+
+        if (!$stripeCustomerId && $paymentIntentId && config('services.stripe.secret')) {
+            try {
+                $stripeClient = new StripeClient(config('services.stripe.secret'));
+                $intent = $stripeClient->paymentIntents->retrieve($paymentIntentId, []);
+                $stripeCustomerId = $stripeCustomerId ?: ($intent->customer ?? null);
+                $paymentMethodId = $paymentMethodId ?: ($intent->payment_method ?? null);
+            } catch (ApiErrorException $e) {
+                Log::warning('API: Failed to retrieve Stripe payment intent', [
+                    'payment_intent' => $paymentIntentId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        if ($stripeCustomerId && $user->stripe_customer_id !== $stripeCustomerId) {
+            $user->forceFill(['stripe_customer_id' => $stripeCustomerId])->save();
+        }
+
+        if (!$paymentMethodId && $stripeSourceId && (str_starts_with($stripeSourceId, 'pm_') || str_starts_with($stripeSourceId, 'card_'))) {
+            $paymentMethodId = $stripeSourceId;
+        }
+
+        if (!$paymentMethodId) {
+            return;
+        }
+
+        $normalizedPaymentMethodId = $paymentMethodId;
+        if (is_string($normalizedPaymentMethodId)) {
+            $normalizedPaymentMethodId = trim($normalizedPaymentMethodId);
+        }
+
+        if (!is_string($normalizedPaymentMethodId) || $normalizedPaymentMethodId === '') {
+            return;
+        }
+
+        $paymentMethodDetails = null;
+        if (config('services.stripe.secret')) {
+            try {
+                $stripeClient = new StripeClient(config('services.stripe.secret'));
+                $paymentMethodDetails = $stripeClient->paymentMethods->retrieve($normalizedPaymentMethodId, []);
+            } catch (ApiErrorException $e) {
+                Log::warning('API: Failed to retrieve Stripe payment method', [
+                    'payment_method_id' => $normalizedPaymentMethodId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $brand = $paymentMethodDetails->card->brand ?? null;
+        $last4 = $paymentMethodDetails->card->last4 ?? null;
+        $expMonth = $paymentMethodDetails->card->exp_month ?? null;
+        $expYear = $paymentMethodDetails->card->exp_year ?? null;
+        $funding = $paymentMethodDetails->card->funding ?? null;
+
+        UserPaymentMethod::where('user_id', $user->id)
+            ->where('provider', 'stripe')
+            ->update(['is_default' => false]);
+
+        UserPaymentMethod::updateOrCreate(
+            [
+                'provider' => 'stripe',
+                'provider_payment_method_id' => $normalizedPaymentMethodId,
+            ],
+            [
+                'user_id' => $user->id,
+                'provider_customer_id' => $stripeCustomerId ?: $user->stripe_customer_id,
+                'brand' => $brand,
+                'last4' => $last4,
+                'exp_month' => $expMonth,
+                'exp_year' => $expYear,
+                'funding' => $funding,
+                'is_default' => true,
+                'ready_for_off_session' => true,
+                'status' => 'active',
+            ]
+        );
+
+        $user->forceFill(['stripe_default_payment_method_id' => $normalizedPaymentMethodId])->save();
     }
 
     /**

@@ -59,15 +59,23 @@ class SubscriptionAuditService
      */
     private function gatherSubscriptionData(): array
     {
+        $prefix = DB::connection('wordpress')->getTablePrefix();
+
         // Get active subscriptions
         $activeSubs = DB::connection('wordpress')
-            ->select('SELECT ID, post_date FROM D6sPMX_posts WHERE post_type = "shop_subscription" AND post_status = "wc-active"');
+            ->select(sprintf(
+                'SELECT ID, post_date FROM %sposts WHERE post_type = "shop_subscription" AND post_status = "wc-active"',
+                $prefix
+            ));
 
         $activeIds = array_column($activeSubs, 'ID');
 
         // Get subscriptions with scheduled renewals
         $withActions = DB::connection('wordpress')
-            ->select('SELECT DISTINCT CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(args, \'"subscription_id":\', -1), \'}\', 1) AS UNSIGNED) as sub_id FROM D6sPMX_actionscheduler_actions WHERE hook = "woocommerce_scheduled_subscription_payment" AND status = "pending"');
+            ->select(sprintf(
+                'SELECT DISTINCT CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(args, \'"subscription_id":\', -1), \'}\', 1) AS UNSIGNED) as sub_id FROM %sactionscheduler_actions WHERE hook = "woocommerce_scheduled_subscription_payment" AND status = "pending"',
+                $prefix
+            ));
 
         $scheduledIds = array_column($withActions, 'sub_id');
 
@@ -102,9 +110,14 @@ class SubscriptionAuditService
     private function getSubscriptionDetails(int $subscriptionId): ?array
     {
         try {
+            $prefix = DB::connection('wordpress')->getTablePrefix();
+
             // Get subscription post data
             $sub = DB::connection('wordpress')
-                ->select('SELECT post_date FROM D6sPMX_posts WHERE ID = ? AND post_type = "shop_subscription"', [$subscriptionId]);
+                ->select(sprintf(
+                    'SELECT post_date FROM %sposts WHERE ID = ? AND post_type = "shop_subscription"',
+                    $prefix
+                ), [$subscriptionId]);
 
             if (empty($sub)) {
                 return null;
@@ -112,7 +125,10 @@ class SubscriptionAuditService
 
             // Get subscription meta data
             $meta = DB::connection('wordpress')
-                ->select('SELECT meta_key, meta_value FROM D6sPMX_postmeta WHERE post_id = ?', [$subscriptionId]);
+                ->select(sprintf(
+                    'SELECT meta_key, meta_value FROM %spostmeta WHERE post_id = ?',
+                    $prefix
+                ), [$subscriptionId]);
 
             $billingPeriod = 'unknown';
             $billingInterval = 1;

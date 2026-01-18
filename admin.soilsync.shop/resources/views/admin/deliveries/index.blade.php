@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Symbiosis - Delivery Schedule Management')
+@section('title', 'Symbiosis - Deliveries & Collections Management')
 
 @section('header-hint')
 Navigate between weeks • Thursday = Deliveries, Friday/Saturday = Collections
@@ -60,8 +60,8 @@ Navigate between weeks • Thursday = Deliveries, Friday/Saturday = Collections
             </div>
         </div>
         <div class="text-center flex-grow-1">
-            <h1>Delivery Schedule Management</h1>
-            <p class="lead mb-0">Real-time delivery data from WooCommerce</p>
+            <h1>Deliveries & Collections Management</h1>
+            <p class="lead mb-0">Real-time delivery and collection data from WooCommerce</p>
         </div>
         <div></div>
     </div>

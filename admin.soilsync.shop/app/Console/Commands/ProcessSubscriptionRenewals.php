@@ -369,35 +369,43 @@ class ProcessSubscriptionRenewals extends Command
             default => $currentBillingDate->copy()->addMonth(),
         };
         
-        // Christmas closure: Dec 21, 2025 - May 1, 2026
-        // If next billing would be between Dec 21 and May 1, skip to April 10 (3 weeks before reopening)
-        // Use startOfDay() to handle edge case of billing exactly on Dec 21
-        $closureStart = Carbon::parse('2025-12-21 00:00:00', config('app.timezone'));
-        $closureEnd = Carbon::parse('2026-05-01 23:59:59', config('app.timezone'));
-        $resumeBilling = Carbon::parse('2026-04-10 09:00:00', config('app.timezone'));
-        
-        // Edge case: billing on exactly Dec 21 should be allowed (last delivery before closure)
-        // Only pause if billing would occur AFTER Dec 21
-        if ($nextBillingDate->gt($closureStart) && $nextBillingDate->lte($closureEnd)) {
-            // Pause subscription and skip to April 10, 2026
-            Log::info('Christmas closure: pausing subscription', [
-                'subscription_id' => $subscription->id,
-                'original_next_billing' => $nextBillingDate->toDateTimeString(),
-                'new_next_billing' => $resumeBilling->toDateTimeString(),
-                'closure_start' => $closureStart->toDateTimeString(),
-                'closure_end' => $closureEnd->toDateTimeString(),
-            ]);
-            
-            $subscription->update(['skip_auto_renewal' => true]);
-            return $resumeBilling;
+        // Annual subscriptions always renew exactly 1 year later, ignoring any closures
+        if ($subscription->billing_period === 'year') {
+            return $nextBillingDate;
         }
         
-        // Edge case: if we're already in the closure period and resuming, don't re-pause
-        if ($nextBillingDate->gte($resumeBilling) && now()->lt($closureEnd)) {
-            Log::info('Resuming billing post-closure', [
-                'subscription_id' => $subscription->id,
-                'next_billing' => $nextBillingDate->toDateTimeString(),
-            ]);
+        // For weekly/monthly subscriptions, check for seasonal closures
+        $closureStart = \App\Models\Setting::get('business_closure_start');
+        $closureEnd = \App\Models\Setting::get('business_closure_end');
+        $resumeBilling = \App\Models\Setting::get('business_closure_resume_billing');
+        
+        // Only apply closure logic if all closure dates are configured
+        if ($closureStart && $closureEnd && $resumeBilling) {
+            try {
+                $closureStartDate = Carbon::parse($closureStart, config('app.timezone'));
+                $closureEndDate = Carbon::parse($closureEnd, config('app.timezone'));
+                $resumeBillingDate = Carbon::parse($resumeBilling, config('app.timezone'));
+                
+                // If next billing would occur during closure, skip to resume date
+                if ($nextBillingDate->gt($closureStartDate) && $nextBillingDate->lte($closureEndDate)) {
+                    Log::info('Seasonal closure: pausing subscription', [
+                        'subscription_id' => $subscription->id,
+                        'original_next_billing' => $nextBillingDate->toDateTimeString(),
+                        'new_next_billing' => $resumeBillingDate->toDateTimeString(),
+                        'closure_start' => $closureStartDate->toDateTimeString(),
+                        'closure_end' => $closureEndDate->toDateTimeString(),
+                    ]);
+                    
+                    return $resumeBillingDate;
+                }
+            } catch (\Exception $e) {
+                Log::warning('Failed to parse closure dates from settings', [
+                    'error' => $e->getMessage(),
+                    'closure_start' => $closureStart,
+                    'closure_end' => $closureEnd,
+                    'resume_billing' => $resumeBilling,
+                ]);
+            }
         }
         
         return $nextBillingDate;

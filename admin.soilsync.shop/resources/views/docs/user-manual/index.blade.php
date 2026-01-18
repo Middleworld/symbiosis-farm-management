@@ -40,62 +40,32 @@
                                         </div>
                                     </div>
                                 </div>
-                                
                                 <div class="col-md-6 mb-3">
                                     <div class="card h-100">
                                         <div class="card-body">
                                             <h5 class="card-title">
-                                                <i class="fas fa-truck text-success"></i> 
-                                                Delivery Management
+                                                <i class="fas fa-cogs text-success"></i> 
+                                                Setup & Installation
                                             </h5>
-                                            <p class="card-text">Plan delivery routes, assign drivers, track deliveries, and manage collection days.</p>
-                                            <a href="{{ route('admin.docs.page', 'delivery-management') }}" class="btn btn-sm btn-outline-success">
+                                            <p class="card-text">Complete setup guide for new customers including automated scripts, manual configuration, and troubleshooting.</p>
+                                            <a href="{{ route('admin.docs.page', 'setup-installation') }}" class="btn btn-sm btn-outline-success">
                                                 Read Guide <i class="fas fa-arrow-right"></i>
                                             </a>
                                         </div>
                                     </div>
                                 </div>
                                 
+                                <!-- Succession Planning -->
                                 <div class="col-md-6 mb-3">
                                     <div class="card h-100">
                                         <div class="card-body">
                                             <h5 class="card-title">
-                                                <i class="fas fa-seedling text-success"></i> 
+                                                <i class="fas fa-seedling text-warning"></i> 
                                                 Succession Planning
                                             </h5>
-                                            <p class="card-text">Create crop succession plans, schedule plantings, and optimize harvest timing.</p>
-                                            <a href="{{ route('admin.docs.page', 'succession-planning') }}" class="btn btn-sm btn-outline-success">
-                                                Read Guide <i class="fas fa-arrow-right"></i>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-6 mb-3">
-                                    <div class="card h-100">
-                                        <div class="card-body">
-                                            <h5 class="card-title">
-                                                <i class="fas fa-tasks text-info"></i> 
-                                                Task System
-                                            </h5>
-                                            <p class="card-text">Create, assign, and track farm tasks. Manage priorities and deadlines effectively.</p>
-                                            <a href="{{ route('admin.docs.page', 'task-system') }}" class="btn btn-sm btn-outline-info">
-                                                Read Guide <i class="fas fa-arrow-right"></i>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-6 mb-3">
-                                    <div class="card h-100">
-                                        <div class="card-body">
-                                            <h5 class="card-title">
-                                                <i class="fas fa-users text-warning"></i> 
-                                                CRM & Customer Management
-                                            </h5>
-                                            <p class="card-text">Manage customer relationships, track interactions, and handle support requests.</p>
-                                            <a href="{{ route('admin.docs.page', 'crm-usage') }}" class="btn btn-sm btn-outline-warning">
-                                                Read Guide <i class="fas fa-arrow-right"></i>
+                                            <p class="card-text">Plan crop rotations, manage planting schedules, and optimize harvest timing with AI-powered succession planning tools.</p>
+                                            <a href="{{ route('admin.farmos.succession-planning') }}" class="btn btn-sm btn-outline-warning">
+                                                Open Planner <i class="fas fa-arrow-right"></i>
                                             </a>
                                         </div>
                                     </div>
@@ -111,6 +81,22 @@
                                             <p class="card-text">Manage staff accounts, set permissions, and control system access.</p>
                                             <a href="{{ route('admin.docs.page', 'user-management') }}" class="btn btn-sm btn-outline-secondary">
                                                 Read Guide <i class="fas fa-arrow-right"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Crop Planning -->
+                                <div class="col-md-6 mb-3">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <h5 class="card-title">
+                                                <i class="fas fa-chart-line text-info"></i> 
+                                                Crop Planning
+                                            </h5>
+                                            <p class="card-text">Visualize planting timelines, track crop progress, and manage farmOS crop plans with interactive charts and planning tools.</p>
+                                            <a href="{{ route('admin.farmos.planting-chart') }}" class="btn btn-sm btn-outline-info">
+                                                View Charts <i class="fas fa-arrow-right"></i>
                                             </a>
                                         </div>
                                     </div>

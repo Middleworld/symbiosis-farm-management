@@ -106,7 +106,7 @@
                         <a href="/admin/deliveries" class="btn btn-outline-primary w-100 p-3">
                             <i class="fas fa-truck mb-2 d-block fa-2x"></i>
                             <h6>Manage Deliveries</h6>
-                            <small class="text-muted">View and manage delivery schedules</small>
+                            <small class="text-muted">View and manage deliveries & collections</small>
                         </a>
                     </div>
                     <div class="col-md-6 mb-3">

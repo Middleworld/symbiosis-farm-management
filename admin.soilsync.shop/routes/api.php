@@ -21,7 +21,7 @@ use App\Http\Controllers\Api\BrandingController;
 
 // Passport::routes();
 
-// OAuth2 userinfo endpoint for OpenID Connect (FarmOS SSO)
+// OAuth2 userinfo endpoint for OpenID Connect
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     $user = $request->user();
     
@@ -33,59 +33,6 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
         'email_verified' => true,
         'preferred_username' => $user->email,
     ]);
-});
-
-// SSO verification
-Route::post('/sso/verify', function (Request $request) {
-    $token = $request->input('token');
-    
-    if (!$token) {
-        return response()->json(['valid' => false, 'error' => 'No token provided']);
-    }
-    
-    try {
-        // Decrypt the token
-        $encryptedData = base64_decode($token);
-        $decrypted = openssl_decrypt(
-            $encryptedData,
-            'AES-256-CBC',
-            substr(hash('sha256', config('app.key')), 0, 32),
-            0,
-            substr(hash('sha256', config('app.key')), 0, 16)
-        );
-        
-        if (!$decrypted) {
-            return response()->json(['valid' => false, 'error' => 'Invalid token format']);
-        }
-        
-        $payload = json_decode($decrypted, true);
-        
-        if (!$payload || !isset($payload['exp']) || !isset($payload['user_id'])) {
-            return response()->json(['valid' => false, 'error' => 'Malformed token']);
-        }
-        
-        // Check if token expired
-        if (time() > $payload['exp']) {
-            return response()->json(['valid' => false, 'error' => 'Token expired']);
-        }
-        
-        // Verify user still exists
-        $user = \App\Models\User::find($payload['user_id']);
-        if (!$user) {
-            return response()->json(['valid' => false, 'error' => 'User not found']);
-        }
-        
-        return response()->json([
-            'valid' => true,
-            'user' => [
-                'id' => $user->id,
-                'email' => $user->email,
-                'name' => $user->name
-            ]
-        ]);
-    } catch (\Exception $e) {
-        return response()->json(['valid' => false, 'error' => 'Token verification failed: ' . $e->getMessage()]);
-    }
 });
 
 // Conversation API routes - SECURED with ADMIN authentication only

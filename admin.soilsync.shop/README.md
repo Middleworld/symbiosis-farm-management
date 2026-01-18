@@ -95,6 +95,7 @@ A comprehensive farm delivery management system built with Laravel, designed for
 
 - [Installation Guide](docs/installation.md)
 - [Configuration](docs/configuration.md)
+- [Customer Management](docs/user-manual/CUSTOMER-MANAGEMENT.md)
 - [API Documentation](docs/api.md)
 - [Backup & Recovery](docs/backup-recovery.md)
 - [Contributing](docs/contributing.md)

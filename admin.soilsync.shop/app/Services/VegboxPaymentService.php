@@ -39,7 +39,7 @@ class VegboxPaymentService
     public function processSubscriptionRenewal(VegboxSubscription|CsaSubscription $subscription): array
     {
         try {
-            $amount = (float) $subscription->price;
+            $amount = (float) ($subscription->price ?? $subscription->plan?->price ?? 0);
             
             // Handle both Laravel subscribers and WordPress users
             // Check wordpress_user_id FIRST for CsaSubscription (imported from WooCommerce)
@@ -786,5 +786,47 @@ class VegboxPaymentService
         
         // Generic fallback
         return 'We couldn\'t process your payment. Please check your payment method or contact support for assistance.';
+    }
+
+    /**
+     * Test payment service connections
+     */
+    public function testConnection(): string
+    {
+        $results = [];
+
+        // Test Stripe connection
+        if ($this->stripeClient) {
+            try {
+                $balance = $this->stripeClient->balance->retrieve();
+                $results[] = '✅ Stripe: Connected (Balance: £' . number_format($balance->available[0]->amount / 100, 2) . ')';
+            } catch (\Exception $e) {
+                $results[] = '❌ Stripe: ' . $e->getMessage();
+            }
+        } else {
+            $results[] = '❌ Stripe: No API key configured';
+        }
+
+        // Test MWF API connection if configured
+        if ($this->mwfApiKey && $this->mwfApiBaseUrl) {
+            try {
+                $response = Http::withHeaders([
+                    'Authorization' => 'Bearer ' . $this->mwfApiKey,
+                    'Accept' => 'application/json',
+                ])->get($this->mwfApiBaseUrl . '/test');
+
+                if ($response->successful()) {
+                    $results[] = '✅ MWF API: Connected';
+                } else {
+                    $results[] = '❌ MWF API: HTTP ' . $response->status();
+                }
+            } catch (\Exception $e) {
+                $results[] = '❌ MWF API: ' . $e->getMessage();
+            }
+        } else {
+            $results[] = 'ℹ️ MWF API: Not configured (using Stripe only)';
+        }
+
+        return implode(', ', $results);
     }
 }

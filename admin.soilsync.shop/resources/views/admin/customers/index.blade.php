@@ -205,17 +205,6 @@
             @endif
         </div>
     @endif
-
-    @if(isset($debug) && config('app.debug'))
-        <div class="card mt-4">
-            <div class="card-header">
-                <h6 class="mb-0">Debug Info</h6>
-            </div>
-            <div class="card-body">
-                <pre class="mb-0">{{ json_encode($debug, JSON_PRETTY_PRINT) }}</pre>
-            </div>
-        </div>
-    @endif
 </div>
 
 <script>

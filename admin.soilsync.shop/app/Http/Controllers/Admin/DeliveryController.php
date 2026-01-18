@@ -2774,6 +2774,12 @@ class DeliveryController extends Controller
      */
     private function shouldIncludeCustomerBasedOnCutoff($customerJoinDate, $cutoffTime, $cutoffDay, $selectedWeek)
     {
+        // For current week, bypass cutoff check for admin planning purposes
+        $currentWeek = (int) date('W');
+        if ($selectedWeek === $currentWeek) {
+            return true;
+        }
+
         if (empty($customerJoinDate)) {
             return true; // Include if no join date available
         }

@@ -42,8 +42,8 @@ class AdminAuthentication
                 return response()->json(['error' => 'Unauthorized'], 401);
             }
 
-            // Redirect to SSO login with message
-            return redirect(config('app.url') . '/sso/login')->with('error', 'Please log in to access the admin panel.');
+            // Redirect to admin login
+            return redirect()->route('admin.login')->with('error', 'Please log in to access the admin panel.');
         }
 
         // Check for idle timeout (30 minutes of inactivity)
@@ -66,8 +66,8 @@ class AdminAuthentication
                 return response()->json(['error' => 'Session expired due to inactivity'], 401);
             }
 
-            // Redirect to SSO login with timeout message
-            return redirect(config('app.url') . '/sso/login')->with('error', 'Your session has expired due to inactivity. Please log in again.');
+            // Redirect to admin login with timeout message
+            return redirect()->route('admin.login')->with('error', 'Your session has expired due to inactivity. Please log in again.');
         }
 
         // Update last activity timestamp

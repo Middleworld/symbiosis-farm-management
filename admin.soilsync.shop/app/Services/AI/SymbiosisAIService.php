@@ -32,9 +32,9 @@ class SymbiosisAIService
             Log::info('Checking AI service health', ['url' => $this->baseUrl]);
             
             // Try to connect to AI service with short timeout
-            // Use /health endpoint for proper status check
+            // Use root endpoint for status check since /health doesn't exist
             $timeout = (int) env('AI_SERVICE_HEALTH_TIMEOUT', 3);
-            $response = Http::timeout($timeout)->get($this->baseUrl . '/health');
+            $response = Http::timeout($timeout)->get($this->baseUrl . '/');
             
             $available = $response->successful();
             
@@ -352,5 +352,38 @@ class SymbiosisAIService
             Log::warning('AI service availability check failed: ' . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Get contextual help for admin pages
+     */
+    public function getContextualHelp(string $pageContext, string $question, string $currentSection = ''): string
+    {
+        try {
+            $timeout = (int) env('AI_SERVICE_TIMEOUT', 90);
+            $response = Http::timeout($timeout)->post($this->baseUrl . '/api/v1/contextual-help', [
+                'page_context' => $pageContext,
+                'question' => $question,
+                'current_section' => $currentSection,
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['response'] ?? '';
+            }
+
+            Log::warning('AI contextual help request failed', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('AI contextual help error', [
+                'error' => $e->getMessage(),
+                'page_context' => $pageContext
+            ]);
+        }
+
+        return '';
     }
 }

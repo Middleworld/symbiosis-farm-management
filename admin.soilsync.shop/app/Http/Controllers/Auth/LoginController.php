@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Services\WpApiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Exception;
 
 class LoginController extends Controller
@@ -52,6 +54,80 @@ class LoginController extends Controller
             'email' => 'required|email',
             'password' => 'required|min:6',
         ]);
+
+        // First try database-backed admin users
+        $dbUser = User::where('email', $request->email)->first();
+        if ($dbUser && Hash::check($request->password, $dbUser->password)) {
+            Session::put('authenticated', true);
+            Session::put('user', [
+                'name' => $dbUser->name,
+                'email' => $dbUser->email,
+                'role' => 'admin',
+                'is_admin' => true,
+                'is_pos_staff' => false,
+                'login_time' => now(),
+                'ip_address' => $request->ip()
+            ]);
+
+            Session::put('admin_authenticated', true);
+            Session::put('admin_user', [
+                'name' => $dbUser->name,
+                'email' => $dbUser->email,
+                'role' => 'admin',
+                'login_time' => now(),
+                'ip_address' => $request->ip()
+            ]);
+
+            Auth::login($dbUser);
+
+            $wordpressEmail = $this->getWordPressEmailForAdmin($dbUser->email);
+            $wpAuthResult = $this->wpApiService->authenticateAdminWithWordPress($wordpressEmail, $dbUser->name);
+
+            if ($wpAuthResult['success']) {
+                Session::put('wp_authenticated', true);
+                Session::put('wp_integration_status', 'authenticated');
+                Session::put('wp_admin_url', $wpAuthResult['wp_admin_url'] ?? config('services.customer_site.url') . '/wp-admin/');
+                Session::put('wp_user', $wpAuthResult['wp_user'] ?? null);
+                Session::put('wp_auth_cookie', $wpAuthResult['wp_auth_cookie'] ?? null);
+
+                Log::info('Admin login with WordPress authentication successful', [
+                    'admin_email' => $dbUser->email,
+                    'wordpress_email' => $wordpressEmail,
+                    'role' => 'admin',
+                    'wp_authentication' => 'success',
+                    'wp_user_id' => $wpAuthResult['wp_user']['id'] ?? null,
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent()
+                ]);
+            } else {
+                Log::warning('WordPress authentication failed during admin login', [
+                    'admin_email' => $dbUser->email,
+                    'wordpress_email' => $wordpressEmail,
+                    'error' => $wpAuthResult['error'] ?? 'Authentication failed'
+                ]);
+
+                Session::put('wp_authenticated', false);
+                Session::put('wp_integration_status', 'failed');
+                Session::put('wp_admin_url', config('services.customer_site.url') . '/wp-admin/');
+            }
+
+            Log::info('Admin login successful (database user)', [
+                'email' => $dbUser->email,
+                'role' => 'admin',
+                'wp_integrated' => $wpAuthResult['success'] ?? false,
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+
+            $welcomeMessage = 'Welcome to MWF Admin Dashboard';
+            if ($wpAuthResult['success']) {
+                $welcomeMessage .= ' - WordPress authentication successful!';
+            } else {
+                $welcomeMessage .= ' - WordPress authentication failed (manual login required)';
+            }
+
+            return redirect()->intended(route('admin.dashboard'))->with('success', $welcomeMessage);
+        }
 
         // Get admin users from config
         $adminUsers = config('admin_users.users', []);
@@ -231,7 +307,7 @@ class LoginController extends Controller
         Session::invalidate();
         Session::regenerateToken();
 
-        return redirect(config('app.url') . '/admin/login')->with('message', 'You have been logged out successfully.');
+        return redirect()->to(url('/admin/login'))->with('message', 'You have been logged out successfully.');
     }
 
     /**

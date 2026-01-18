@@ -49,6 +49,10 @@
            Note: Bootstrap 5 modals have z-index conflicts with sidebar. Use custom modals with z-index: 9999.
         */
         
+        :root {
+            --sidebar-width: 320px; /* Increased from default to accommodate AI helper */
+        }
+        
         body {
             overflow-x: hidden;
         }
@@ -508,6 +512,22 @@
     @php
         $user = Session::get('user');
         $isPosOnly = isset($user['is_pos_staff']) && $user['is_pos_staff'] && !($user['is_admin'] ?? false);
+
+        $customerSiteUrl = \App\Models\Setting::get('customer_site_url', config('services.customer_site.url'));
+        if (empty($customerSiteUrl) || str_contains($customerSiteUrl, 'example-farm.com')) {
+            $appUrl = config('app.url');
+            $appHost = parse_url($appUrl, PHP_URL_HOST);
+            $appScheme = parse_url($appUrl, PHP_URL_SCHEME) ?: request()->getScheme();
+
+            if ($appHost && strpos($appHost, 'admin.') === 0) {
+                $customerSiteUrl = $appScheme . '://' . substr($appHost, 6);
+            } elseif ($appHost) {
+                $customerSiteUrl = $appScheme . '://' . $appHost;
+            }
+        }
+
+        $customerSiteUrl = $customerSiteUrl ? rtrim($customerSiteUrl, '/') : null;
+        $wpAdminUrl = Session::get('wp_admin_url') ?: ($customerSiteUrl ? $customerSiteUrl . '/wp-admin' : null);
     @endphp
     
     <!-- Sidebar (hidden for POS-only staff) -->
@@ -569,7 +589,7 @@
                 
                 <a href="/admin/deliveries" class="nav-link {{ request()->is('admin/deliveries*') ? 'active' : '' }}">
                     <i class="fas fa-truck"></i>
-                    <span>Delivery Schedule</span>
+                    <span>Deliveries & Collections</span>
                     @if(isset($totalDeliveries) && $totalDeliveries > 0)
                         <span class="badge-notification">{{ $totalDeliveries }}</span>
                     @endif
@@ -812,29 +832,13 @@
             </div>
             <div class="nav-section-items" data-section-items="ai-helper">
                 <!-- User Manuals -->
-                <a href="/docs/user-manual" class="nav-link">
+                <a href="/admin/docs/user-manual" class="nav-link">
                     <i class="fas fa-book"></i>
                     <span>User Manual</span>
                 </a>
-                <a href="/docs/user-manual/subscription-management" class="nav-link">
+                <a href="/admin/docs/user-manual/subscription-management" class="nav-link">
                     <i class="fas fa-file-invoice"></i>
                     <span>Subscriptions Guide</span>
-                </a>
-                <a href="/docs/user-manual/delivery-management" class="nav-link">
-                    <i class="fas fa-truck"></i>
-                    <span>Delivery Guide</span>
-                </a>
-                <a href="/docs/user-manual/succession-planning" class="nav-link">
-                    <i class="fas fa-seedling"></i>
-                    <span>Crop Planning</span>
-                </a>
-                <a href="/docs/user-manual/task-system" class="nav-link">
-                    <i class="fas fa-tasks"></i>
-                    <span>Task System</span>
-                </a>
-                <a href="/docs/user-manual/crm-usage" class="nav-link">
-                    <i class="fas fa-users"></i>
-                    <span>CRM Guide</span>
                 </a>
                 <div style="margin: 0.5rem 0; border-top: 1px solid rgba(255,255,255,0.1);"></div>
                 
@@ -870,12 +874,12 @@
                 <i class="fas fa-chevron-down section-toggle"></i>
             </div>
             <div class="nav-section-items" data-section-items="external">
-                <a href="{{ config('services.customer_site.url', 'https://example-farm.com') }}" target="_blank" class="nav-link">
+                <a href="{{ $customerSiteUrl ?? '#' }}" target="_blank" class="nav-link">
                     <i class="fas fa-external-link-alt"></i>
                     <span>Visit Website</span>
                 </a>
                 
-                <a href="{{ config('services.customer_site.url', 'https://example-farm.com') }}/wp-admin" target="_blank" class="nav-link">
+                <a href="{{ $wpAdminUrl ?? '#' }}" target="_blank" class="nav-link">
                     <i class="fab fa-wordpress"></i>
                     <span>WordPress Admin</span>
                 </a>
@@ -1091,6 +1095,9 @@
             });
         });
     </script>
+    
+    <!-- AI Helper Widget Script -->
+    <script src="{{ asset('js/ai-helper-widget.js?v=5') }}"></script>
     
     @yield('scripts')
     @stack('scripts')

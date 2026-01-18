@@ -3,28 +3,54 @@
 namespace App\Services;
 
 use App\Models\CsaSubscription;
+use App\Models\VegboxSubscription;
 use Illuminate\Support\Collection;
 
 class CsaSubscriptionService
 {
     /**
-     * Get delivery schedule data from local CSA subscriptions.
+     * Get delivery schedule data from local subscriptions (both CSA and Vegbox).
      * Replaces WpApiService::getDeliveryScheduleData()
-     * 
+     *
      * @param int $limit Maximum number of subscriptions to return
      * @return Collection
      */
     public function getDeliveryScheduleData(int $limit = 100): Collection
     {
-        $subscriptions = CsaSubscription::with(['deliveries', 'product', 'variation'])
+        $allSubscriptions = collect();
+
+        // Get CSA subscriptions
+        $csaSubscriptions = CsaSubscription::with(['deliveries', 'product', 'variation'])
             ->whereIn('status', ['active', 'pending', 'on-hold'])
             ->orderBy('next_delivery_date', 'asc')
             ->limit($limit)
             ->get();
 
-        return $subscriptions->map(function ($subscription) {
-            return $this->formatForDeliverySchedule($subscription);
-        });
+        $allSubscriptions = $allSubscriptions->merge(
+            $csaSubscriptions->map(function ($subscription) {
+                return $this->formatForDeliverySchedule($subscription);
+            })
+        );
+
+        // Get Vegbox subscriptions
+        $vegboxSubscriptions = VegboxSubscription::with(['plan', 'subscriber'])
+            ->where(function ($query) {
+                $query->where('ends_at', '>', now())
+                      ->orWhereNull('ends_at');
+            })
+            ->whereNull('canceled_at')
+            ->whereNull('pause_until')
+            ->orderBy('next_delivery_date', 'asc')
+            ->limit($limit - $allSubscriptions->count())
+            ->get();
+
+        $allSubscriptions = $allSubscriptions->merge(
+            $vegboxSubscriptions->map(function ($subscription) {
+                return $this->formatVegboxForDeliverySchedule($subscription);
+            })
+        );
+
+        return $allSubscriptions->sortBy('next_delivery_date')->take($limit);
     }
 
     /**
@@ -244,11 +270,14 @@ class CsaSubscriptionService
     public function testConnection(): array
     {
         try {
-            $count = CsaSubscription::count();
+            $csaCount = CsaSubscription::count();
+            $vegboxCount = VegboxSubscription::count();
             return [
                 'success' => true,
                 'message' => 'Connected to local Laravel database',
-                'subscription_count' => $count,
+                'csa_subscription_count' => $csaCount,
+                'vegbox_subscription_count' => $vegboxCount,
+                'total_subscriptions' => $csaCount + $vegboxCount,
             ];
         } catch (\Exception $e) {
             return [
@@ -256,5 +285,109 @@ class CsaSubscriptionService
                 'message' => 'Database connection failed: ' . $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * Format VegboxSubscription data to match the structure expected by DeliveryController.
+     * Maintains compatibility with existing view logic.
+     */
+    public function formatVegboxForDeliverySchedule(VegboxSubscription $subscription): array
+    {
+        // Get subscriber information
+        $subscriber = $subscription->subscriber;
+        $customerName = $subscriber ? $subscriber->name : 'Unknown Customer';
+        $customerEmail = $subscriber ? $subscriber->email : '';
+
+        // Split customer name into first/last
+        $nameParts = explode(' ', $customerName, 2);
+        $firstName = $nameParts[0] ?? '';
+        $lastName = $nameParts[1] ?? '';
+
+        // Determine delivery frequency
+        $billingInterval = 1; // Default to weekly
+        if ($subscription->billing_frequency === 'fortnightly' || $subscription->billing_period === 'fortnightly') {
+            $billingInterval = 2;
+        }
+
+        // Get delivery address
+        $deliveryAddress = '';
+        $deliveryPostcode = '';
+        if ($subscription->delivery_address_id) {
+            // TODO: Get address from address relationship if it exists
+            $deliveryAddress = 'Address on file';
+        }
+
+        // Determine status based on subscription lifecycle
+        $status = 'active'; // Default
+        if ($subscription->canceled_at) {
+            $status = 'cancelled';
+        } elseif ($subscription->pause_until && $subscription->pause_until->isFuture()) {
+            $status = 'on-hold';
+        } elseif ($subscription->ends_at && $subscription->ends_at->isPast()) {
+            $status = 'expired';
+        }
+
+        // Format in WooCommerce-compatible structure for DeliveryController.transformScheduleData
+        return [
+            'id' => $subscription->id,
+            'woo_subscription_id' => $subscription->woo_subscription_id ?? $subscription->woocommerce_subscription_id,
+            'customer_id' => $subscription->subscriber_id,
+            'customer_email' => $customerEmail,
+            'customer_name' => $customerName,
+            'status' => $status,
+            'date_created' => $subscription->starts_at?->toIso8601String() ?? $subscription->created_at->toIso8601String(),
+
+            // WooCommerce-compatible fields for frequency detection
+            'billing_period' => 'week',
+            'billing_interval' => $billingInterval,
+            'next_payment_date' => $subscription->next_billing_at?->format('Y-m-d'),
+
+            // Fulfillment type - VegboxSubscriptions are deliveries by default
+            'fulfillment_type' => 'Delivery',
+
+            // Billing address (required by controller)
+            'billing' => [
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'email' => $customerEmail,
+                'phone' => '', // TODO: Add phone field if available
+            ],
+
+            // Shipping total determines delivery vs collection in transformScheduleData
+            // VegboxSubscriptions are assumed to be deliveries by default
+            'shipping_total' => '5.00',
+            'shipping' => [
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'address_1' => $deliveryAddress,
+                'address_2' => '',
+                'city' => '',
+                'state' => '',
+                'postcode' => $deliveryPostcode,
+            ],
+
+            // Line items with meta_data for attributes
+            'line_items' => [
+                [
+                    'name' => $subscription->plan ? $subscription->plan->name : 'Veg Box',
+                    'quantity' => 1,
+                    'total' => (string) $subscription->price,
+                    'meta_data' => [
+                        ['key' => 'frequency', 'value' => $subscription->billing_frequency ?? 'weekly'],
+                        ['key' => 'box_size', 'value' => $subscription->box_size ?? 'standard'],
+                        ['key' => 'payment_schedule', 'value' => $subscription->billing_period ?? 'weekly'],
+                    ]
+                ]
+            ],
+
+            // Meta data for subscription-level info
+            'meta_data' => [
+                ['key' => '_delivery_day', 'value' => $subscription->delivery_day],
+                ['key' => '_delivery_time', 'value' => $subscription->delivery_time],
+                ['key' => '_fortnightly_week', 'value' => $subscription->frequency === 'fortnightly' ? (((int)$subscription->id % 2 === 1) ? 'B' : 'A') : null],
+                ['key' => '_fulfillment_type', 'value' => $subscription->delivery_address_id ? 'Delivery' : 'Collection'],
+                ['key' => 'customer_week_type', 'value' => $subscription->frequency === 'fortnightly' ? (((int)$subscription->id % 2 === 1) ? 'B' : 'A') : 'Weekly'],
+            ],
+        ];
     }
 }
