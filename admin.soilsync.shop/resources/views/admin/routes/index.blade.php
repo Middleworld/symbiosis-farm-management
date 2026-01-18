@@ -777,55 +777,6 @@ function optimizeRouteEnhanced() {
         showAlert('error', 'Route optimization failed due to network error');
     });
 }
-        });
-
-        // Now optimize with enhanced data
-        return fetch('/admin/routes/optimize', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: JSON.stringify({
-                deliveries: enhancedDeliveries
-            })
-        });
-    })
-    .then(response => response.json())
-    .then(data => {
-        hideLoading();
-        
-        if (data.success) {
-            optimizedRoute = data;
-            updateDeliveriesList(data.optimized_deliveries);
-            updateRouteMap(data);
-            showRouteActions();
-            showRouteStats(data.total_distance, data.total_duration);
-            
-            // Show optimization source
-            if (data.optimization_source) {
-                console.log('Route optimized using:', data.optimization_source);
-            }
-            
-            // Show WP Go Maps integration status
-            if (data.wp_maps) {
-                console.log('WP Go Maps integration available:', data.wp_maps);
-            }
-        } else {
-            alert('Route optimization failed: ' + data.error);
-        }
-    })
-    .catch(error => {
-        hideLoading();
-        console.error('Enhanced route optimization error:', error);
-        
-        // Fallback to standard optimization
-        console.log('Falling back to standard optimization...');
-        optimizeRoute();
-    });
-}
-
-// Google Maps Integration Functions
 function openInGoogleMaps() {
     if (!window.currentRoute || !window.currentRoute.deliveries) {
         alert('Please optimize route first');
