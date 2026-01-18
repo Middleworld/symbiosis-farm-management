@@ -137,16 +137,72 @@ class MWF_Checkout {
         
         // Get variation data if this is a variable subscription
         $variation_data = $this->get_variation_data_from_order($order);
+
+        // Determine billing schedule
+        $billing_schedule = $this->determine_billing_schedule($order, $variation_data);
+        
+        // Handle guest checkout - create WordPress user if needed
+        $user_id = $order->get_user_id();
+        if (empty($user_id) || $user_id === 0) {
+            error_log("[MWF Checkout] Guest checkout detected - creating WordPress user account...");
+            $customer_email = $order->get_billing_email();
+            
+            // Check if user already exists
+            $existing_user = get_user_by('email', $customer_email);
+            if ($existing_user) {
+                $user_id = $existing_user->ID;
+                error_log("[MWF Checkout] Found existing WordPress user ID: {$user_id}");
+                // Update order with user ID
+                wp_update_post([
+                    'ID' => $order_id,
+                    'post_author' => $user_id
+                ]);
+            } else {
+                // Create new WordPress user
+                $username = sanitize_user($customer_email);
+                if (username_exists($username)) {
+                    $username = sanitize_user($customer_email . '_' . time());
+                }
+                
+                $user_data = [
+                    'user_login' => $username,
+                    'user_email' => $customer_email,
+                    'user_pass' => wp_generate_password(16, true, true),
+                    'first_name' => $order->get_billing_first_name(),
+                    'last_name' => $order->get_billing_last_name(),
+                    'role' => 'customer'
+                ];
+                
+                $user_id = wp_insert_user($user_data);
+                
+                if (is_wp_error($user_id)) {
+                    error_log("[MWF Checkout] ERROR creating WordPress user: " . $user_id->get_error_message());
+                    $order->add_order_note(__('Failed to create subscription: Could not create customer account.', 'mwf-subscriptions'));
+                    return;
+                }
+                
+                error_log("[MWF Checkout] Created WordPress user ID: {$user_id}");
+                
+                // Update order with new user ID
+                wp_update_post([
+                    'ID' => $order_id,
+                    'post_author' => $user_id
+                ]);
+                
+                // Send new account email
+                wp_new_user_notification($user_id, null, 'user');
+            }
+        }
         
         // Create subscription via API
         $api_data = [
-            'wordpress_user_id' => $order->get_user_id(),
+            'wordpress_user_id' => $user_id,
             'wordpress_order_id' => $order_id,
             'wc_order_id' => $order_id,
             'product_id' => $product_id,
             'plan_id' => $plan_id,
-            'billing_period' => 'week',
-            'billing_interval' => 1,
+            'billing_period' => $billing_schedule['period'],
+            'billing_interval' => $billing_schedule['interval'],
             'billing_amount' => $order->get_total(),
             'delivery_day' => $delivery_day,
             'customer_email' => $order->get_billing_email(),
@@ -160,6 +216,31 @@ class MWF_Checkout {
             ],
             'price' => $order->get_total(),
         ];
+
+        // Stripe metadata for renewals
+        $stripe_customer_id = get_post_meta($order_id, '_stripe_customer_id', true);
+        $stripe_payment_method_id = get_post_meta($order_id, '_stripe_payment_method', true);
+        $stripe_source_id = get_post_meta($order_id, '_stripe_source_id', true);
+        $stripe_payment_intent = get_post_meta($order_id, '_stripe_payment_intent', true);
+        if (empty($stripe_payment_intent)) {
+            $stripe_payment_intent = get_post_meta($order_id, '_stripe_intent_id', true);
+        }
+
+        if ($stripe_customer_id) {
+            $api_data['stripe_customer_id'] = $stripe_customer_id;
+        }
+
+        if ($stripe_payment_method_id) {
+            $api_data['stripe_payment_method_id'] = $stripe_payment_method_id;
+        }
+
+        if ($stripe_source_id) {
+            $api_data['stripe_source_id'] = $stripe_source_id;
+        }
+
+        if ($stripe_payment_intent) {
+            $api_data['stripe_payment_intent'] = $stripe_payment_intent;
+        }
         
         // Add variation data if available
         if (!empty($variation_data)) {
@@ -300,5 +381,75 @@ class MWF_Checkout {
         
         error_log('[MWF Checkout] No variation found in subscription products');
         return [];
+    }
+
+    /**
+     * Determine billing schedule from variation data or product meta
+     */
+    private function determine_billing_schedule($order, $variation_data = []) {
+        $period = null;
+        $interval = null;
+
+        foreach ($order->get_items() as $item) {
+            $product_id = $item->get_product_id();
+            if (!$product_id) {
+                continue;
+            }
+
+            $period = get_post_meta($product_id, '_billing_period', true) ?: $period;
+            $interval = get_post_meta($product_id, '_billing_interval', true) ?: $interval;
+
+            $variation_id = $item->get_variation_id();
+            if ($variation_id) {
+                $period = get_post_meta($variation_id, '_billing_period', true) ?: $period;
+                $interval = get_post_meta($variation_id, '_billing_interval', true) ?: $interval;
+            }
+        }
+
+        if ($period && $interval) {
+            return [
+                'period' => strtolower($period),
+                'interval' => max(1, (int) $interval),
+            ];
+        }
+
+        $tokens = [];
+        if (!empty($variation_data['variation_name'])) {
+            $tokens[] = strtolower($variation_data['variation_name']);
+        }
+
+        if (!empty($variation_data['formatted_name'])) {
+            $tokens[] = strtolower($variation_data['formatted_name']);
+        }
+
+        if (!empty($variation_data['attributes']) && is_array($variation_data['attributes'])) {
+            foreach ($variation_data['attributes'] as $value) {
+                if (is_array($value)) {
+                    $tokens = array_merge($tokens, array_map('strtolower', $value));
+                } elseif (is_string($value)) {
+                    $tokens[] = strtolower($value);
+                }
+            }
+        }
+
+        $haystack = implode(' ', $tokens);
+
+        if (strpos($haystack, 'fortnight') !== false || strpos($haystack, 'bi-week') !== false || strpos($haystack, 'biweek') !== false || strpos($haystack, '2 week') !== false) {
+            return ['period' => 'week', 'interval' => 2];
+        }
+
+        if (strpos($haystack, 'annual') !== false || strpos($haystack, 'year') !== false || strpos($haystack, '12 month') !== false) {
+            return ['period' => 'month', 'interval' => 12];
+        }
+
+        if (strpos($haystack, 'quarter') !== false || strpos($haystack, '3 month') !== false) {
+            return ['period' => 'month', 'interval' => 3];
+        }
+
+        if (strpos($haystack, 'month') !== false) {
+            return ['period' => 'month', 'interval' => 1];
+        }
+
+        return ['period' => 'week', 'interval' => 1];
     }
 }

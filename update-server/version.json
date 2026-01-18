@@ -13,8 +13,8 @@
         },
         "wordpress_plugins": {
             "mwf-integration": {
-                "version": "1.1.0",
-                "description": "Laravel API integration + user switching",
+                "version": "1.1.1",
+                "description": "Laravel API integration + SSO user switching",
                 "file": "httpdocs/wp-content/plugins/mwf-integration/mwf-integration.php"
             },
             "mwf-solidarity-pricing": {

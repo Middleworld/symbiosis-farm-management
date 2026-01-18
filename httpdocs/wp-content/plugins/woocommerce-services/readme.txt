@@ -7,7 +7,7 @@ Requires Plugins: woocommerce
 Tested up to: 6.9
 WC requires at least: 10.2
 WC tested up to: 10.4
-Stable tag: 3.3.0
+Stable tag: 3.3.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -69,6 +69,9 @@ This plugin relies on the following external services:
 2. Checking on the health of WooCommerce Tax
 
 == Changelog ==
+
+= 3.3.1 - 2026-01-12 =
+* Fix   - Normalize state and country codes to uppercase in TaxJar integration.
 
 = 3.3.0 - 2025-12-11 =
 * Add   - Add default nexus address.

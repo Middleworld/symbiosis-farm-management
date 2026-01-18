@@ -1101,7 +1101,7 @@ function mwf_handle_auto_login() {
                         }
                     }
                 } else {
-                    $redirect_url = home_url($redirect_to);
+                    $redirect_url = site_url($redirect_to);
                 }
                 
                 // Add parameters to show successful user switch
@@ -2282,3 +2282,60 @@ function mwf_update_subscription_cache_on_status_change($subscription, $new_stat
 }
 
 // END MWF CUSTOM CODE
+
+/**
+ * SSO: Generate plugin switch URL for Laravel admin
+ * This creates an auto-login URL that Laravel can use to seamlessly log users into WordPress admin
+ */
+add_action('wp_ajax_mwf_generate_plugin_switch_url', 'mwf_generate_plugin_switch_url');
+add_action('wp_ajax_nopriv_mwf_generate_plugin_switch_url', 'mwf_generate_plugin_switch_url');
+
+function mwf_generate_plugin_switch_url() {
+    // Verify admin key for security
+    if (!isset($_GET['admin_key'])) {
+        wp_send_json_error(['message' => 'Missing admin key']);
+        return;
+    }
+
+    $provided_key = sanitize_text_field($_GET['admin_key']);
+    $user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : 0;
+    $redirect_to = isset($_GET['redirect_to']) ? sanitize_text_field($_GET['redirect_to']) : '/wp-admin/';
+
+    // Generate expected key using same logic as Laravel
+    $secret = 'mwf_admin_switch_2025_secret_key';
+    $expected_key = hash('sha256', $user_id . $redirect_to . $secret);
+
+    if (!hash_equals($expected_key, $provided_key)) {
+        wp_send_json_error(['message' => 'Invalid admin key']);
+        return;
+    }
+
+    // Verify user exists
+    $user = get_user_by('ID', $user_id);
+    if (!$user) {
+        wp_send_json_error(['message' => 'User not found']);
+        return;
+    }
+
+    // Generate auto-login token
+    $token = wp_generate_password(32, false);
+    $token_data = array(
+        'user_id' => $user_id,
+        'redirect_to' => $redirect_to,
+        'expires' => time() + (15 * MINUTE_IN_SECONDS), // 15 minutes
+    );
+
+    // Store token
+    update_option("mwf_auto_login_token_{$token}", $token_data, false);
+
+    // Generate switch URL
+    $switch_url = add_query_arg(array(
+        'mwf_auto_login' => $token,
+        'redirect_to' => $redirect_to,
+    ), home_url('/'));
+
+    wp_send_json_success(array(
+        'switch_url' => $switch_url,
+        'expires_in' => 15 * 60, // seconds
+    ));
+}

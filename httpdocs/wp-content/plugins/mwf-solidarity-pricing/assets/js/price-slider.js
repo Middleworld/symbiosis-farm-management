@@ -57,6 +57,10 @@
             // Update hidden input for form submission
             $hiddenInput.val(price.toFixed(2));
             
+            // Update WooCommerce displayed price (the one that shows near "Add to cart")
+            $('.woocommerce-variation-price .price .woocommerce-Price-amount').html('<bdi><span class="woocommerce-Price-currencySymbol">£</span>' + price.toFixed(2) + '</bdi>');
+            $('.summary .price .woocommerce-Price-amount').html('<bdi><span class="woocommerce-Price-currencySymbol">£</span>' + price.toFixed(2) + '</bdi>');
+            
             // Get zone thresholds
             const standard = parseFloat($slider.data('standard'));
             const breakEven = parseFloat($slider.data('break-even'));
@@ -98,6 +102,54 @@
             // Update labels
             $priceLabel.html(`<span class="zone-icon">${icon}</span> <span class="zone-text">${label}</span>`);
             $priceImpact.html(`<span class="mwf-price-impact-icon">${icon}</span> <span class="mwf-price-impact-text">${impact}</span>`);
+        },
+        
+        /**
+         * Update slider based on variation price
+         */
+        updateSliderForVariation: function(variationPrice) {
+            console.log('MWF Solidarity Slider: updateSliderForVariation called with price:', variationPrice);
+            
+            const $slider = $('#mwf-solidarity-slider');
+            const $priceDisplay = $('#mwf-custom-price-display');
+            const $priceLabel = $('.mwf-solidarity-price-label');
+            const $priceImpact = $('.mwf-solidarity-price-impact');
+            const $hiddenInput = $('#mwf-custom-price');
+            
+            if ($slider.length === 0) {
+                console.error('MWF Solidarity Slider: Slider element not found!');
+                return;
+            }
+            
+            // Calculate new pricing based on variation price
+            const standard = parseFloat(variationPrice);
+            const min = Math.round(standard * 0.70 * 100) / 100; // 70% solidarity
+            const max = Math.round(standard * 1.30 * 100) / 100; // 130% supporter
+            const breakEven = Math.round(standard * 0.93 * 100) / 100; // 93% break-even
+            
+            console.log('MWF Solidarity Slider: Calculated prices - Min:', min, 'Standard:', standard, 'Max:', max, 'Break-even:', breakEven);
+            
+            // Update slider attributes
+            $slider.attr('min', min.toFixed(2));
+            $slider.attr('max', max.toFixed(2));
+            $slider.attr('value', standard.toFixed(2));
+            $slider.val(standard.toFixed(2));
+            $slider.data('standard', standard.toFixed(2));
+            $slider.data('break-even', breakEven.toFixed(2));
+            
+            console.log('MWF Solidarity Slider: Updated slider attributes');
+            
+            // Update label prices
+            $('.mwf-slider-label:eq(0) .mwf-slider-label-price').text('£' + min.toFixed(2)); // Solidarity
+            $('.mwf-slider-label:eq(1) .mwf-slider-label-price').text('£' + standard.toFixed(2)); // Standard
+            $('.mwf-slider-label:eq(2) .mwf-slider-label-price').text('£' + max.toFixed(2)); // Supporter
+            
+            console.log('MWF Solidarity Slider: Updated label prices');
+            
+            // Update display
+            this.updatePriceDisplay(standard, $priceDisplay, $priceLabel, $priceImpact, $hiddenInput, $slider);
+            
+            console.log('MWF Solidarity Slider: Update complete for variation price £' + standard.toFixed(2));
         }
     };
     
@@ -106,9 +158,15 @@
         console.log('MWF Solidarity Slider initializing...');
         MWF_SolidaritySlider.init();
         
-        // Re-initialize when WooCommerce variation changes
+        // Update slider when WooCommerce variation changes
         $('form.variations_form').on('found_variation', function(event, variation) {
-            console.log('MWF Solidarity Slider: Variation changed, reinitializing...');
+            console.log('MWF Solidarity Slider: Variation changed, price = £' + variation.display_price);
+            MWF_SolidaritySlider.updateSliderForVariation(variation.display_price);
+        });
+        
+        // Reset to default when variation is cleared
+        $('form.variations_form').on('reset_data', function() {
+            console.log('MWF Solidarity Slider: Variation reset, reinitializing...');
             setTimeout(function() {
                 MWF_SolidaritySlider.init();
             }, 100);

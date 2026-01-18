@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('MWF_SOLIDARITY_VERSION', '1.1.9');
+define('MWF_SOLIDARITY_VERSION', '1.2.2');
 define('MWF_SOLIDARITY_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('MWF_SOLIDARITY_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -159,7 +159,15 @@ class MWF_Solidarity_Pricing {
      * Render modal HTML
      */
     public function render_modal() {
-        // Render on all pages (needed for homepage solidarity pricing section)
+        // Only render on product pages, shop page, and homepage (not checkout/cart)
+        if (is_checkout() || is_cart()) {
+            return;
+        }
+        
+        // Only render if on shop/product pages or if homepage has shortcode
+        if (!is_shop() && !is_product() && !is_front_page() && !has_shortcode(get_post()->post_content ?? '', 'mwf_solidarity_section')) {
+            return;
+        }
         
         $settings = $this->get_settings();
         
