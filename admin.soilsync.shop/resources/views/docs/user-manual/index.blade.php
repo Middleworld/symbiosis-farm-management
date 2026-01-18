@@ -26,7 +26,7 @@
                             <h3 class="mt-4">📚 Feature Guides</h3>
                             
                             <div class="row mt-3">
-                                <div class="col-md-6 mb-3">
+                                <div class="col-lg-4 col-md-6 mb-3">
                                     <div class="card h-100">
                                         <div class="card-body">
                                             <h5 class="card-title">
@@ -41,14 +41,14 @@
                                     </div>
                                 </div>
                                 
-                                <div class="col-md-6 mb-3">
+                                <div class="col-lg-4 col-md-6 mb-3">
                                     <div class="card h-100">
                                         <div class="card-body">
                                             <h5 class="card-title">
                                                 <i class="fas fa-truck text-success"></i> 
                                                 Deliveries & Collections
                                             </h5>
-                                            <p class="card-text">Manage delivery schedules, optimize routes with Google Maps, and handle collection logistics for efficient farm operations.</p>
+                                            <p class="card-text">Manage delivery schedules, optimize routes with Google Maps, and handle collection logistics.</p>
                                             <a href="{{ route('admin.docs.page', 'deliveries-collections') }}" class="btn btn-sm btn-outline-success">
                                                 Read Guide <i class="fas fa-arrow-right"></i>
                                             </a>
@@ -56,14 +56,14 @@
                                     </div>
                                 </div>
                                 
-                                <div class="col-md-6 mb-3">
+                                <div class="col-lg-4 col-md-6 mb-3">
                                     <div class="card h-100">
                                         <div class="card-body">
                                             <h5 class="card-title">
                                                 <i class="fas fa-cogs text-info"></i> 
                                                 Setup & Installation
                                             </h5>
-                                            <p class="card-text">Complete setup guide for new customers including automated scripts, manual configuration, and troubleshooting.</p>
+                                            <p class="card-text">Complete setup guide for new customers including automated scripts and configuration.</p>
                                             <a href="{{ route('admin.docs.page', 'setup-installation') }}" class="btn btn-sm btn-outline-info">
                                                 Read Guide <i class="fas fa-arrow-right"></i>
                                             </a>
@@ -72,14 +72,14 @@
                                 </div>
                                 
                                 <!-- Succession Planning -->
-                                <div class="col-md-6 mb-3">
+                                <div class="col-lg-4 col-md-6 mb-3">
                                     <div class="card h-100">
                                         <div class="card-body">
                                             <h5 class="card-title">
                                                 <i class="fas fa-seedling text-warning"></i> 
                                                 Succession Planning
                                             </h5>
-                                            <p class="card-text">Plan crop rotations, manage planting schedules, and optimize harvest timing with AI-powered succession planning tools.</p>
+                                            <p class="card-text">Plan crop rotations and optimize harvest timing with AI-powered succession planning tools.</p>
                                             <a href="{{ route('admin.farmos.succession-planning') }}" class="btn btn-sm btn-outline-warning">
                                                 Open Planner <i class="fas fa-arrow-right"></i>
                                             </a>
@@ -87,7 +87,7 @@
                                     </div>
                                 </div>
                                 
-                                <div class="col-md-6 mb-3">
+                                <div class="col-lg-4 col-md-6 mb-3">
                                     <div class="card h-100">
                                         <div class="card-body">
                                             <h5 class="card-title">
@@ -103,14 +103,14 @@
                                 </div>
                                 
                                 <!-- Crop Planning -->
-                                <div class="col-md-6 mb-3">
+                                <div class="col-lg-4 col-md-6 mb-3">
                                     <div class="card h-100">
                                         <div class="card-body">
                                             <h5 class="card-title">
                                                 <i class="fas fa-chart-line text-info"></i> 
                                                 Crop Planning
                                             </h5>
-                                            <p class="card-text">Visualize planting timelines, track crop progress, and manage farmOS crop plans with interactive charts and planning tools.</p>
+                                            <p class="card-text">Visualize planting timelines and track crop progress with interactive charts.</p>
                                             <a href="{{ route('admin.farmos.planting-chart') }}" class="btn btn-sm btn-outline-info">
                                                 View Charts <i class="fas fa-arrow-right"></i>
                                             </a>
