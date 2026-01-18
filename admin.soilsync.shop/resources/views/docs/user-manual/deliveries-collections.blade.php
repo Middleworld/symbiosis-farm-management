@@ -252,9 +252,6 @@
                                         <a href="{{ route('admin.routes.index') }}" class="btn btn-primary btn-sm">
                                             <i class="fas fa-route"></i> Route Planner
                                         </a>
-                                        <a href="{{ route('admin.deliveries.create') }}" class="btn btn-info btn-sm">
-                                            <i class="fas fa-plus"></i> New Delivery
-                                        </a>
                                     </div>
                                 </div>
                             </div>
