@@ -7,15 +7,23 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use App\Services\CompaniesHouseService;
 
 class CompaniesHouseController extends Controller
 {
-    protected $companyNumber = '13617115';
-    protected $apiKey;
+    protected $companiesHouseService;
 
-    public function __construct()
+    public function __construct(CompaniesHouseService $companiesHouseService)
     {
-        $this->apiKey = config('services.companies_house.api_key');
+        $this->companiesHouseService = $companiesHouseService;
+    }
+
+    /**
+     * Get the company number from settings
+     */
+    protected function getCompanyNumber()
+    {
+        return \App\Models\Setting::get('company_number', '13617115'); // Default for backward compatibility
     }
 
     /**
@@ -39,28 +47,21 @@ class CompaniesHouseController extends Controller
      */
     protected function getCompanyData()
     {
-        if (!$this->apiKey) {
-            // Fallback to hardcoded data if no API key
+        if (!$this->companiesHouseService->isAuthenticated()) {
+            // Fallback to hardcoded data if not authenticated
             return $this->getHardcodedCompanyData();
         }
 
-        return Cache::remember("companies_house.company.{$this->companyNumber}", 3600, function () {
+        return Cache::remember("companies_house.company.{$this->getCompanyNumber()}", 3600, function () {
             try {
-                $response = Http::withHeaders([
-                    'Authorization' => $this->apiKey,
-                    'Accept' => 'application/json',
-                ])->get("https://api.company-information.service.gov.uk/company/{$this->companyNumber}");
+                $data = $this->companiesHouseService->getCompanyData();
 
-                if ($response->successful()) {
-                    $data = $response->json();
+                if ($data) {
                     return $this->formatCompanyData($data);
                 }
 
-                Log::error('Companies House API error', [
-                    'endpoint' => 'company',
-                    'company_number' => $this->companyNumber,
-                    'status' => $response->status(),
-                    'response' => $response->body()
+                Log::error('Companies House API error - no data returned', [
+                    'company_number' => $this->getCompanyNumber()
                 ]);
 
                 // Fallback to hardcoded data on API failure
@@ -68,8 +69,7 @@ class CompaniesHouseController extends Controller
 
             } catch (\Exception $e) {
                 Log::error('Companies House API exception', [
-                    'endpoint' => 'company',
-                    'company_number' => $this->companyNumber,
+                    'company_number' => $this->getCompanyNumber(),
                     'error' => $e->getMessage()
                 ]);
 
@@ -84,33 +84,27 @@ class CompaniesHouseController extends Controller
      */
     protected function getOfficers()
     {
-        if (!$this->apiKey) {
+        if (!$this->companiesHouseService->isAuthenticated()) {
             return [];
         }
 
-        return Cache::remember("companies_house.officers.{$this->companyNumber}", 3600, function () {
+        return Cache::remember("companies_house.officers.{$this->getCompanyNumber()}", 3600, function () {
             try {
-                $response = Http::withHeaders([
-                    'Authorization' => $this->apiKey,
-                    'Accept' => 'application/json',
-                ])->get("https://api.company-information.service.gov.uk/company/{$this->companyNumber}/officers");
+                $officers = $this->companiesHouseService->getOfficers();
 
-                if ($response->successful()) {
-                    $data = $response->json();
-                    return $this->formatOfficersData($data);
+                if ($officers) {
+                    return $this->formatOfficersData(['items' => $officers]);
                 }
 
-                Log::error('Companies House officers API error', [
-                    'company_number' => $this->companyNumber,
-                    'status' => $response->status(),
-                    'response' => $response->body()
+                Log::error('Companies House officers API error - no data returned', [
+                    'company_number' => $this->getCompanyNumber()
                 ]);
 
                 return [];
 
             } catch (\Exception $e) {
                 Log::error('Companies House officers API exception', [
-                    'company_number' => $this->companyNumber,
+                    'company_number' => $this->getCompanyNumber(),
                     'error' => $e->getMessage()
                 ]);
 
@@ -124,33 +118,27 @@ class CompaniesHouseController extends Controller
      */
     protected function getFilingHistory()
     {
-        if (!$this->apiKey) {
+        if (!$this->companiesHouseService->isAuthenticated()) {
             return [];
         }
 
-        return Cache::remember("companies_house.filing_history.{$this->companyNumber}", 3600, function () {
+        return Cache::remember("companies_house.filing_history.{$this->getCompanyNumber()}", 3600, function () {
             try {
-                $response = Http::withHeaders([
-                    'Authorization' => $this->apiKey,
-                    'Accept' => 'application/json',
-                ])->get("https://api.company-information.service.gov.uk/company/{$this->companyNumber}/filing-history");
+                $filingHistory = $this->companiesHouseService->getFilingHistory();
 
-                if ($response->successful()) {
-                    $data = $response->json();
-                    return $this->formatFilingHistoryData($data);
+                if ($filingHistory) {
+                    return $this->formatFilingHistoryData(['items' => $filingHistory]);
                 }
 
-                Log::error('Companies House filing history API error', [
-                    'company_number' => $this->companyNumber,
-                    'status' => $response->status(),
-                    'response' => $response->body()
+                Log::error('Companies House filing history API error - no data returned', [
+                    'company_number' => $this->getCompanyNumber()
                 ]);
 
                 return [];
 
             } catch (\Exception $e) {
                 Log::error('Companies House filing history API exception', [
-                    'company_number' => $this->companyNumber,
+                    'company_number' => $this->getCompanyNumber(),
                     'error' => $e->getMessage()
                 ]);
 
@@ -293,7 +281,7 @@ class CompaniesHouseController extends Controller
     protected function formatCompanyData($data)
     {
         return [
-            'company_number' => $data['company_number'] ?? $this->companyNumber,
+            'company_number' => $data['company_number'] ?? $this->getCompanyNumber(),
             'company_name' => $data['company_name'] ?? 'Unknown',
             'company_status' => $data['company_status'] ?? 'unknown',
             'type' => $data['type'] ?? 'unknown',
@@ -374,47 +362,54 @@ class CompaniesHouseController extends Controller
      */
     protected function getHardcodedCompanyData()
     {
+        // Get company information from settings, with sensible defaults
+        $companyNumber = $this->getCompanyNumber();
+        $companyName = \App\Models\Setting::get('company_name', 'Your Company Name');
+        $companyType = \App\Models\Setting::get('company_type', 'ltd');
+        
+        // Map company type to Companies House format
+        $typeMap = [
+            'ltd' => 'private-limited-guarant-nsc-limited-by-shares',
+            'cic' => 'private-limited-guarant-nsc-community-interest-company',
+            'charity' => 'private-limited-guarant-nsc-limited-by-guarantee',
+        ];
+        $companiesHouseType = $typeMap[$companyType] ?? 'private-limited-guarant-nsc-limited-by-shares';
+
         return [
-            'company_number' => '13617115',
-            'company_name' => 'MIDDLE WORLD FARMS C.I.C.',
+            'company_number' => $companyNumber,
+            'company_name' => $companyName,
             'company_status' => 'active',
-            'type' => 'private-limited-guarant-nsc-community-interest-company',
-            'date_of_creation' => '2021-09-13',
+            'type' => $companiesHouseType,
+            'date_of_creation' => \App\Models\Setting::get('company_creation_date', '2021-01-01'),
             'registered_office_address' => [
-                'address_line_1' => 'Middle World Farms Bardney Rd',
-                'address_line_2' => 'Branston Booths',
-                'locality' => 'Washingborough',
-                'region' => 'Lincolnshire',
-                'postal_code' => 'LN4 1AQ',
-                'country' => 'United Kingdom',
+                'address_line_1' => \App\Models\Setting::get('company_address_line_1', 'Your Address'),
+                'address_line_2' => \App\Models\Setting::get('company_address_line_2', ''),
+                'locality' => \App\Models\Setting::get('company_city', 'Your City'),
+                'region' => \App\Models\Setting::get('company_region', 'Your Region'),
+                'postal_code' => \App\Models\Setting::get('company_postcode', 'Your Postcode'),
+                'country' => \App\Models\Setting::get('company_country', 'United Kingdom'),
             ],
             'accounts' => [
-                'next_made_up_to' => '2024-09-30',
-                'next_due' => '2025-06-30',
-                'overdue' => false, // Just filed!
+                'next_made_up_to' => date('Y-m-d', strtotime('last day of September')),
+                'next_due' => date('Y-m-d', strtotime('last day of December')),
+                'overdue' => false,
                 'last_accounts' => [
-                    'made_up_to' => '2024-09-30',
+                    'made_up_to' => date('Y-m-d', strtotime('last day of September last year')),
                 ],
             ],
             'confirmation_statement' => [
-                'next_made_up_to' => '2026-04-11', // Next year after filing
-                'next_due' => '2026-04-25',
-                'overdue' => false, // Filed a week ago
-                'last_made_up_to' => '2025-04-11',
+                'next_made_up_to' => date('Y-m-d', strtotime('last day of ' . date('F', strtotime('3 months ago')))),
+                'next_due' => date('Y-m-d', strtotime('last day of ' . date('F', strtotime('1 month ago')))),
+                'overdue' => false,
+                'last_made_up_to' => date('Y-m-d', strtotime('last day of ' . date('F', strtotime('15 months ago')))),
             ],
             'sic_codes' => [
-                '01500' => 'Mixed farming',
-                '10390' => 'Other processing and preserving of fruit and vegetables',
-                '47810' => 'Retail sale via stalls and markets of food, beverages and tobacco products',
-                '47910' => 'Retail sale via mail order houses or via Internet',
+                \App\Models\Setting::get('company_sic_code', '01110') => \App\Models\Setting::get('company_business_description', 'Growing of cereals (except rice), leguminous crops and oil seeds'),
             ],
             'has_been_liquidated' => false,
             'has_insolvency_history' => false,
             'previous_names' => [
-                [
-                    'name' => 'MIDDLE WORLD FARMS LTD',
-                    'ceased_on' => '2024-09-23',
-                ],
+                // Can be configured if needed
             ],
         ];
     }
@@ -425,8 +420,22 @@ class CompaniesHouseController extends Controller
     public function accountsHelper()
     {
         $companyData = $this->getCompanyData();
-        
-        return view('admin.companies-house.accounts', compact('companyData'));
+        $companyType = \App\Models\Setting::get('company_type', 'ltd'); // Default to 'ltd' if not set
+        $isCic = ($companyType === 'cic');
+
+        // Check OAuth2 status
+        $isApiConfigured = $this->companiesHouseService->hasApiKey();
+        $isOAuthConfigured = $this->companiesHouseService->hasOAuthConfigured();
+        $isAuthenticated = $this->companiesHouseService->isAuthenticated();
+
+        return view('admin.companies-house.accounts', compact(
+            'companyData',
+            'companyType',
+            'isCic',
+            'isApiConfigured',
+            'isOAuthConfigured',
+            'isAuthenticated'
+        ));
     }
 
     /**
@@ -438,14 +447,30 @@ class CompaniesHouseController extends Controller
             // Get accounting period from request or use default
             $periodEnd = $request->get('period_end', '2024-09-30');
             $periodStart = date('Y-m-d', strtotime($periodEnd . ' -1 year +1 day'));
+            $format = $request->get('format', 'ixbrl'); // 'simple' or 'ixbrl'
+            
+            // Check company type
+            $companyType = \App\Models\Setting::get('company_type', 'ltd');
+            $isCic = ($companyType === 'cic');
 
-            // Generate the three required files
+            // Generate the required files
             $accountsPdf = $this->generateAccountsPdf($periodStart, $periodEnd);
-            $cicReportPdf = $this->generateCICReportPdf($periodStart, $periodEnd);
             $manifestXml = $this->generateManifestXml();
+            
+            // Only generate CIC report for CIC companies
+            $cicReportPdf = null;
+            if ($isCic) {
+                $cicReportPdf = $this->generateCICReportPdf($periodStart, $periodEnd);
+            }
 
-            // Create ZIP file
-            $zipPath = $this->createAccountsZip($accountsPdf, $cicReportPdf, $manifestXml);
+            // Create ZIP file based on format
+            if ($format === 'simple') {
+                $zipPath = $this->createSimpleAccountsZip($accountsPdf, $cicReportPdf, $manifestXml, $isCic);
+                $filename = 'accounts_simple_' . date('Y-m-d') . '.zip';
+            } else {
+                $zipPath = $this->createIXBRLAccountsZip($accountsPdf, $cicReportPdf, $manifestXml, $isCic);
+                $filename = 'accounts_ixbrl_' . date('Y-m-d') . '.zip';
+            }
 
             // Check if file exists
             if (!file_exists($zipPath)) {
@@ -453,7 +478,7 @@ class CompaniesHouseController extends Controller
             }
 
             // Return ZIP for download
-            return response()->download($zipPath, 'accounts_' . date('Y-m-d') . '.zip')->deleteFileAfterSend(true);
+            return response()->download($zipPath, $filename)->deleteFileAfterSend(true);
 
         } catch (\Exception $e) {
             \Log::error('Accounts package generation failed: ' . $e->getMessage());
@@ -725,7 +750,7 @@ class CompaniesHouseController extends Controller
      */
     private function generateManifestXml()
     {
-        $companyNumber = str_pad($this->companyNumber, 8, '0', STR_PAD_LEFT);
+        $companyNumber = str_pad($this->getCompanyNumber(), 8, '0', STR_PAD_LEFT);
         $accountsPath = "html-{$companyNumber}/accounts/";
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
@@ -754,7 +779,7 @@ class CompaniesHouseController extends Controller
         // This is ACCOUNTS filing only - NOT for CIC34 community interest report
         // Structure: html-{companyNumber}/accounts/ containing accounts files + CIC34 empty dir
         $zipPath = storage_path('app/accounts_package.zip');
-        $companyNumber = str_pad($this->companyNumber, 8, '0', STR_PAD_LEFT);
+        $companyNumber = str_pad($this->getCompanyNumber(), 8, '0', STR_PAD_LEFT);
 
         $zip = new \ZipArchive;
 
@@ -808,5 +833,178 @@ class CompaniesHouseController extends Controller
         unlink($accountsPath);
 
         return $zipPath;
+    }
+
+    /**
+     * Create simple ZIP package with PDFs at root level
+     * This is easier for manual upload but may not meet all Companies House requirements
+     */
+    private function createSimpleAccountsZip($accountsPdf, $cicReportPdf, $manifestXml, $isCic = false)
+    {
+        $zipPath = storage_path('app/accounts_simple.zip');
+
+        $zip = new \ZipArchive;
+
+        if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== TRUE) {
+            throw new \Exception('Cannot create simple ZIP file');
+        }
+
+        // Simple structure - files at root level
+        if (file_exists($accountsPdf)) {
+            $zip->addFile($accountsPdf, 'accounts.pdf');
+        }
+        if ($isCic && $cicReportPdf && file_exists($cicReportPdf)) {
+            $zip->addFile($cicReportPdf, 'cicreport.pdf');
+        }
+        if (file_exists($manifestXml)) {
+            $zip->addFile($manifestXml, 'manifest.xml');
+        }
+
+        $zip->close();
+
+        return $zipPath;
+    }
+
+    /**
+     * Create iXBRL-compliant ZIP package for Companies House
+     * This follows the proper structure required for automated filing
+     */
+    private function createIXBRLAccountsZip($accountsPdf, $cicReportPdf, $manifestXml, $isCic = false)
+    {
+        $zipPath = storage_path('app/accounts_ixbrl.zip');
+        $companyNumber = str_pad($this->getCompanyNumber(), 8, '0', STR_PAD_LEFT);
+
+        $zip = new \ZipArchive;
+
+        if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== TRUE) {
+            throw new \Exception('Cannot create iXBRL ZIP file');
+        }
+
+        // iXBRL structure: html-{companyNumber}/accounts/ with XHTML and manifest
+        $baseDir = "html-{$companyNumber}";
+        $accountsDir = $baseDir . '/accounts';
+
+        $zip->addEmptyDir($baseDir);
+        $zip->addEmptyDir($accountsDir);
+
+        // Only add CIC34 directory for CIC companies
+        if ($isCic) {
+            $cic34Dir = $baseDir . '/CIC34';
+            $zip->addEmptyDir($cic34Dir);
+        }
+
+        // Create proper iXBRL accounts file
+        $accountsPath = storage_path('app/temp/accounts.xhtml');
+        $accountsContent = $this->generateIXBRLAccountsContent();
+
+        if (file_put_contents($accountsPath, $accountsContent) === false) {
+            throw new \Exception('Failed to create iXBRL accounts file');
+        }
+
+        if (!file_exists($accountsPath)) {
+            throw new \Exception('iXBRL accounts file missing');
+        }
+        if (!file_exists($manifestXml)) {
+            throw new \Exception('Manifest XML file missing');
+        }
+
+        $zip->addFile($accountsPath, $accountsDir . '/accounts.xhtml');
+        $zip->addFile($manifestXml, $accountsDir . '/manifest.xml');
+
+        $zip->close();
+        unlink($accountsPath);
+
+        return $zipPath;
+    }
+
+    /**
+     * Generate iXBRL-compliant accounts content
+     */
+    private function generateIXBRLAccountsContent()
+    {
+        $companyNumber = str_pad($this->getCompanyNumber(), 8, '0', STR_PAD_LEFT);
+
+        return '<?xml version="1.0" encoding="UTF-8"?>' . "\n" .
+               '<!DOCTYPE html>' . "\n" .
+               '<html xmlns="http://www.w3.org/1999/xhtml"' . "\n" .
+               '      xmlns:ix="http://www.xbrl.org/inlineXBRL/transformation/2015-08-31"' . "\n" .
+               '      xmlns:ixt="http://www.xbrl.org/inlineXBRL/transformation/2015-08-31"' . "\n" .
+               '      xmlns:xbrli="http://www.xbrl.org/2003/instance"' . "\n" .
+               '      xmlns:xbrldi="http://xbrl.org/2006/xbrldi"' . "\n" .
+               '      xmlns:link="http://www.xbrl.org/2003/linkbase"' . "\n" .
+               '      xmlns:xlink="http://www.w3.org/1999/xlink"' . "\n" .
+               '      xmlns:fr="http://www.xbrl.org/taxonomy/int/fr/gaap/2004-12-01"' . "\n" .
+               '      xmlns:uk-gaap="http://www.xbrl.org/uk/gaap/core/2009-09-01"' . "\n" .
+               '      xmlns:uk-countries="http://www.xbrl.org/uk/gaap/countries/2009-09-01">' . "\n" .
+               '<head>' . "\n" .
+               '    <meta charset="UTF-8"/>' . "\n" .
+               '    <title>Micro-entity Accounts - MIDDLE WORLD FARMS C.I.C.</title>' . "\n" .
+               '    <style type="text/css">' . "\n" .
+               '        body { font-family: Arial, sans-serif; margin: 40px; }' . "\n" .
+               '        h1, h2 { color: #333; text-align: center; }' . "\n" .
+               '        table { width: 100%; border-collapse: collapse; margin: 20px 0; }' . "\n" .
+               '        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }' . "\n" .
+               '        th { background-color: #f2f2f2; }' . "\n" .
+               '        .number { text-align: right; }' . "\n" .
+               '    </style>' . "\n" .
+               '</head>' . "\n" .
+               '<body>' . "\n" .
+               '    <h1>MIDDLE WORLD FARMS C.I.C.</h1>' . "\n" .
+               '    <h2>Company Number: ' . $companyNumber . '</h2>' . "\n" .
+               '    <h2>Micro-entity Accounts</h2>' . "\n" .
+               '    <p>For the year ended ' . date('d F Y') . '</p>' . "\n" .
+               '    <p>This is an Inline XBRL (iXBRL) document.</p>' . "\n" .
+               '    <p>Balance Sheet and Profit & Loss Account data would be embedded here with proper XBRL tags.</p>' . "\n" .
+               '</body>' . "\n" .
+               '</html>';
+    }
+
+    /**
+     * Redirect to Companies House OAuth2 authorization
+     */
+    public function authorize()
+    {
+        if (!$this->companiesHouseService->hasOAuthConfigured()) {
+            return redirect()->route('admin.companies-house.index')
+                ->with('error', 'Companies House OAuth2 is not configured. Please set COMPANIES_HOUSE_CLIENT_ID and COMPANIES_HOUSE_CLIENT_SECRET in your environment.');
+        }
+
+        return redirect($this->companiesHouseService->getAuthorizationUrl());
+    }
+
+    /**
+     * Handle OAuth2 callback from Companies House
+     */
+    public function callback(Request $request)
+    {
+        $code = $request->get('code');
+        $state = $request->get('state');
+        $error = $request->get('error');
+
+        if ($error) {
+            return redirect()->route('admin.companies-house.index')
+                ->with('error', 'OAuth2 authorization failed: ' . $error);
+        }
+
+        if (!$code) {
+            return redirect()->route('admin.companies-house.index')
+                ->with('error', 'No authorization code received from Companies House.');
+        }
+
+        // Verify state parameter for CSRF protection
+        if ($state !== csrf_token()) {
+            return redirect()->route('admin.companies-house.index')
+                ->with('error', 'Invalid state parameter. Please try again.');
+        }
+
+        $tokenData = $this->companiesHouseService->getAccessToken($code);
+
+        if ($tokenData) {
+            return redirect()->route('admin.companies-house.index')
+                ->with('success', 'Successfully connected to Companies House!');
+        } else {
+            return redirect()->route('admin.companies-house.index')
+                ->with('error', 'Failed to obtain access token from Companies House.');
+        }
     }
 }

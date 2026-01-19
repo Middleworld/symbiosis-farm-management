@@ -102,8 +102,11 @@ class Setting extends Model
     /**
      * Cast value from string to appropriate type
      */
-    private static function castValue(string $value, string $type)
+    private static function castValue(?string $value, string $type)
     {
+        if ($value === null) {
+            return null;
+        }
         return match ($type) {
             'boolean' => filter_var($value, FILTER_VALIDATE_BOOLEAN),
             'integer' => (int) $value,

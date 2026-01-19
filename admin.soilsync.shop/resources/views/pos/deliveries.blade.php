@@ -11,14 +11,6 @@
 @section('styles')
 <style>
     /* Mobile-optimized styles */
-    .sidebar {
-        display: none !important;
-    }
-    
-    .main-content {
-        margin-left: 0 !important;
-        width: 100% !important;
-    }
     
     .container-fluid {
         padding: 0.5rem !important;

@@ -162,6 +162,16 @@ class SettingsController extends Controller
                 'type' => 'string',
                 'description' => 'Companies House registration number'
             ],
+            'companies_house_client_id' => [
+                'value' => $request->companies_house_client_id,
+                'type' => 'string',
+                'description' => 'Companies House OAuth2 client ID / API key'
+            ],
+            'companies_house_client_secret' => [
+                'value' => $request->companies_house_client_secret,
+                'type' => 'string',
+                'description' => 'Companies House OAuth2 client secret'
+            ],
             'tax_year_end' => [
                 'value' => $request->tax_year_end ?? '30-09',
                 'type' => 'string',
@@ -506,6 +516,10 @@ class SettingsController extends Controller
     private function getDefaultSettings()
     {
         return [
+            // Companies House
+            'companies_house_client_id' => env('COMPANIES_HOUSE_CLIENT_ID'),
+            'companies_house_client_secret' => env('COMPANIES_HOUSE_CLIENT_SECRET'),
+
             // Farm/Season Settings
             'farm_name' => 'Middle World Farms',
             'season_start_date' => '2025-04-01',     // Season start date
@@ -564,6 +578,18 @@ class SettingsController extends Controller
     private function getDefaultSettingsWithTypes()
     {
         return [
+            // Companies House
+            'companies_house_client_id' => [
+                'value' => env('COMPANIES_HOUSE_CLIENT_ID'),
+                'type' => 'string',
+                'description' => 'Companies House OAuth2 client ID / API key'
+            ],
+            'companies_house_client_secret' => [
+                'value' => env('COMPANIES_HOUSE_CLIENT_SECRET'),
+                'type' => 'string',
+                'description' => 'Companies House OAuth2 client secret'
+            ],
+
             // Farm/Season Settings
             'farm_name' => [
                 'value' => 'Middle World Farms',
@@ -686,6 +712,121 @@ class SettingsController extends Controller
                 'value' => false,
                 'type' => 'boolean',
                 'description' => 'Automatically sync emails from inbox'
+            ],
+
+            // Accounting Integration Settings
+            'accounting_provider' => [
+                'value' => 'csv',
+                'type' => 'string',
+                'description' => 'Accounting integration provider (csv, quickbooks, xero, sage, myob)'
+            ],
+            'accounting_sync_frequency' => [
+                'value' => 'manual',
+                'type' => 'string',
+                'description' => 'How often to sync accounting data (manual, daily, weekly, monthly)'
+            ],
+            'csv_format' => [
+                'value' => 'standard',
+                'type' => 'string',
+                'description' => 'CSV format for bank imports (standard, custom)'
+            ],
+            'csv_auto_categorize' => [
+                'value' => true,
+                'type' => 'boolean',
+                'description' => 'Automatically categorize imported transactions'
+            ],
+
+            // QuickBooks Settings
+            'quickbooks_client_id' => [
+                'value' => null,
+                'type' => 'string',
+                'description' => 'QuickBooks OAuth2 Client ID'
+            ],
+            'quickbooks_client_secret' => [
+                'value' => null,
+                'type' => 'encrypted',
+                'description' => 'QuickBooks OAuth2 Client Secret'
+            ],
+            'quickbooks_company_id' => [
+                'value' => null,
+                'type' => 'string',
+                'description' => 'QuickBooks Company ID'
+            ],
+            'quickbooks_environment' => [
+                'value' => 'sandbox',
+                'type' => 'string',
+                'description' => 'QuickBooks environment (sandbox, production)'
+            ],
+
+            // Xero Settings
+            'xero_client_id' => [
+                'value' => null,
+                'type' => 'string',
+                'description' => 'Xero OAuth2 Client ID'
+            ],
+            'xero_client_secret' => [
+                'value' => null,
+                'type' => 'encrypted',
+                'description' => 'Xero OAuth2 Client Secret'
+            ],
+            'xero_tenant_id' => [
+                'value' => null,
+                'type' => 'string',
+                'description' => 'Xero Tenant ID'
+            ],
+            'xero_environment' => [
+                'value' => 'demo',
+                'type' => 'string',
+                'description' => 'Xero environment (demo, production)'
+            ],
+
+            // Sage Settings
+            'sage_client_id' => [
+                'value' => null,
+                'type' => 'string',
+                'description' => 'Sage API Client ID'
+            ],
+            'sage_client_secret' => [
+                'value' => null,
+                'type' => 'encrypted',
+                'description' => 'Sage API Client Secret'
+            ],
+            'sage_subscription_key' => [
+                'value' => null,
+                'type' => 'encrypted',
+                'description' => 'Sage API Subscription Key'
+            ],
+            'sage_business_id' => [
+                'value' => null,
+                'type' => 'string',
+                'description' => 'Sage Business ID'
+            ],
+            'sage_environment' => [
+                'value' => 'sandbox',
+                'type' => 'string',
+                'description' => 'Sage environment (sandbox, production)'
+            ],
+
+            // MYOB Settings
+            'myob_client_id' => [
+                'value' => null,
+                'type' => 'string',
+                'description' => 'MYOB API Client ID'
+            ],
+            'myob_client_secret' => [
+                'value' => null,
+                'type' => 'encrypted',
+                'description' => 'MYOB API Client Secret'
+            ],
+            'myob_company_file_id' => [
+                'value' => null,
+                'type' => 'string',
+                'description' => 'MYOB Company File ID'
+            ],
+            'myob_environment' => [
+                'value' => 'sandbox',
+                'type' => 'string',
+                'description' => 'MYOB environment (sandbox, production)'
             ],
         ];
     }
@@ -2874,7 +3015,122 @@ class SettingsController extends Controller
             ], 500);
         }
     }
-    
+
+    /**
+     * Update accounting integration settings
+     */
+    public function updateAccountingSettings(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'accounting_provider' => 'required|in:csv,quickbooks,xero,sage,myob',
+                'accounting_sync_frequency' => 'required|in:manual,daily,weekly,monthly',
+                'csv_format' => 'nullable|in:standard,custom',
+                'csv_auto_categorize' => 'nullable|boolean',
+
+                // QuickBooks validation
+                'quickbooks_client_id' => 'nullable|string|max:255',
+                'quickbooks_client_secret' => 'nullable|string|max:255',
+                'quickbooks_company_id' => 'nullable|string|max:255',
+                'quickbooks_environment' => 'nullable|in:sandbox,production',
+
+                // Xero validation
+                'xero_client_id' => 'nullable|string|max:255',
+                'xero_client_secret' => 'nullable|string|max:255',
+                'xero_tenant_id' => 'nullable|string|max:255',
+                'xero_environment' => 'nullable|in:demo,production',
+            ]);
+
+            // Save basic settings
+            Setting::set('accounting_provider', $validated['accounting_provider'], 'string', 'Accounting integration provider');
+            Setting::set('accounting_sync_frequency', $validated['accounting_sync_frequency'], 'string', 'Accounting sync frequency');
+
+            // CSV settings
+            if (isset($validated['csv_format'])) {
+                Setting::set('csv_format', $validated['csv_format'], 'string', 'CSV import format');
+            }
+            Setting::set('csv_auto_categorize', $validated['csv_auto_categorize'] ?? false, 'boolean', 'Auto-categorize CSV imports');
+
+            // QuickBooks settings (encrypted)
+            if (isset($validated['quickbooks_client_id'])) {
+                Setting::set('quickbooks_client_id', $validated['quickbooks_client_id'], 'string', 'QuickBooks Client ID');
+            }
+            if (isset($validated['quickbooks_client_secret'])) {
+                Setting::set('quickbooks_client_secret', $validated['quickbooks_client_secret'], 'encrypted', 'QuickBooks Client Secret');
+            }
+            if (isset($validated['quickbooks_company_id'])) {
+                Setting::set('quickbooks_company_id', $validated['quickbooks_company_id'], 'string', 'QuickBooks Company ID');
+            }
+            if (isset($validated['quickbooks_environment'])) {
+                Setting::set('quickbooks_environment', $validated['quickbooks_environment'], 'string', 'QuickBooks Environment');
+            }
+
+            // Xero settings (encrypted)
+            if (isset($validated['xero_client_id'])) {
+                Setting::set('xero_client_id', $validated['xero_client_id'], 'string', 'Xero Client ID');
+            }
+            if (isset($validated['xero_client_secret'])) {
+                Setting::set('xero_client_secret', $validated['xero_client_secret'], 'encrypted', 'Xero Client Secret');
+            }
+            if (isset($validated['xero_tenant_id'])) {
+                Setting::set('xero_tenant_id', $validated['xero_tenant_id'], 'string', 'Xero Tenant ID');
+            }
+            if (isset($validated['xero_environment'])) {
+                Setting::set('xero_environment', $validated['xero_environment'], 'string', 'Xero Environment');
+            }
+
+            // Sage settings (encrypted)
+            if (isset($validated['sage_client_id'])) {
+                Setting::set('sage_client_id', $validated['sage_client_id'], 'string', 'Sage Client ID');
+            }
+            if (isset($validated['sage_client_secret'])) {
+                Setting::set('sage_client_secret', $validated['sage_client_secret'], 'encrypted', 'Sage Client Secret');
+            }
+            if (isset($validated['sage_subscription_key'])) {
+                Setting::set('sage_subscription_key', $validated['sage_subscription_key'], 'encrypted', 'Sage Subscription Key');
+            }
+            if (isset($validated['sage_business_id'])) {
+                Setting::set('sage_business_id', $validated['sage_business_id'], 'string', 'Sage Business ID');
+            }
+            if (isset($validated['sage_environment'])) {
+                Setting::set('sage_environment', $validated['sage_environment'], 'string', 'Sage Environment');
+            }
+
+            // MYOB settings (encrypted)
+            if (isset($validated['myob_client_id'])) {
+                Setting::set('myob_client_id', $validated['myob_client_id'], 'string', 'MYOB Client ID');
+            }
+            if (isset($validated['myob_client_secret'])) {
+                Setting::set('myob_client_secret', $validated['myob_client_secret'], 'encrypted', 'MYOB Client Secret');
+            }
+            if (isset($validated['myob_company_file_id'])) {
+                Setting::set('myob_company_file_id', $validated['myob_company_file_id'], 'string', 'MYOB Company File ID');
+            }
+            if (isset($validated['myob_environment'])) {
+                Setting::set('myob_environment', $validated['myob_environment'], 'string', 'MYOB Environment');
+            }
+
+            // Clear settings cache
+            Cache::forget('admin_settings');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Accounting settings saved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to update accounting settings', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save accounting settings: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     /**
      * Get active branding data for external integrations (WordPress, etc.)
      */

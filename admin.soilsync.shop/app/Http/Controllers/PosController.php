@@ -238,6 +238,10 @@ class PosController extends Controller
      */
     public function getOrders(Request $request)
     {
+        if (!$request->ajax() && !$request->expectsJson()) {
+            return redirect()->route('pos.order-history');
+        }
+
         $user = Session::get('user');
         $perPage = $request->get('per_page', 20);
         $status = $request->get('status');

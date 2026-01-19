@@ -216,7 +216,22 @@
                 </div>
             </div>
 
-            <!-- Section 8: Branding -->
+            <!-- Section 8: Accounting Integrations -->
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#section-accounting">
+                        <i class="fas fa-calculator me-2"></i> Accounting Integrations
+                        <span class="badge bg-success ms-auto me-3">QuickBooks, Xero, Sage & MYOB</span>
+                    </button>
+                </h2>
+                <div id="section-accounting" class="accordion-collapse collapse" data-bs-parent="#settingsAccordion">
+                    <div class="accordion-body">
+                        @include('admin.settings.sections.accounting-integrations')
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 9: Branding -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#section-branding">

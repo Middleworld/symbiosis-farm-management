@@ -165,17 +165,33 @@ class AnalyticsController extends Controller
     private function getTrends($startDate)
     {
         // Customer growth from WordPress user registrations
-        // This pulls ALL historical customer data from WooCommerce/WordPress
+        // Always show growth from the start of the current year
+        $currentYearStart = Carbon::now()->startOfYear();
         $prefix = config('database.connections.wordpress.prefix');
-        $customerGrowth = WordPressUser::selectRaw('DATE(user_registered) as date, COUNT(*) as count')
+        $rawCustomerGrowth = WordPressUser::selectRaw('DATE(user_registered) as date, COUNT(*) as count')
             ->whereHas('meta', function ($query) use ($prefix) {
                 $query->where('meta_key', $prefix . 'capabilities')
                       ->where('meta_value', 'LIKE', '%customer%');
             })
-            ->where('user_registered', '>=', $startDate)
+            ->where('user_registered', '>=', $currentYearStart)
             ->groupBy('date')
             ->orderBy('date')
             ->get();
+            
+        // Create complete date range from Jan 1st to today, filling missing dates with 0
+        $customerGrowth = collect();
+        $currentDate = $currentYearStart->copy();
+        $today = Carbon::now();
+        
+        while ($currentDate <= $today) {
+            $dateStr = $currentDate->format('Y-m-d');
+            $existingData = $rawCustomerGrowth->firstWhere('date', $dateStr);
+            $customerGrowth->push([
+                'date' => $dateStr,
+                'count' => $existingData ? $existingData->count : 0
+            ]);
+            $currentDate->addDay();
+        }
             
         // Task creation trend
         $taskTrends = DB::table('farm_tasks')

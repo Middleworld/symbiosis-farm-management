@@ -109,8 +109,11 @@ return [
     ],
 
     'companies_house' => [
-        'api_key' => env('COMPANIES_HOUSE_API_KEY'),
+        'api_key' => env('COMPANIES_HOUSE_API_KEY'), // Keep for backward compatibility
         'base_url' => env('COMPANIES_HOUSE_BASE_URL', 'https://api.company-information.service.gov.uk'),
+        'client_id' => env('COMPANIES_HOUSE_CLIENT_ID'),
+        'client_secret' => env('COMPANIES_HOUSE_CLIENT_SECRET'),
+        'redirect_uri' => env('COMPANIES_HOUSE_REDIRECT_URI', env('APP_URL') . '/admin/companies-house/callback'),
     ],
 
     'customer_site' => [

@@ -72,10 +72,6 @@ config/mail.php.local
 *.csr
 *.cnf
 
-# Open Banking Certificates (CRITICAL - NEVER COMMIT)
-storage/certificates/
-storage/certificates/**/*
-
 # Local development
 docker-compose.override.yml
 .vagrant/

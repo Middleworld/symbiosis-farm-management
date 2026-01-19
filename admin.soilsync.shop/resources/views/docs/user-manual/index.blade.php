@@ -61,6 +61,23 @@
                                 </div>
                                 
                                 <div class="col-lg-4 col-md-6 mb-3">
+                                    <a href="{{ route('admin.docs.page', 'pos-system') }}" class="text-decoration-none">
+                                        <div class="card h-100">
+                                            <div class="card-body">
+                                                <h5 class="card-title">
+                                                    <i class="fas fa-cash-register text-success"></i> 
+                                                    POS System
+                                                </h5>
+                                                <p class="card-text">Complete guide to POS Terminal, Inventory management, and order processing for market stalls.</p>
+                                                <div class="btn btn-sm btn-outline-success">
+                                                    Read Guide <i class="fas fa-arrow-right"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </div>
+                                
+                                <div class="col-lg-4 col-md-6 mb-3">
                                     <a href="{{ route('admin.docs.page', 'setup-installation') }}" class="text-decoration-none">
                                         <div class="card h-100">
                                             <div class="card-body">
@@ -143,7 +160,7 @@
                             <div class="alert alert-light">
                                 <ul class="mb-0">
                                     <li>Ask the <strong>AI Helper</strong> in the sidebar for instant assistance</li>
-                                    <li>Check the relevant feature guide above</li>
+                                    <li>Check the relevant feature guide above, including the new <a href="{{ route('admin.docs.page', 'pos-system') }}">POS System Guide</a></li>
                                     <li>Contact your system administrator</li>
                                     <li>Visit the project Wiki for detailed documentation</li>
                                 </ul>
@@ -160,6 +177,7 @@
                                     <ul class="list-unstyled">
                                         <li><a href="{{ route('admin.vegbox-subscriptions.index') }}">View Subscriptions</a></li>
                                         <li><a href="{{ route('admin.deliveries.index') }}">Check Deliveries</a></li>
+                                        <li><a href="{{ route('pos.dashboard') }}">POS Terminal</a></li>
                                         <li><a href="{{ route('admin.tasks.index') }}">Manage Tasks</a></li>
                                         <li><a href="{{ route('admin.users.index') }}">Find Customer</a></li>
                                     </ul>

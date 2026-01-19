@@ -56,6 +56,15 @@
         body {
             overflow-x: hidden;
         }
+
+        body.pos-only .sidebar {
+            display: none !important;
+        }
+
+        body.pos-only .main-content {
+            margin-left: 0 !important;
+            width: 100% !important;
+        }
         
         /* Bootstrap Modal Z-Index Fix (if using Bootstrap modals) */
         .modal-backdrop {
@@ -508,10 +517,12 @@
         }
     </style>
 </head>
-<body class="has-sidebar">
+@php
+    $user = Session::get('user');
+    $isPosOnly = (($user['role'] ?? null) === 'pos_staff') && empty($user['auto_authenticated']);
+@endphp
+<body class="has-sidebar{{ $isPosOnly ? ' pos-only' : '' }}">
     @php
-        $user = Session::get('user');
-        $isPosOnly = isset($user['is_pos_staff']) && $user['is_pos_staff'] && !($user['is_admin'] ?? false);
 
         $customerSiteUrl = \App\Models\Setting::get('customer_site_url', config('services.customer_site.url'));
         if (empty($customerSiteUrl) || str_contains($customerSiteUrl, 'example-farm.com')) {
@@ -736,11 +747,6 @@
                 <a href="{{ route('admin.bank-transactions.import-form') }}" class="nav-link {{ request()->is('admin/bank-transactions/import') ? 'active' : '' }}">
                     <i class="fas fa-upload"></i>
                     <span>Import CSV</span>
-                </a>
-                
-                <a href="{{ route('admin.openbanking.index') }}" class="nav-link {{ request()->is('admin/openbanking*') ? 'active' : '' }}">
-                    <i class="fas fa-university"></i>
-                    <span>Open Banking</span>
                 </a>
             </div>
             

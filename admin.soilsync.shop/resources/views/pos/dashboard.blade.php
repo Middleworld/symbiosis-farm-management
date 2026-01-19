@@ -25,16 +25,6 @@
     
     /* Touch-friendly buttons */
     @media (max-width: 768px) {
-        /* Hide sidebar on mobile POS */
-        .sidebar {
-            display: none !important;
-        }
-        
-        /* Full-width content on mobile */
-        .main-content {
-            margin-left: 0 !important;
-            width: 100% !important;
-        }
         
         /* Reduce container padding on mobile */
         .container-fluid {

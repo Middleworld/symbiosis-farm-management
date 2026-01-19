@@ -68,6 +68,28 @@
                 </h5>
             </div>
             <div class="card-body">
+
+                <hr class="my-4">
+                <h6><i class="fas fa-key"></i> Companies House API</h6>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="companies_house_client_id" class="form-label"><strong>Client ID / API Key</strong></label>
+                        <input type="text" class="form-control" id="companies_house_client_id" name="companies_house_client_id"
+                               value="{{ $settings['companies_house_client_id'] ?? '' }}" placeholder="Enter Companies House client ID">
+                        <div class="form-text">Use the Companies House API key or OAuth client ID for this company.</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="companies_house_client_secret" class="form-label"><strong>Client Secret</strong></label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="companies_house_client_secret" name="companies_house_client_secret"
+                                   value="{{ $settings['companies_house_client_secret'] ?? '' }}" placeholder="Enter Companies House client secret">
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('companies_house_client_secret')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">Required for OAuth2 access. Leave blank if not provided.</div>
+                    </div>
+                </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="farm_name" class="form-label"><strong>Farm Name</strong></label>

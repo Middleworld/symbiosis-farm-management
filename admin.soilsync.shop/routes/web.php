@@ -49,7 +49,8 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         $validPages = [
             'subscription-management',
             'setup-installation',
-            'deliveries-collections'
+            'deliveries-collections',
+            'pos-system'
         ];
         
         if (in_array($page, $validPages)) {
@@ -257,19 +258,6 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         Route::get('/{update}/script', [App\Http\Controllers\Admin\UpdateTrackingController::class, 'generateScript'])->name('script');
     });
 
-    // Open Banking routes
-    Route::prefix('openbanking')->name('admin.openbanking.')->group(function () {
-        Route::get('/', [App\Http\Controllers\Admin\OpenBankingController::class, 'index'])->name('index');
-        Route::post('/register', [App\Http\Controllers\Admin\OpenBankingController::class, 'register'])->name('register');
-        Route::get('/{connection}/authorize', [App\Http\Controllers\Admin\OpenBankingController::class, 'authorize'])->name('authorize');
-        Route::get('/callback', [App\Http\Controllers\Admin\OpenBankingController::class, 'callback'])->name('callback');
-        Route::post('/{connection}/sync-accounts', [App\Http\Controllers\Admin\OpenBankingController::class, 'syncAccounts'])->name('sync-accounts');
-        Route::post('/{account}/sync-transactions', [App\Http\Controllers\Admin\OpenBankingController::class, 'syncTransactions'])->name('sync-transactions');
-        Route::get('/{account}/details', [App\Http\Controllers\Admin\OpenBankingController::class, 'showAccount'])->name('account-details');
-        Route::post('/{connection}/disconnect', [App\Http\Controllers\Admin\OpenBankingController::class, 'disconnect'])->name('disconnect');
-        Route::post('/{connection}/refresh-token', [App\Http\Controllers\Admin\OpenBankingController::class, 'refreshToken'])->name('refresh-token');
-    });
-
     // Analytics and Reports routes
     Route::get('/reports', [App\Http\Controllers\Admin\ReportsController::class, 'index'])->name('admin.reports');
     Route::get('/reports/export', [App\Http\Controllers\Admin\ReportsController::class, 'export'])->name('admin.reports.export');
@@ -311,6 +299,42 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
     
     // Branding settings routes
     Route::post('/settings/update-branding', [App\Http\Controllers\Admin\SettingsController::class, 'updateBrandingSettings'])->name('admin.settings.update-branding');
+    Route::post('/settings/update-accounting', [App\Http\Controllers\Admin\SettingsController::class, 'updateAccountingSettings'])->name('admin.settings.update-accounting');
+
+    // Accounting Integration routes
+    Route::prefix('accounting')->name('admin.accounting.')->group(function () {
+        // QuickBooks routes
+        Route::prefix('quickbooks')->name('quickbooks.')->group(function () {
+            Route::get('/authorize', [App\Http\Controllers\Admin\AccountingController::class, 'quickbooksAuthorize'])->name('authorize');
+            Route::get('/callback', [App\Http\Controllers\Admin\AccountingController::class, 'quickbooksCallback'])->name('callback');
+            Route::post('/test-connection', [App\Http\Controllers\Admin\AccountingController::class, 'testQuickBooksConnection'])->name('test-connection');
+            Route::post('/sync', [App\Http\Controllers\Admin\AccountingController::class, 'syncQuickBooks'])->name('sync');
+        });
+
+        // Xero routes
+        Route::prefix('xero')->name('xero.')->group(function () {
+            Route::get('/authorize', [App\Http\Controllers\Admin\AccountingController::class, 'xeroAuthorize'])->name('authorize');
+            Route::get('/callback', [App\Http\Controllers\Admin\AccountingController::class, 'xeroCallback'])->name('callback');
+            Route::post('/test-connection', [App\Http\Controllers\Admin\AccountingController::class, 'testXeroConnection'])->name('test-connection');
+            Route::post('/sync', [App\Http\Controllers\Admin\AccountingController::class, 'syncXero'])->name('sync');
+        });
+
+        // Sage routes
+        Route::prefix('sage')->name('sage.')->group(function () {
+            Route::get('/authorize', [App\Http\Controllers\Admin\AccountingController::class, 'sageAuthorize'])->name('authorize');
+            Route::get('/callback', [App\Http\Controllers\Admin\AccountingController::class, 'sageCallback'])->name('callback');
+            Route::post('/test-connection', [App\Http\Controllers\Admin\AccountingController::class, 'testSageConnection'])->name('test-connection');
+            Route::post('/sync', [App\Http\Controllers\Admin\AccountingController::class, 'syncSage'])->name('sync');
+        });
+
+        // MYOB routes
+        Route::prefix('myob')->name('myob.')->group(function () {
+            Route::get('/authorize', [App\Http\Controllers\Admin\AccountingController::class, 'myobAuthorize'])->name('authorize');
+            Route::get('/callback', [App\Http\Controllers\Admin\AccountingController::class, 'myobCallback'])->name('callback');
+            Route::post('/test-connection', [App\Http\Controllers\Admin\AccountingController::class, 'testMyobConnection'])->name('test-connection');
+            Route::post('/sync', [App\Http\Controllers\Admin\AccountingController::class, 'syncMyob'])->name('sync');
+        });
+    });
     
     // Branding API endpoint for external integrations (WordPress, etc.)
     Route::get('/api/branding/active', [App\Http\Controllers\Admin\SettingsController::class, 'getActiveBranding'])->name('admin.api.branding.active');
@@ -501,7 +525,9 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\CompaniesHouseController::class, 'index'])->name('index');
         Route::get('/confirmation-statement', [App\Http\Controllers\Admin\CompaniesHouseController::class, 'confirmationStatementHelper'])->name('confirmation-helper');
         Route::get('/accounts', [App\Http\Controllers\Admin\CompaniesHouseController::class, 'accountsHelper'])->name('accounts-helper');
-        Route::post('/accounts/generate', [App\Http\Controllers\Admin\BankTransactionController::class, 'generateAccountsPackage'])->name('generate-accounts');
+        Route::post('/accounts/generate', [App\Http\Controllers\Admin\CompaniesHouseController::class, 'generateAccountsPackage'])->name('generate-accounts');
+        Route::get('/authorize', [App\Http\Controllers\Admin\CompaniesHouseController::class, 'authorize'])->name('authorize');
+        Route::get('/callback', [App\Http\Controllers\Admin\CompaniesHouseController::class, 'callback'])->name('callback');
     });
 
     // Admin User Management routes
