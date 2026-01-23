@@ -521,11 +521,13 @@
         // Dynamic external service URLs based on current domain
         $farmosUrl = config('farmos.url');
         $fieldkitUrl = 'https://fieldkit.soilsync.shop'; // Default fallback
+        $pleskUrl = 'https://soilsync.shop:8443'; // Default Plesk URL
         
         if ($appHost && strpos($appHost, 'admin.') === 0) {
             $baseDomain = substr($appHost, 6); // Remove 'admin.' prefix
             $farmosUrl = $appScheme . '://farmos.' . $baseDomain;
             $fieldkitUrl = $appScheme . '://fieldkit.' . $baseDomain;
+            $pleskUrl = $appScheme . '://' . $baseDomain . ':8443';
         }
     @endphp
 
@@ -860,6 +862,11 @@
                             <a href="{{ $farmosUrl }}" class="mega-menu-item" target="_blank">
                                 <i class="fas fa-seedling"></i>
                                 <span>farmOS</span>
+                            </a>
+                            
+                            <a href="{{ $pleskUrl }}" class="mega-menu-item" target="_blank">
+                                <i class="fas fa-server"></i>
+                                <span>Plesk Control Panel</span>
                             </a>
                         </div>
                     </div>
