@@ -916,10 +916,19 @@
                     if (megaMenu) {
                         const sectionRect = section.getBoundingClientRect();
                         const sidebarRect = document.querySelector('.sidebar').getBoundingClientRect();
+                        const menuHeight = megaMenu.offsetHeight || 400; // Estimate height if not yet rendered
+                        const viewportHeight = window.innerHeight;
                         
-                        // Position the mega menu at the same vertical position as the nav section
-                        // relative to the viewport
-                        megaMenu.style.top = sectionRect.top + 'px';
+                        // Calculate where the menu would appear
+                        let proposedTop = sectionRect.top;
+                        
+                        // If the menu would extend below the viewport, position it above the section
+                        if (proposedTop + menuHeight > viewportHeight) {
+                            proposedTop = Math.max(10, viewportHeight - menuHeight - 10); // Leave some margin
+                        }
+                        
+                        // Position the mega menu
+                        megaMenu.style.top = proposedTop + 'px';
                     }
                 });
             }
