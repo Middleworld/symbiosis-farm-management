@@ -46,7 +46,7 @@
             <div class="d-flex align-items-center gap-2">
                 <label for="endDate" class="mb-0 text-nowrap small fw-bold">End:</label>
                 <input type="date" class="form-control form-control-sm" id="endDate" 
-                       value="{{ now()->addYear()->endOfYear()->format('Y-m-d') }}" style="width: 140px;">
+                       value="2026-06-27" style="width: 140px;">
             </div>
         </div>
     </div>
@@ -208,10 +208,17 @@ document.addEventListener('DOMContentLoaded', async function() {
             showLoading(true);
             
             try {
-                const startDateInput = document.getElementById('startDate').value;
-                const endDateInput = document.getElementById('endDate').value;
+                const startDateInput = document.getElementById('startDate');
+                const endDateInput = document.getElementById('endDate');
                 
-                const response = await fetch(`/admin/farmos/succession-planning/bed-occupancy?start_date=${startDateInput}&end_date=${endDateInput}`, {
+                if (!startDateInput || !endDateInput) {
+                    throw new Error('Date input elements not found in DOM');
+                }
+                
+                const startDateValue = startDateInput.value;
+                const endDateValue = endDateInput.value;
+                
+                const response = await fetch(`/admin/farmos/succession-planning/bed-occupancy?start_date=${startDateValue}&end_date=${endDateValue}`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
@@ -431,14 +438,21 @@ async function initializeChart() {
     
     try {
         // Get date range for FarmOS API call
-        const startDateInput = document.getElementById('startDate').value;
-        const endDateInput = document.getElementById('endDate').value;
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        
+        if (!startDateInput || !endDateInput) {
+            throw new Error('Date input elements not found in DOM');
+        }
+        
+        const startDateValue = startDateInput.value;
+        const endDateValue = endDateInput.value;
         
         console.log('🌐 Fetching real FarmOS bed occupancy data from API...');
-        console.log('Date range:', startDateInput, 'to', endDateInput);
+        console.log('Date range:', startDateValue, 'to', endDateValue);
         
         // Call the FarmOS bed occupancy API (same as succession planner timeline)
-        const response = await fetch(`/admin/farmos/succession-planning/bed-occupancy?start_date=${startDateInput}&end_date=${endDateInput}`, {
+        const response = await fetch(`/admin/farmos/succession-planning/bed-occupancy?start_date=${startDateValue}&end_date=${endDateValue}`, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
@@ -467,8 +481,11 @@ async function initializeChart() {
         
         // Apply client-side filtering if needed
         let filteredData = farmOSData;
-        const locationFilter = document.getElementById('locationFilter').value;
-        const cropTypeFilter = document.getElementById('cropTypeFilter').value;
+        const locationFilterElement = document.getElementById('locationFilter');
+        const cropTypeFilterElement = document.getElementById('cropTypeFilter');
+        
+        const locationFilter = locationFilterElement ? locationFilterElement.value : '';
+        const cropTypeFilter = cropTypeFilterElement ? cropTypeFilterElement.value : '';
         
         if (locationFilter || cropTypeFilter) {
             filteredData = applyFiltersToData(farmOSData, {
@@ -1042,6 +1059,11 @@ function generateHorizontalTimeline(data) {
     // Get date range for the timeline
     const { startDate, endDate, allActivities } = getTimelineData(data);
     
+    // Calculate the total width needed for the timeline
+    const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+    const dayWidth = 10 * zoomLevel; // Apply zoom level
+    const totalWidth = Math.max(totalDays * dayWidth, 20000); // Minimum 20000px for full season visibility
+    
     // Always show the timeline structure, even with no activities
     // This allows users to see all beds and plan future plantings
 
@@ -1082,7 +1104,7 @@ function generateHorizontalTimeline(data) {
                 </div>
             </div>
             
-            <div class="timeline-scroll-container">
+            <div class="timeline-scroll-container" style="width: ${totalWidth}px; min-width: ${totalWidth}px;">
                 <!-- Date Scale -->
                 <div class="date-scale">
                     ${generateDateScale(startDate, endDate)}
@@ -1101,11 +1123,18 @@ function getTimelineData(data) {
     const allActivities = [];
     
     // Get the date range from the filter inputs
-    const startDateInput = document.getElementById('startDate').value;
-    const endDateInput = document.getElementById('endDate').value;
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
     
-    let earliestDate = startDateInput ? new Date(startDateInput) : new Date();
-    let latestDate = endDateInput ? new Date(endDateInput) : new Date();
+    const startDateValue = startDateInput ? startDateInput.value : null;
+    const endDateValue = endDateInput ? endDateInput.value : null;
+    
+    console.log(`Input date values: start=${startDateValue}, end=${endDateValue}`);
+    
+    let earliestDate = startDateValue ? new Date(startDateValue) : new Date();
+    let latestDate = endDateValue ? new Date(endDateValue) : new Date();
+    
+    console.log(`Parsed input dates: start=${earliestDate}, end=${latestDate}`);
     
     // Collect all activities with dates
     Object.keys(data).forEach(location => {
@@ -1117,6 +1146,8 @@ function getTimelineData(data) {
                     const start = new Date(activity.start);
                     const end = new Date(activity.end);
                     
+                    console.log(`Activity ${activity.crop} in ${location}: ${activity.start} to ${activity.end}`);
+                    
                     if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
                         allActivities.push({
                             ...activity,
@@ -1126,29 +1157,42 @@ function getTimelineData(data) {
                         });
                         
                         // Optionally extend range if activities go beyond
-                        if (start < earliestDate) earliestDate = start;
-                        if (end > latestDate) latestDate = end;
+                        if (start < earliestDate) {
+                            console.log(`Extending start date from ${earliestDate} to ${start}`);
+                            earliestDate = start;
+                        }
+                        if (end > latestDate) {
+                            console.log(`Extending end date from ${latestDate} to ${end}`);
+                            latestDate = end;
+                        }
+                    } else {
+                        console.log(`Invalid dates for ${activity.crop}: start=${start}, end=${end}`);
                     }
                 }
             });
         }
     });
     
-    // Use the date range from inputs (or extended by activities)
-    const startDate = earliestDate;
-    const endDate = latestDate;
+    // Use the date range from inputs, extended by activities
+    let timelineStartDate = earliestDate;
+    let timelineEndDate = latestDate;
     
-    // If we have activities, extend the range to include them
-    if (allActivities.length > 0) {
-        if (earliestDate < startDate) {
-            startDate.setFullYear(earliestDate.getFullYear(), 0, 1);
-        }
-        if (latestDate > endDate) {
-            endDate.setFullYear(latestDate.getFullYear(), 11, 31);
-        }
+    console.log(`Initial timeline range: ${timelineStartDate} to ${timelineEndDate}`);
+    
+    // Ensure minimum range that includes the full 2026 season
+    const minStartDate = new Date(2025, 0, 1); // January 1, 2025
+    const minEndDate = new Date(2026, 5, 27); // June 27, 2026
+    
+    if (timelineStartDate > minStartDate) {
+        timelineStartDate = minStartDate;
+    }
+    if (timelineEndDate < minEndDate) {
+        timelineEndDate = minEndDate;
     }
     
-    return { startDate, endDate, allActivities };
+    console.log(`Timeline range after minimum enforcement: ${timelineStartDate} to ${timelineEndDate}`);
+    
+    return { startDate: timelineStartDate, endDate: timelineEndDate, allActivities };
 }
 
 function generateDateScale(startDate, endDate) {
@@ -1323,10 +1367,15 @@ function applyFilters() {
 }
 
 function clearFilters() {
-    document.getElementById('locationFilter').value = '';
-    document.getElementById('cropTypeFilter').value = '';
-    document.getElementById('startDate').value = '{{ now()->subYear()->startOfYear()->format('Y-m-d') }}';
-    document.getElementById('endDate').value = '{{ now()->addYear()->endOfYear()->format('Y-m-d') }}';
+    const locationFilter = document.getElementById('locationFilter');
+    const cropTypeFilter = document.getElementById('cropTypeFilter');
+    const startDate = document.getElementById('startDate');
+    const endDate = document.getElementById('endDate');
+    
+    if (locationFilter) locationFilter.value = '';
+    if (cropTypeFilter) cropTypeFilter.value = '';
+    if (startDate) startDate.value = '{{ now()->subYear()->startOfYear()->format('Y-m-d') }}';
+    if (endDate) endDate.value = '{{ now()->addYear()->endOfYear()->format('Y-m-d') }}';
     initializeChart();
 }
 
@@ -1755,8 +1804,7 @@ function showTestData() {
 }
 
 .timeline-scroll-container {
-    min-width: 10950px; /* ~3 years * 365 days * 10px = 10,950px */
-    width: max-content;
+    /* Width is now set dynamically via inline style */
     position: relative;
 }
 
