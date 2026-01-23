@@ -517,6 +517,17 @@
 
         $customerSiteUrl = $customerSiteUrl ? rtrim($customerSiteUrl, '/') : null;
         $wpAdminUrl = Session::get('wp_admin_url') ?: ($customerSiteUrl ? $customerSiteUrl . '/wp-admin' : null);
+        
+        // Dynamic external service URLs based on current domain
+        $appHost = parse_url($appUrl, PHP_URL_HOST);
+        $farmosUrl = config('farmos.url');
+        $fieldkitUrl = 'https://fieldkit.soilsync.shop'; // Default fallback
+        
+        if ($appHost && strpos($appHost, 'admin.') === 0) {
+            $baseDomain = substr($appHost, 6); // Remove 'admin.' prefix
+            $farmosUrl = $appScheme . '://farmos.' . $baseDomain;
+            $fieldkitUrl = $appScheme . '://fieldkit.' . $baseDomain;
+        }
     @endphp
 
     <!-- Main Layout Container -->
@@ -842,12 +853,12 @@
                                 <span>WordPress Admin</span>
                             </a>
                             
-                            <a href="/fieldkit" class="mega-menu-item" target="_blank">
+                            <a href="{{ $fieldkitUrl }}" class="mega-menu-item" target="_blank">
                                 <i class="fas fa-satellite"></i>
                                 <span>FieldKit</span>
                             </a>
                             
-                            <a href="/farmos" class="mega-menu-item" target="_blank">
+                            <a href="{{ $farmosUrl }}" class="mega-menu-item" target="_blank">
                                 <i class="fas fa-seedling"></i>
                                 <span>farmOS</span>
                             </a>

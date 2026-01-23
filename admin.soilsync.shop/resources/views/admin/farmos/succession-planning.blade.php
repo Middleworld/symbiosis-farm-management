@@ -4,6 +4,18 @@
 
 @section('page-title', 'farmOS Succession Planner')
 
+@php
+    $appUrl = config('app.url');
+    $appHost = parse_url($appUrl, PHP_URL_HOST);
+    $appScheme = parse_url($appUrl, PHP_URL_SCHEME) ?: request()->getScheme();
+    $farmosUrl = config('farmos.url'); // Default from config
+    
+    if ($appHost && strpos($appHost, 'admin.') === 0) {
+        $baseDomain = substr($appHost, 6); // Remove 'admin.' prefix
+        $farmosUrl = $appScheme . '://farmos.' . $baseDomain;
+    }
+@endphp
+
 @section('page-header')
     <div class="d-flex justify-content-center align-items-center w-100">
         <div class="text-center">
@@ -6238,7 +6250,7 @@ Calculate for ${contextPayload.planning_year}.`;
 
             // Generate farmOS quick form URLs with iframe embedding
             // IMPORTANT: Add plan_id parameter so farmOS links the quick form to the crop plan
-            const farmosUrl = 'https://farmos.soilsync.shop'; // Direct farmOS URL
+            const farmosUrl = '{{ $farmosUrl }}'; // Dynamic farmOS URL
             const planId = p.plan_id || window.cropPlanId || ''; // Get plan ID from planting or global var
             const seasonName = p.season || window.cropPlanSeason || new Date().getFullYear() + ' Season';
             
@@ -10469,7 +10481,7 @@ Plantings:`;
                 button.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Opening ${i + 1}/${total}...`;
                 
                 // Build farmOS quick form URL (same logic as in renderQuickFormTabs)
-                const farmosUrl = 'https://farmos.soilsync.shop';
+                const farmosUrl = '{{ $farmosUrl }}';
                 const planId = p.plan_id || window.cropPlanId || '';
                 const seasonName = p.season || window.cropPlanSeason || new Date().getFullYear() + ' Season';
                 
@@ -11717,7 +11729,7 @@ Plantings:`;
         
         if (modal && iframe) {
             // Set iframe source with iframe_embed parameter
-            iframe.src = 'https://farmos.soilsync.shop/plan/add/crop?iframe_embed=1';
+            iframe.src = '{{ $farmosUrl }}/plan/add/crop?iframe_embed=1';
             modal.style.display = 'block';
             document.body.style.overflow = 'hidden'; // Prevent background scrolling
         }
@@ -11756,7 +11768,7 @@ Plantings:`;
             return;
         }
         
-        const farmOSUrl = `https://farmos.soilsync.shop/plan/${planId}`;
+        const farmOSUrl = `{{ $farmosUrl }}/plan/${planId}`;
         
         // Open in new tab
         const newWindow = window.open(farmOSUrl, '_blank');
