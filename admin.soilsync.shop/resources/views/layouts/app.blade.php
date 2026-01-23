@@ -503,11 +503,11 @@
     @php
 
         $customerSiteUrl = \App\Models\Setting::get('customer_site_url', config('services.customer_site.url'));
+        $appUrl = config('app.url');
+        $appHost = parse_url($appUrl, PHP_URL_HOST);
+        $appScheme = parse_url($appUrl, PHP_URL_SCHEME) ?: request()->getScheme();
+        
         if (empty($customerSiteUrl) || str_contains($customerSiteUrl, 'example-farm.com')) {
-            $appUrl = config('app.url');
-            $appHost = parse_url($appUrl, PHP_URL_HOST);
-            $appScheme = parse_url($appUrl, PHP_URL_SCHEME) ?: request()->getScheme();
-
             if ($appHost && strpos($appHost, 'admin.') === 0) {
                 $customerSiteUrl = $appScheme . '://' . substr($appHost, 6);
             } elseif ($appHost) {
@@ -519,7 +519,6 @@
         $wpAdminUrl = Session::get('wp_admin_url') ?: ($customerSiteUrl ? $customerSiteUrl . '/wp-admin' : null);
         
         // Dynamic external service URLs based on current domain
-        $appHost = parse_url($appUrl, PHP_URL_HOST);
         $farmosUrl = config('farmos.url');
         $fieldkitUrl = 'https://fieldkit.soilsync.shop'; // Default fallback
         
