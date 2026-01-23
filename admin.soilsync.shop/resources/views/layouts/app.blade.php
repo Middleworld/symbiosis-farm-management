@@ -50,7 +50,8 @@
         */
         
         :root {
-            --sidebar-width: 320px; /* Increased from default to accommodate AI helper */
+            --sidebar-width: 60px; /* Much smaller for icon-only sidebar */
+            --sidebar-expanded-width: 320px; /* For mega menus */
         }
         
         body {
@@ -75,135 +76,17 @@
         }
         
         .sidebar {
-            position: fixed;
+            position: sticky;
             top: 0;
-            left: 0;
-            height: 100vh;
             width: var(--sidebar-width);
             background: var(--sidebar-bg);
             color: white;
             transition: all 0.3s ease;
-            z-index: 1040; /* Below modal backdrop */
-            overflow-y: auto;
-        }
-        
-        .sidebar.collapsed {
-            width: 60px;
-        }
-        
-        .sidebar .sidebar-header {
-            padding: 15px 20px 20px;
-            background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
-            text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            position: relative;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .sidebar.collapsed .sidebar-header {
-            padding: 15px 10px 20px;
-        }
-        
-        .sidebar-toggle-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(255,255,255,0.1);
-            border: none;
-            color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.9rem;
-            z-index: 1060;
-        }
-        
-        .logo-container {
-            transition: all 0.3s ease;
-            padding: 10px;
-            margin: 10px auto;
-            max-width: 120px;
-            text-align: center;
-        }
-        
-        .logo-container img,
-        .rounded-logo {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-            filter: drop-shadow(0 3px 8px rgba(0,0,0,0.3));
-            border: 3px solid rgba(255,255,255,0.2);
-            transition: all 0.3s ease;
-            background-color: var(--brand-primary);
-        }
-        
-        .sidebar-logo {
-            width: 48px;
-            height: 48px;
-            object-fit: contain;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-        
-        .logo-container img:hover,
-        .rounded-logo:hover {
-            transform: scale(1.05);
-            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
-            border-color: rgba(255,255,255,0.3);
-        }
-        
-        .sidebar-logo:hover {
-            transform: scale(1.1);
-            filter: drop-shadow(0 3px 8px rgba(0,0,0,0.3));
-        }
-        
-        .sidebar.collapsed .logo-container {
-            opacity: 0;
-            transform: scale(0.5);
-        }
-        
-        .sidebar-toggle-btn:hover {
-            background: rgba(255,255,255,0.2);
-            transform: scale(1.1);
-        }
-        
-        .sidebar-toggle-btn:active {
-            transform: scale(0.95);
-        }
-        
-        .sidebar.collapsed .sidebar-toggle-btn {
-            position: fixed;
-            top: 15px;
-            left: 15px;
-            width: 30px;
-            height: 30px;
-            background: rgba(33,59,46,0.9);
-            border-radius: 50%;
-        }
-        
-        .sidebar.collapsed .sidebar-toggle-btn:hover {
-            background: rgba(33,59,46,1);
-            transform: scale(1.1);
-        }
-        
-        .sidebar .sidebar-header h4 {
-            margin: 0;
-            font-size: 1.2rem;
-            transition: all 0.3s ease;
-            color: var(--brand-sidebar-text, white);
-            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-            font-weight: 600;
-        }
-        
-        .sidebar.collapsed .sidebar-header h4 {
-            opacity: 0;
+            z-index: 1040;
+            overflow: visible;
+            padding-top: 20px;
+            height: 100vh; /* Full viewport height for consistent appearance */
+            align-self: flex-start;
         }
         
         .sidebar .nav-link {
@@ -232,73 +115,52 @@
             font-size: 1.1rem;
         }
         
-        .sidebar.collapsed .nav-link {
-            padding: 15px 20px;
-            justify-content: center;
-        }
-        
-        .sidebar.collapsed .nav-link span {
-            display: none;
-        }
-        
-        .sidebar.collapsed .nav-link i {
-            margin-right: 0;
-        }
-        
         .main-content {
-            margin-left: var(--sidebar-width) !important;
+            flex: 1;
             transition: all 0.3s ease;
-            min-height: 100vh;
+            min-height: calc(100vh - var(--header-height, 200px));
             position: relative;
             z-index: 1;
         }
         
-        .main-content.expanded {
-            margin-left: 60px !important;
-        }
-        
         .nav-section {
-            padding: 15px 20px 5px;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--brand-sidebar-text, #7f8c8d);
+            padding: 8px;
+            text-align: center;
             border-bottom: 1px solid #34495e;
             margin-bottom: 5px;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+            color: var(--brand-sidebar-text, #7f8c8d);
         }
         
-        .sidebar.collapsed .nav-section {
-            display: none;
+        .nav-section:hover {
+            background: rgba(255,255,255,0.08);
+            color: var(--brand-sidebar-accent, #3498db);
         }
         
-        /* Mobile responsiveness */
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
-            
-            .sidebar.mobile-open {
-                transform: translateX(0);
-            }
-            
-            .main-content {
-                margin-left: 0 !important;
-            }
-            
-            .sidebar-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0,0,0,0.5);
-                z-index: 1040;
-                display: none;
-            }
-            
-            .sidebar-overlay.show {
-                display: block;
-            }
+        .nav-section i {
+            font-size: 1rem;
+            display: block;
+            margin: 0 auto;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .nav-section:hover i {
+            transform: scale(1.1);
+            color: var(--brand-sidebar-accent, #3498db);
+        }
+        
+        /* Main layout container for sidebar and content */
+        .main-layout-container {
+            display: flex;
+            min-height: calc(100vh - var(--header-height, 200px));
+        }
+
+        body.pos-only .main-layout-container {
+            display: block;
         }
         
         .content-wrapper {
@@ -346,34 +208,145 @@
         .nav-section:hover {
             background: rgba(255,255,255,0.08);
         }
-        
-        .nav-section i.section-toggle {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            transition: transform 0.3s ease;
+
+        /* Mega Menu Styles */
+        .nav-section {
+            position: relative;
+        }
+
+        .nav-section:hover .mega-menu-overlay {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0) scale(1);
+        }
+
+        .mega-menu-overlay {
+            position: fixed;
+            left: var(--sidebar-width);
+            top: auto;
+            width: auto;
+            min-width: 280px;
+            max-width: 400px;
+            height: auto;
+            max-height: 80vh;
+            background: var(--sidebar-bg);
+            border-left: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+            z-index: 1030;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateX(-20px) scale(0.95);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+            padding: 20px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .mega-menu-title {
+            color: var(--brand-primary, #3498db);
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Ensure mega menu content fits properly in dynamic sizing */
+        .mega-menu-overlay .mega-menu-grid {
+            min-height: auto;
+        }
+
+        .mega-menu-overlay .ai-helper-sidebar-container {
+            max-height: none;
+            overflow: visible;
+        }
+
+        .mega-menu-title {
+            color: var(--brand-primary, #3498db);
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .mega-menu-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 4px;
+        }
+
+        .mega-menu-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            color: var(--brand-sidebar-text, #bdc3c7);
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.85rem;
+            opacity: 0;
+            transform: translateX(-10px);
+            animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        .mega-menu-item:nth-child(1) { animation-delay: 0.05s; }
+        .mega-menu-item:nth-child(2) { animation-delay: 0.1s; }
+        .mega-menu-item:nth-child(3) { animation-delay: 0.15s; }
+        .mega-menu-item:nth-child(4) { animation-delay: 0.2s; }
+        .mega-menu-item:nth-child(5) { animation-delay: 0.25s; }
+        .mega-menu-item:nth-child(6) { animation-delay: 0.3s; }
+        .mega-menu-item:nth-child(7) { animation-delay: 0.35s; }
+        .mega-menu-item:nth-child(8) { animation-delay: 0.4s; }
+
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .mega-menu-item:hover {
+            background: var(--sidebar-hover);
+            color: var(--brand-sidebar-text, white);
+            text-decoration: none;
+            transform: translateX(5px);
+        }
+
+        .mega-menu-item.active {
+            background: var(--sidebar-active);
+            color: var(--brand-sidebar-text, white);
+        }
+
+        .mega-menu-item i {
+            width: 18px;
+            margin-right: 12px;
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        .mega-menu-item .badge {
+            margin-left: auto;
             font-size: 0.75rem;
         }
-        
-        .nav-section.collapsed i.section-toggle {
-            transform: translateY(-50%) rotate(-90deg);
-        }
-        
+
+        /* Hide original nav-section-items when mega menu is enabled */
         .nav-section-items {
-            max-height: 1000px;
-            overflow: hidden;
-            transition: max-height 0.3s ease, opacity 0.3s ease;
-            opacity: 1;
+            display: none !important;
         }
-        
-        .nav-section-items.collapsed {
-            max-height: 0;
-            opacity: 0;
+
+        /* Admin welcome message in header */
+        .admin-welcome {
+            text-align: center;
+            margin-top: 0.5rem;
         }
-        
-        .sidebar.collapsed .nav-section i.section-toggle {
-            display: none;
+
+        .admin-welcome small {
+            font-size: 0.85rem;
         }
 
         /* AI Helper Sidebar Widget Styles */
@@ -513,6 +486,22 @@
             display: none;
         }
 
+        /* Header Calendar Styles */
+        .header-calendar {
+            display: flex;
+            align-items: center;
+            color: white;
+            font-size: 0.9rem;
+        }
+        
+        .header-calendar i {
+            color: rgba(255,255,255,0.8);
+        }
+        
+        .header-calendar .fw-bold {
+            color: white;
+        }
+
         @media (max-width: 768px) {
         }
     </style>
@@ -540,410 +529,352 @@
         $customerSiteUrl = $customerSiteUrl ? rtrim($customerSiteUrl, '/') : null;
         $wpAdminUrl = Session::get('wp_admin_url') ?: ($customerSiteUrl ? $customerSiteUrl . '/wp-admin' : null);
     @endphp
-    
-    <!-- Sidebar (hidden for POS-only staff) -->
-    @if(!$isPosOnly)
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <button class="sidebar-toggle-btn" id="sidebarToggleBtn" title="Toggle Sidebar">
-                <i class="fas fa-bars"></i>
-            </button>
-            <div class="logo-container mt-4">
-                @if($branding && $branding->logo_small_path)
-                    <img src="{{ secure_url($branding->logo_small_path) }}" 
-                         alt="{{ $branding->logo_alt_text ?? $branding->company_name ?? 'Logo' }}" class="sidebar-logo">
-                @elseif($branding && $branding->logo_path)
-                    <img src="{{ secure_url($branding->logo_path) }}" 
-                         alt="{{ $branding->logo_alt_text ?? $branding->company_name ?? 'Logo' }}" class="sidebar-logo">
-                @else
-                    <img src="/Middle World Logo Image White - PNG FOR SCREENS.png" alt="Middle World Farms" class="sidebar-logo">
-                @endif
-            </div>
-            <h4 class="mb-0 mt-2">{{ $branding->company_name ?? 'Symbiosis' }}</h4>
-            @php
-                $adminUser = \App\Http\Controllers\Auth\LoginController::getAdminUser();
-            @endphp
-            @if($adminUser)
-                <div class="admin-info mt-2">
-                    <small class="text-muted d-block">Welcome back,</small>
-                    <small class="text-white fw-bold">{{ $adminUser['name'] ?? 'Admin' }}</small>
-                </div>
-            @endif
-        </div>
-        
-        <nav class="nav flex-column">
-            <div class="nav-section" data-section="dashboard">
-                Dashboard
-                <i class="fas fa-chevron-down section-toggle"></i>
-            </div>
-            <div class="nav-section-items" data-section-items="dashboard">
-                <a href="/admin" class="nav-link {{ request()->is('admin') && !request()->is('admin/*') ? 'active' : '' }}">
-                    <i class="fas fa-tachometer-alt"></i>
-                    <span>Overview</span>
-                </a>
-            </div>
-            
-            <div class="nav-section" data-section="operations">
-                Operations
-                <i class="fas fa-chevron-down section-toggle"></i>
-            </div>
-            <div class="nav-section-items" data-section-items="operations">
-                <a href="/admin/tasks" class="nav-link {{ request()->is('admin/tasks*') ? 'active' : '' }}">
-                    <i class="fas fa-clipboard-check"></i>
-                    <span>Tasks</span>
-                </a>
-                
-                <a href="/admin/notes" class="nav-link {{ request()->is('admin/notes*') ? 'active' : '' }}">
-                    <i class="fas fa-sticky-note"></i>
-                    <span>Notes</span>
-                </a>
-                
-                <a href="/admin/deliveries" class="nav-link {{ request()->is('admin/deliveries*') ? 'active' : '' }}">
-                    <i class="fas fa-truck"></i>
-                    <span>Deliveries & Collections</span>
-                    @if(isset($totalDeliveries) && $totalDeliveries > 0)
-                        <span class="badge-notification">{{ $totalDeliveries }}</span>
-                    @endif
-                </a>
-                
-                <a href="/admin/customers" class="nav-link {{ request()->is('admin/customers*') ? 'active' : '' }}">
-                    <i class="fas fa-users"></i>
-                    <span>Customer Management</span>
-                </a>
-                
-                <a href="/admin/routes" class="nav-link {{ request()->is('admin/routes*') ? 'active' : '' }}">
-                    <i class="fas fa-route"></i>
-                    <span>Route Planner</span>
-                </a>
-                
-                <a href="/admin/email" class="nav-link {{ request()->is('admin/email*') ? 'active' : '' }}">
-                    <i class="fas fa-envelope"></i>
-                    <span>Email Client</span>
-                </a>
-            </div>
-            
-            <div class="nav-section" data-section="woocommerce">
-                WooCommerce
-                <i class="fas fa-chevron-down section-toggle"></i>
-            </div>
-            <div class="nav-section-items" data-section-items="woocommerce">
-                <a href="{{ route('admin.funds.index') }}" class="nav-link {{ request()->is('admin/funds*') ? 'active' : '' }}">
-                    <i class="fas fa-wallet"></i>
-                    <span>Funds Management</span>
-                </a>
-                
-                <a href="/admin/products" class="nav-link {{ request()->is('admin/products*') ? 'active' : '' }}">
-                    <i class="fas fa-boxes"></i>
-                    <span>Product Management</span>
-                </a>
-                
-                <a href="/admin/shipping-classes" class="nav-link {{ request()->is('admin/shipping-classes*') ? 'active' : '' }}">
-                    <i class="fas fa-shipping-fast"></i>
-                    <span>Shipping Classes</span>
-                </a>
-                
-                <a href="/admin/product-attributes" class="nav-link {{ request()->is('admin/product-attributes*') ? 'active' : '' }}">
-                    <i class="fas fa-tags"></i>
-                    <span>Product Attributes</span>
-                </a>
-                
-                <a href="/admin/orders" class="nav-link {{ request()->is('admin/orders*') ? 'active' : '' }}">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span>Orders</span>
-                </a>
-            </div>
-            
-            <div class="nav-section" data-section="subscriptions">
-                Vegbox Subscriptions
-                <i class="fas fa-chevron-down section-toggle"></i>
-            </div>
-            <div class="nav-section-items" data-section-items="subscriptions">
-                <a href="{{ route('admin.vegbox-subscriptions.index') }}" class="nav-link {{ request()->is('admin/vegbox-subscriptions') && !request()->is('admin/vegbox-subscriptions/*') ? 'active' : '' }}">
-                    <i class="fas fa-box"></i>
-                    <span>All Subscriptions</span>
-                </a>
-                
-                <a href="{{ route('admin.vegbox-subscriptions.upcoming-renewals') }}" class="nav-link {{ request()->is('admin/vegbox-subscriptions/upcoming-renewals*') ? 'active' : '' }}">
-                    <i class="fas fa-calendar-check"></i>
-                    <span>Upcoming Renewals</span>
-                </a>
-                
-                <a href="{{ route('admin.vegbox-subscriptions.failed-payments') }}" class="nav-link {{ request()->is('admin/vegbox-subscriptions/failed-payments*') ? 'active' : '' }}">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span>Failed Payments</span>
-                    @php
-                        $failedCount = \App\Models\VegboxSubscription::where('failed_payment_count', '>', 0)
-                            ->whereNull('canceled_at')
-                            ->count();
-                    @endphp
-                    @if($failedCount > 0)
-                        <span class="badge bg-danger ms-2">{{ $failedCount }}</span>
-                    @endif
-                </a>
-                
-                <a href="/admin/vegbox-plans" class="nav-link {{ request()->is('admin/vegbox-plans*') ? 'active' : '' }}">
-                    <i class="fas fa-boxes"></i>
-                    <span>Vegbox Plans</span>
-                </a>
-                
-                <a href="/admin/box-configurations" class="nav-link {{ request()->is('admin/box-configurations*') ? 'active' : '' }}">
-                    <i class="fas fa-box-open"></i>
-                    <span>Box Customization</span>
-                </a>
-            </div>
-            
-            <div class="nav-section" data-section="pos">
-                Point of Sale
-                <i class="fas fa-chevron-down section-toggle"></i>
-            </div>
-            <div class="nav-section-items" data-section-items="pos">
-                <a href="/pos" class="nav-link {{ request()->is('pos') && !request()->is('pos/*') ? 'active' : '' }}">
-                    <i class="fas fa-cash-register"></i>
-                    <span>POS Terminal</span>
-                </a>
-                
-                <a href="/pos/inventory" class="nav-link {{ request()->is('pos/inventory*') ? 'active' : '' }}">
-                    <i class="fas fa-box-open"></i>
-                    <span>POS Inventory</span>
-                </a>
-                
-                <a href="/pos/orders" class="nav-link {{ request()->is('pos/orders*') ? 'active' : '' }}">
-                    <i class="fas fa-receipt"></i>
-                    <span>POS Orders</span>
-                </a>
-            </div>
-            
-            <div class="nav-section" data-section="analytics">
-                Analytics
-                <i class="fas fa-chevron-down section-toggle"></i>
-            </div>
-            <div class="nav-section-items" data-section-items="analytics">
-                <a href="/admin/reports" class="nav-link {{ request()->is('admin/reports*') ? 'active' : '' }}">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Reports</span>
-                </a>
-                
-                <a href="/admin/analytics" class="nav-link {{ request()->is('admin/analytics*') ? 'active' : '' }}">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Analytics</span>
-                </a>
-            </div>
-            
-            <div class="nav-section" data-section="accounting">
-                Accounting
-                <i class="fas fa-chevron-down section-toggle"></i>
-            </div>
-            <div class="nav-section-items" data-section-items="accounting">
-                <a href="{{ route('admin.bank-transactions.dashboard') }}" class="nav-link {{ request()->is('admin/bank-transactions/dashboard') ? 'active' : '' }}">
-                    <i class="fas fa-chart-pie"></i>
-                    <span>Dashboard</span>
-                </a>
-                
-                <a href="{{ route('admin.bank-transactions.index') }}" class="nav-link {{ request()->is('admin/bank-transactions') && !request()->is('admin/bank-transactions/import') && !request()->is('admin/bank-transactions/dashboard') ? 'active' : '' }}">
-                    <i class="fas fa-list-ul"></i>
-                    <span>Transactions</span>
-                </a>
-                
-                <a href="{{ route('admin.bank-transactions.import-form') }}" class="nav-link {{ request()->is('admin/bank-transactions/import') ? 'active' : '' }}">
-                    <i class="fas fa-upload"></i>
-                    <span>Import CSV</span>
-                </a>
-            </div>
-            
-            <div class="nav-section" data-section="farm">
-                Farm Management
-                <i class="fas fa-chevron-down section-toggle"></i>
-            </div>
-            <div class="nav-section-items" data-section-items="farm">
-                <a href="/admin/farmos" class="nav-link {{ request()->is('admin/farmos') ? 'active' : '' }}">
-                    <i class="fas fa-seedling"></i>
-                    <span>farmOS Dashboard</span>
-                </a>
-                
-                <a href="/admin/farmos/planting-chart" class="nav-link {{ request()->is('admin/farmos/planting-chart*') ? 'active' : '' }}">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Planting Chart</span>
-                </a>
-                
-                <a href="/admin/farmos/succession-planning" class="nav-link {{ request()->is('admin/farmos/succession-planning*') ? 'active' : '' }}">
-                    <i class="fas fa-layer-group"></i>
-                    <span>Succession Planning</span>
-                </a>
-                
-                <a href="/admin/farmos/harvests" class="nav-link {{ request()->is('admin/farmos/harvests*') ? 'active' : '' }}">
-                    <i class="fas fa-apple-alt"></i>
-                    <span>Harvest Logs</span>
-                </a>
-                
-                <a href="/admin/farmos/stock" class="nav-link {{ request()->is('admin/farmos/stock*') ? 'active' : '' }}">
-                    <i class="fas fa-boxes"></i>
-                    <span>Stock Management</span>
-                </a>
-                
-                <a href="/admin/weather" class="nav-link {{ request()->is('admin/weather*') ? 'active' : '' }}">
-                    <i class="fas fa-cloud-sun"></i>
-                    <span>Weather Dashboard</span>
-                </a>
-            </div>
-            
-            <div class="nav-section" data-section="system">
-                System
-                <i class="fas fa-chevron-down section-toggle"></i>
-            </div>
-            <div class="nav-section-items" data-section-items="system">
-                <a href="/admin/admin-users" class="nav-link {{ request()->is('admin/admin-users*') ? 'active' : '' }}">
-                    <i class="fas fa-users-cog"></i>
-                    <span>Admin Users</span>
-                </a>
-                
-                <a href="/admin/stripe" class="nav-link {{ request()->is('admin/stripe*') ? 'active' : '' }}">
-                    <i class="fas fa-credit-card"></i>
-                    <span>Stripe Payments</span>
-                </a>
-                
-                <a href="/admin/companies-house" class="nav-link {{ request()->is('admin/companies-house*') ? 'active' : '' }}">
-                    <i class="fas fa-building"></i>
-                    <span>Companies House</span>
-                </a>
-            
-            <a href="/admin/settings" class="nav-link {{ request()->is('admin/settings*') ? 'active' : '' }}">
-                <i class="fas fa-cog"></i>
-                <span>Settings</span>
-            </a>
-            
-            <a href="/admin/logs" class="nav-link {{ request()->is('admin/logs*') ? 'active' : '' }}">
-                <i class="fas fa-file-alt"></i>
-                <span>System Logs</span>
-            </a>
 
-            <a href="/admin/system/updates" class="nav-link {{ request()->is('admin/system/updates*') ? 'active' : '' }}">
-                <i class="fas fa-download"></i>
-                <span>System Updates</span>
-            </a>
-
-            <a href="/admin/chatbot-settings" class="nav-link {{ request()->is('admin/chatbot-settings*') ? 'active' : '' }}">
-                <i class="fas fa-robot"></i>
-                <span>Chatbot Settings</span>
-            </a>
-            
-            <a href="/admin/unified-backup" class="nav-link {{ request()->is('admin/unified-backup*') ? 'active' : '' }}">
-                <i class="fas fa-server"></i>
-                <span>Unified Backup</span>
-            </a>
-            </div>
-            
-            <div class="nav-section" data-section="ai-helper">
-                AI Helper
-                <i class="fas fa-chevron-down section-toggle"></i>
-            </div>
-            <div class="nav-section-items" data-section-items="ai-helper">
-                <!-- User Manuals -->
-                <a href="/admin/docs/user-manual" class="nav-link">
-                    <i class="fas fa-book"></i>
-                    <span>User Manual</span>
-                </a>
-                <a href="/admin/docs/user-manual/subscription-management" class="nav-link">
-                    <i class="fas fa-file-invoice"></i>
-                    <span>Subscriptions Guide</span>
-                </a>
-                <div style="margin: 0.5rem 0; border-top: 1px solid rgba(255,255,255,0.1);"></div>
+    <!-- Main Layout Container -->
+    <div class="main-layout-container">
+        @if(!$isPosOnly)
+        <div class="sidebar" id="sidebar">
+            <nav class="nav flex-column">
                 
-                <!-- AI Chat Widget -->
-                <div id="ai-helper-sidebar-widget" class="ai-helper-sidebar-container">
-                    <div class="ai-helper-sidebar-header">
-                        <div class="ai-helper-icon">🤖</div>
-                        <span class="ai-helper-context">Contextual Help</span>
+                <div class="nav-section mega-menu-trigger" data-section="operations" title="Operations">
+                    <i class="fas fa-cogs"></i>
+                    <div class="mega-menu-overlay">
+                        <div class="mega-menu-title">Operations</div>
+                        <div class="mega-menu-grid">
+                            <a href="/admin/tasks" class="mega-menu-item {{ request()->is('admin/tasks*') ? 'active' : '' }}">
+                                <i class="fas fa-clipboard-check"></i>
+                                <span>Tasks</span>
+                            </a>
+                            <a href="/admin/tasks/kanban" class="mega-menu-item {{ request()->is('admin/tasks/kanban*') ? 'active' : '' }}">
+                                <i class="fas fa-columns"></i>
+                                <span>Task Board</span>
+                            </a>
+                            <a href="/admin/notes" class="mega-menu-item {{ request()->is('admin/notes*') ? 'active' : '' }}">
+                                <i class="fas fa-sticky-note"></i>
+                                <span>Notes</span>
+                            </a>
+                            <a href="/admin/deliveries" class="mega-menu-item {{ request()->is('admin/deliveries*') ? 'active' : '' }}">
+                                <i class="fas fa-truck"></i>
+                                <span>Deliveries & Collections</span>
+                                @if(isset($totalDeliveries) && $totalDeliveries > 0)
+                                    <span class="badge bg-danger">{{ $totalDeliveries }}</span>
+                                @endif
+                            </a>
+                            <a href="/admin/customers" class="mega-menu-item {{ request()->is('admin/customers*') ? 'active' : '' }}">
+                                <i class="fas fa-users"></i>
+                                <span>Customer Management</span>
+                            </a>
+                            <a href="/admin/routes" class="mega-menu-item {{ request()->is('admin/routes*') ? 'active' : '' }}">
+                                <i class="fas fa-route"></i>
+                                <span>Route Planner</span>
+                            </a>
+                            <a href="/admin/email" class="mega-menu-item {{ request()->is('admin/email*') ? 'active' : '' }}">
+                                <i class="fas fa-envelope"></i>
+                                <span>Email Client</span>
+                            </a>
+                        </div>
                     </div>
-                    <div class="ai-helper-sidebar-messages">
-                        <div class="ai-message welcome">
-                            <div class="ai-avatar">🌱</div>
-                            <div class="ai-content">
-                                <p>Hi! I'm here to help you with admin tasks. What would you like to know?</p>
+                </div>
+                
+                <div class="nav-section mega-menu-trigger" data-section="woocommerce" title="WooCommerce">
+                    <i class="fab fa-wordpress"></i>
+                    <div class="mega-menu-overlay">
+                        <div class="mega-menu-title">WooCommerce</div>
+                        <div class="mega-menu-grid">
+                            <a href="/admin/products" class="mega-menu-item {{ request()->is('admin/products*') ? 'active' : '' }}">
+                                <i class="fas fa-boxes"></i>
+                                <span>Product Management</span>
+                            </a>
+                            <a href="/admin/shipping-classes" class="mega-menu-item {{ request()->is('admin/shipping-classes*') ? 'active' : '' }}">
+                                <i class="fas fa-shipping-fast"></i>
+                                <span>Shipping Classes</span>
+                            </a>
+                            <a href="/admin/product-attributes" class="mega-menu-item {{ request()->is('admin/product-attributes*') ? 'active' : '' }}">
+                                <i class="fas fa-tags"></i>
+                                <span>Product Attributes</span>
+                            </a>
+                            <a href="/admin/orders" class="mega-menu-item {{ request()->is('admin/orders*') ? 'active' : '' }}">
+                                <i class="fas fa-shopping-cart"></i>
+                                <span>Orders</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="nav-section mega-menu-trigger" data-section="subscriptions" title="Vegbox Subscriptions">
+                    <i class="fas fa-box"></i>
+                    <div class="mega-menu-overlay">
+                        <div class="mega-menu-title">Vegbox Subscriptions</div>
+                        <div class="mega-menu-grid">
+                            <a href="{{ route('admin.vegbox-subscriptions.index') }}" class="mega-menu-item {{ request()->is('admin/vegbox-subscriptions') && !request()->is('admin/vegbox-subscriptions/*') ? 'active' : '' }}">
+                                <i class="fas fa-box"></i>
+                                <span>All Subscriptions</span>
+                            </a>
+                            
+                            <a href="{{ route('admin.vegbox-subscriptions.upcoming-renewals') }}" class="mega-menu-item {{ request()->is('admin/vegbox-subscriptions/upcoming-renewals*') ? 'active' : '' }}">
+                                <i class="fas fa-calendar-check"></i>
+                                <span>Upcoming Renewals</span>
+                            </a>
+                            
+                            <a href="{{ route('admin.vegbox-subscriptions.failed-payments') }}" class="mega-menu-item {{ request()->is('admin/vegbox-subscriptions/failed-payments*') ? 'active' : '' }}">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>Failed Payments</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="nav-section mega-menu-trigger" data-section="pos" title="Point of Sale">
+                    <i class="fas fa-cash-register"></i>
+                    <div class="mega-menu-overlay">
+                        <div class="mega-menu-title">Point of Sale</div>
+                        <div class="mega-menu-grid">
+                            <a href="/pos" class="mega-menu-item {{ request()->is('pos') && !request()->is('pos/*') ? 'active' : '' }}">
+                                <i class="fas fa-cash-register"></i>
+                                <span>POS Terminal</span>
+                            </a>
+                            
+                            <a href="/pos/inventory" class="mega-menu-item {{ request()->is('pos/inventory*') ? 'active' : '' }}">
+                                <i class="fas fa-box-open"></i>
+                                <span>POS Inventory</span>
+                            </a>
+                            
+                            <a href="/pos/deliveries" class="mega-menu-item {{ request()->is('pos/deliveries*') ? 'active' : '' }}">
+                                <i class="fas fa-truck"></i>
+                                <span>POS Deliveries</span>
+                            </a>
+                            
+                            <a href="/pos/order-history" class="mega-menu-item {{ request()->is('pos/order-history*') ? 'active' : '' }}">
+                                <i class="fas fa-history"></i>
+                                <span>Order History</span>
+                            </a>
+                            
+                            <a href="/pos/customers/search" class="mega-menu-item {{ request()->is('pos/customers*') ? 'active' : '' }}">
+                                <i class="fas fa-search"></i>
+                                <span>Customer Search</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="nav-section mega-menu-trigger" data-section="analytics" title="Analytics">
+                    <i class="fas fa-chart-bar"></i>
+                    <div class="mega-menu-overlay">
+                        <div class="mega-menu-title">Analytics</div>
+                        <div class="mega-menu-grid">
+                            <a href="/admin/reports" class="mega-menu-item {{ request()->is('admin/reports*') ? 'active' : '' }}">
+                                <i class="fas fa-chart-bar"></i>
+                                <span>Reports</span>
+                            </a>
+                            
+                            <a href="/admin/analytics" class="mega-menu-item {{ request()->is('admin/analytics*') ? 'active' : '' }}">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Analytics Dashboard</span>
+                            </a>
+                            
+                            <a href="/admin/analytics/realtime" class="mega-menu-item {{ request()->is('admin/analytics/realtime*') ? 'active' : '' }}">
+                                <i class="fas fa-tachometer-alt"></i>
+                                <span>Real-time Analytics</span>
+                            </a>
+                            
+                            <a href="/admin/reports/export" class="mega-menu-item {{ request()->is('admin/reports/export*') ? 'active' : '' }}">
+                                <i class="fas fa-download"></i>
+                                <span>Export Reports</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="nav-section mega-menu-trigger" data-section="accounting" title="Accounting">
+                    <i class="fas fa-chart-pie"></i>
+                    <div class="mega-menu-overlay">
+                        <div class="mega-menu-title">Accounting</div>
+                        <div class="mega-menu-grid">
+                            <a href="{{ route('admin.bank-transactions.dashboard') }}" class="mega-menu-item {{ request()->is('admin/bank-transactions/dashboard') ? 'active' : '' }}">
+                                <i class="fas fa-chart-pie"></i>
+                                <span>Dashboard</span>
+                            </a>
+                            
+                            <a href="{{ route('admin.bank-transactions.index') }}" class="mega-menu-item {{ request()->is('admin/bank-transactions') && !request()->is('admin/bank-transactions/import') && !request()->is('admin/bank-transactions/dashboard') ? 'active' : '' }}">
+                                <i class="fas fa-list-ul"></i>
+                                <span>Transactions</span>
+                            </a>
+                            
+                            <a href="{{ route('admin.bank-transactions.import-form') }}" class="mega-menu-item {{ request()->is('admin/bank-transactions/import') ? 'active' : '' }}">
+                                <i class="fas fa-upload"></i>
+                                <span>Import CSV</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="nav-section mega-menu-trigger" data-section="farm" title="Farm Management">
+                    <i class="fas fa-seedling"></i>
+                    <div class="mega-menu-overlay">
+                        <div class="mega-menu-title">Farm Management</div>
+                        <div class="mega-menu-grid">
+                            <a href="/admin/farmos" class="mega-menu-item {{ request()->is('admin/farmos') ? 'active' : '' }}">
+                                <i class="fas fa-seedling"></i>
+                                <span>farmOS Dashboard</span>
+                            </a>
+                            
+                            <a href="/admin/farmos/crop-plans" class="mega-menu-item {{ request()->is('admin/farmos/crop-plans*') ? 'active' : '' }}">
+                                <i class="fas fa-calendar-check"></i>
+                                <span>Crop Plans</span>
+                            </a>
+                            
+                            <a href="/admin/farmos/fieldkit" class="mega-menu-item {{ request()->is('admin/farmos/fieldkit*') ? 'active' : '' }}">
+                                <i class="fas fa-satellite"></i>
+                                <span>FieldKit Sensors</span>
+                            </a>
+                            
+                            <a href="/admin/farmos/planting-chart" class="mega-menu-item {{ request()->is('admin/farmos/planting-chart*') ? 'active' : '' }}">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>Planting Chart</span>
+                            </a>
+                            
+                            <a href="/admin/farmos/succession-planning" class="mega-menu-item {{ request()->is('admin/farmos/succession-planning*') ? 'active' : '' }}">
+                                <i class="fas fa-layer-group"></i>
+                                <span>Succession Planning</span>
+                            </a>
+                            
+                            <a href="/admin/farmos/harvests" class="mega-menu-item {{ request()->is('admin/farmos/harvests*') ? 'active' : '' }}">
+                                <i class="fas fa-apple-alt"></i>
+                                <span>Harvest Logs</span>
+                            </a>
+                            
+                            <a href="/admin/farmos/stock" class="mega-menu-item {{ request()->is('admin/farmos/stock*') ? 'active' : '' }}">
+                                <i class="fas fa-boxes"></i>
+                                <span>Stock Management</span>
+                            </a>
+                            
+                            <a href="/admin/weather" class="mega-menu-item {{ request()->is('admin/weather*') ? 'active' : '' }}">
+                                <i class="fas fa-cloud-sun"></i>
+                                <span>Weather Dashboard</span>
+                            </a>
+
+                            <a href="/admin/ros" class="mega-menu-item {{ request()->is('admin/ros*') ? 'active' : '' }}">
+                                <i class="fas fa-robot"></i>
+                                <span>ROS Swarm</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="nav-section mega-menu-trigger" data-section="system" title="System">
+                    <i class="fas fa-cog"></i>
+                    <div class="mega-menu-overlay">
+                        <div class="mega-menu-title">System</div>
+                        <div class="mega-menu-grid">
+                            <a href="/admin/admin-users" class="mega-menu-item {{ request()->is('admin/admin-users*') ? 'active' : '' }}">
+                                <i class="fas fa-users-cog"></i>
+                                <span>Admin Users</span>
+                            </a>
+                            
+                            <a href="/admin/stripe" class="mega-menu-item {{ request()->is('admin/stripe*') ? 'active' : '' }}">
+                                <i class="fas fa-credit-card"></i>
+                                <span>Stripe Payments</span>
+                            </a>
+                            
+                            <a href="/admin/companies-house" class="mega-menu-item {{ request()->is('admin/companies-house*') ? 'active' : '' }}">
+                                <i class="fas fa-building"></i>
+                                <span>Companies House</span>
+                            </a>
+                        
+                            <a href="/admin/settings" class="mega-menu-item {{ request()->is('admin/settings*') ? 'active' : '' }}">
+                                <i class="fas fa-cog"></i>
+                                <span>Settings</span>
+                            </a>
+                            
+                            <a href="/admin/logs" class="mega-menu-item {{ request()->is('admin/logs*') ? 'active' : '' }}">
+                                <i class="fas fa-file-alt"></i>
+                                <span>System Logs</span>
+                            </a>
+
+                            <a href="/admin/system/updates" class="mega-menu-item {{ request()->is('admin/system/updates*') ? 'active' : '' }}">
+                                <i class="fas fa-download"></i>
+                                <span>System Updates</span>
+                            </a>
+
+                            <a href="/admin/chatbot-settings" class="mega-menu-item {{ request()->is('admin/chatbot-settings*') ? 'active' : '' }}">
+                                <i class="fas fa-robot"></i>
+                                <span>Chatbot Settings</span>
+                            </a>
+                            
+                            <a href="/admin/unified-backup" class="mega-menu-item {{ request()->is('admin/unified-backup*') ? 'active' : '' }}">
+                                <i class="fas fa-server"></i>
+                                <span>Unified Backup</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="nav-section mega-menu-trigger" data-section="ai-helper" title="AI Helper">
+                    <i class="fas fa-brain"></i>
+                    <div class="mega-menu-overlay">
+                        <div class="mega-menu-title">AI Helper</div>
+                        <div class="ai-helper-sidebar-container">
+                            <div class="ai-helper-sidebar-header">
+                                <i class="fas fa-robot ai-helper-icon"></i>
+                                <div class="ai-helper-context">Ask me anything about your farm operations</div>
+                            </div>
+                            <div class="ai-helper-sidebar-messages" id="aiMessages">
+                                <div class="ai-message">
+                                    <div class="ai-avatar">
+                                        <i class="fas fa-robot"></i>
+                                    </div>
+                                    <div class="ai-content">
+                                        <p>Hello! I'm your AI farming assistant. I can help you with crop planning, succession planning, weather analysis, and farm management questions.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="ai-helper-sidebar-input">
+                                <input type="text" id="aiInput" placeholder="Ask me about your farm...">
+                                <button class="btn btn-primary btn-sm ai-send-button" id="aiSendButton">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
-                    <div class="ai-helper-sidebar-input">
-                        <input type="text" placeholder="Ask me anything..." />
-                        <button class="ai-send-button">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
-                    <div class="ai-helper-sidebar-loading" style="display: none;">
-                        <div class="ai-spinner"></div>
-                        <span>Thinking...</span>
+                </div>
+                
+                <div class="nav-section mega-menu-trigger" data-section="external" title="External">
+                    <i class="fas fa-external-link-alt"></i>
+                    <div class="mega-menu-overlay">
+                        <div class="mega-menu-title">External Links</div>
+                        <div class="mega-menu-grid">
+                            <a href="{{ $customerSiteUrl ?? '#' }}" class="mega-menu-item" target="_blank">
+                                <i class="fas fa-store"></i>
+                                <span>Customer Site</span>
+                            </a>
+                            
+                            <a href="{{ $wpAdminUrl ?? '#' }}" class="mega-menu-item" target="_blank">
+                                <i class="fab fa-wordpress"></i>
+                                <span>WordPress Admin</span>
+                            </a>
+                            
+                            <a href="/fieldkit" class="mega-menu-item" target="_blank">
+                                <i class="fas fa-satellite"></i>
+                                <span>FieldKit</span>
+                            </a>
+                            
+                            <a href="/farmos" class="mega-menu-item" target="_blank">
+                                <i class="fas fa-seedling"></i>
+                                <span>farmOS</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="nav-section" data-section="external">
-                External
-                <i class="fas fa-chevron-down section-toggle"></i>
-            </div>
-            <div class="nav-section-items" data-section-items="external">
-                <a href="{{ $customerSiteUrl ?? '#' }}" target="_blank" class="nav-link">
-                    <i class="fas fa-external-link-alt"></i>
-                    <span>Visit Website</span>
-                </a>
-                
-                <a href="{{ $wpAdminUrl ?? '#' }}" target="_blank" class="nav-link">
-                    <i class="fab fa-wordpress"></i>
-                    <span>WordPress Admin</span>
-                </a>
-            </div>
-
-            <!-- Logout Section -->
-            <div class="nav-section mt-4" data-section="account">
-                Account
-                <i class="fas fa-chevron-down section-toggle"></i>
-            </div>
-            <div class="nav-section-items" data-section-items="account">
-                <form method="POST" action="{{ route('admin.logout') }}" class="d-inline">
-                    @csrf
-                    <button type="submit" class="nav-link text-start border-0 bg-transparent w-100" style="color: inherit;">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>Logout</span>
-                    </button>
-                </form>
-            </div>
-        </nav>
-    </div>
-    @endif
-    
-    <!-- Sidebar overlay for mobile -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    
-    <!-- Top Header -->
-    <div class="top-header">
-        <div class="d-flex justify-content-between align-items-center">
-            <div class="header-spacer">
-                @hasSection('header-hint')
-                    <small class="text-white">@yield('header-hint')</small>
-                @endif
-            </div>
-            <div class="header-content">
-                @hasSection('page-header')
-                    @yield('page-header')
-                @else
-                    <h1>{{ $branding ? $branding->company_name : 'Farm Management System' }}</h1>
-                    <p class="lead">{{ $branding ? $branding->tagline : 'Integrated agricultural operations' }}</p>
-                @endif
-            </div>
-            <div class="header-logo-container">
-                @if($branding && $branding->logo_path)
-                    <img src="{{ secure_url($branding->logo_path) }}" 
-                         alt="{{ $branding->logo_alt_text ?? $branding->company_name ?? 'Logo' }}" class="header-logo">
-                @else
-                    <img src="/Middle_World_Logo_Inverted 350px.png" alt="Middle World Farms" class="header-logo">
-                @endif
-            </div>
+            </nav>
         </div>
-    </div>
-
-    <!-- Main content -->
-    <div class="main-content" id="mainContent">
-        <!-- Page content -->
-        <div class="content-wrapper">
-            @yield('content')
+        @endif
+        
+        <!-- Main content -->
+        <div class="main-content" id="mainContent">
+            <!-- Page content -->
+            <div class="content-wrapper">
+                @yield('content')
+            </div>
         </div>
     </div>
     
@@ -953,9 +884,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             const sidebar = document.getElementById('sidebar');
             const mainContent = document.getElementById('mainContent');
-            const topHeader = document.querySelector('.top-header');
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
             const sidebarOverlay = document.getElementById('sidebarOverlay');
             const body = document.body;
             
@@ -965,140 +893,49 @@
                 return;
             }
             
-            // Load saved sidebar state
-            const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-            if (sidebarCollapsed && window.innerWidth > 768) {
-                sidebar.classList.add('collapsed');
-                mainContent.classList.add('expanded');
-                body.classList.add('sidebar-collapsed');
-                if (topHeader) {
-                    topHeader.style.marginLeft = '60px';
-                }
-            }
-            
-            // Function to toggle sidebar
-            function toggleSidebar() {
-                console.log('Toggle sidebar called'); // Debug log
-                if (window.innerWidth <= 768) {
-                    // Mobile toggle
-                    sidebar.classList.toggle('mobile-open');
-                    if (sidebarOverlay) {
-                        sidebarOverlay.classList.toggle('show');
-                    }
-                } else {
-                    // Desktop toggle
-                    sidebar.classList.toggle('collapsed');
-                    mainContent.classList.toggle('expanded');
-                    body.classList.toggle('sidebar-collapsed');
-                    
-                    // Update header margin
-                    if (topHeader) {
-                        if (sidebar.classList.contains('collapsed')) {
-                            topHeader.style.marginLeft = '60px';
-                        } else {
-                            topHeader.style.marginLeft = 'var(--sidebar-width)';
-                        }
-                    }
-                    
-                    // Save state to localStorage
-                    localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
-                    console.log('Sidebar collapsed:', sidebar.classList.contains('collapsed')); // Debug log
-                }
-            }
-            
-            // Toggle sidebar from top navbar
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleSidebar();
-                });
-            }
-            
-            // Toggle sidebar from sidebar button
-            if (sidebarToggleBtn) {
-                sidebarToggleBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleSidebar();
-                });
-            }
-            
-            // Close sidebar on overlay click (mobile)
-            if (sidebarOverlay) {
-                sidebarOverlay.addEventListener('click', function() {
-                    sidebar.classList.remove('mobile-open');
-                    sidebarOverlay.classList.remove('show');
-                });
-            }
-            
-            // Handle window resize
+            // Handle window resize for mobile responsiveness
             window.addEventListener('resize', function() {
                 if (window.innerWidth > 768) {
                     sidebar.classList.remove('mobile-open');
                     if (sidebarOverlay) {
                         sidebarOverlay.classList.remove('show');
                     }
-                    
-                    // Restore collapsed state on desktop
-                    const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-                    if (sidebarCollapsed) {
-                        sidebar.classList.add('collapsed');
-                        mainContent.classList.add('expanded');
-                        body.classList.add('sidebar-collapsed');
-                        if (topHeader) {
-                            topHeader.style.marginLeft = '60px';
-                        }
-                    } else {
-                        if (topHeader) {
-                            topHeader.style.marginLeft = 'var(--sidebar-width)';
-                        }
-                    }
-                } else {
-                    // Remove collapsed state on mobile
-                    sidebar.classList.remove('collapsed');
-                    mainContent.classList.remove('expanded');
-                    body.classList.remove('sidebar-collapsed');
-                    if (topHeader) {
-                        topHeader.style.marginLeft = '0';
-                    }
                 }
             });
         });
-        
-        // Collapsible Sidebar Sections
+    </script>
+    
+    <!-- Mega Menu Positioning Script -->
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Load saved section states from localStorage
-            const savedStates = JSON.parse(localStorage.getItem('sidebarSections') || '{}');
-            
-            // Initialize all sections
-            document.querySelectorAll('.nav-section').forEach(section => {
-                const sectionName = section.getAttribute('data-section');
-                const itemsContainer = document.querySelector(`[data-section-items="${sectionName}"]`);
+            // Function to position mega menus relative to their nav sections
+            function positionMegaMenus() {
+                const navSections = document.querySelectorAll('.nav-section');
                 
-                if (!itemsContainer) return;
-                
-                // Apply saved state (default to expanded)
-                if (savedStates[sectionName] === 'collapsed') {
-                    section.classList.add('collapsed');
-                    itemsContainer.classList.add('collapsed');
-                }
-                
-                // Add click handler
-                section.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    // Toggle collapsed state
-                    section.classList.toggle('collapsed');
-                    itemsContainer.classList.toggle('collapsed');
-                    
-                    // Save state to localStorage
-                    const isCollapsed = section.classList.contains('collapsed');
-                    savedStates[sectionName] = isCollapsed ? 'collapsed' : 'expanded';
-                    localStorage.setItem('sidebarSections', JSON.stringify(savedStates));
+                navSections.forEach(section => {
+                    const megaMenu = section.querySelector('.mega-menu-overlay');
+                    if (megaMenu) {
+                        const sectionRect = section.getBoundingClientRect();
+                        const sidebarRect = document.querySelector('.sidebar').getBoundingClientRect();
+                        
+                        // Position the mega menu at the same vertical position as the nav section
+                        // relative to the viewport
+                        megaMenu.style.top = sectionRect.top + 'px';
+                    }
                 });
-            });
+            }
+            
+            // Position mega menus on page load
+            positionMegaMenus();
+            
+            // Reposition on window resize
+            window.addEventListener('resize', positionMegaMenus);
+            
+            // Reposition on scroll (in case sidebar scrolls)
+            const sidebar = document.querySelector('.sidebar');
+            if (sidebar) {
+                sidebar.addEventListener('scroll', positionMegaMenus);
+            }
         });
     </script>
     
