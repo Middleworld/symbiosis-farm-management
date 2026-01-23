@@ -243,7 +243,7 @@
         }
 
         .mega-menu-title {
-            color: var(--brand-primary, #3498db);
+            color: #ffffff;
             font-size: 14px;
             font-weight: 600;
             text-transform: uppercase;
@@ -261,17 +261,6 @@
         .mega-menu-overlay .ai-helper-sidebar-container {
             max-height: none;
             overflow: visible;
-        }
-
-        .mega-menu-title {
-            color: var(--brand-primary, #3498db);
-            font-size: 14px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
 
         .mega-menu-grid {
