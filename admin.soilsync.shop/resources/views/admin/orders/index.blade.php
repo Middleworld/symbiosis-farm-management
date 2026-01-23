@@ -429,9 +429,6 @@
                             $orderTypes = [
                                 '' => 'All order types',
                                 'shop_order' => 'Shop orders',
-                                'shop_subscription' => 'Subscriptions',
-                                'subscription_renewal' => 'Subscription renewals',
-                                'subscription_switch' => 'Subscription switches',
                             ];
                         @endphp
                         @foreach($orderTypes as $typeValue => $typeLabel)

@@ -40,6 +40,11 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
     // Admin dashboard route
     Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
     
+    // ROS Telemetry Dashboard
+    Route::get('/ros/telemetry-dashboard', function () {
+        return view('admin.ros.telemetry-dashboard');
+    })->name('admin.ros.telemetry-dashboard');
+    
     // Documentation routes
     Route::get('/docs/user-manual', function () {
         return view('docs.user-manual.index');
@@ -696,6 +701,9 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
     Route::post('/deliveries/mark-complete', [App\Http\Controllers\Admin\DeliveryController::class, 'markComplete'])->name('admin.deliveries.mark-complete');
     Route::post('/deliveries/unmark-complete', [App\Http\Controllers\Admin\DeliveryController::class, 'unmarkComplete'])->name('admin.deliveries.unmark-complete');
 
+    // ROS Swarm
+    Route::get('/ros', [App\Http\Controllers\Admin\RosController::class, 'index'])->name('admin.ros.index');
+
     // FarmOS Integration routes
     Route::prefix('farmos')->name('admin.farmos.')->group(function () {
         Route::get('/', function () {
@@ -939,16 +947,6 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         ]);
     })->name('admin.farmos.uuid-helper');
 
-    // WooCommerce Funds Management
-    Route::prefix('funds')->name('admin.funds.')->group(function () {
-        Route::get('/', [App\Http\Controllers\Admin\WooCommerceFundsController::class, 'index'])->name('index');
-        Route::get('/settings', [App\Http\Controllers\Admin\WooCommerceFundsController::class, 'settings'])->name('settings');
-        Route::post('/settings', [App\Http\Controllers\Admin\WooCommerceFundsController::class, 'updateSettings'])->name('settings.update');
-        Route::get('/customers', [App\Http\Controllers\Admin\WooCommerceFundsController::class, 'getCustomerFunds'])->name('customers');
-        Route::get('/customers/{customerId}', [App\Http\Controllers\Admin\WooCommerceFundsController::class, 'showCustomer'])->name('customers.show');
-        Route::post('/customers/{customerId}/adjust-balance', [App\Http\Controllers\Admin\WooCommerceFundsController::class, 'adjustCustomerBalance'])->name('customers.adjust-balance');
-        Route::get('/transactions', [App\Http\Controllers\Admin\WooCommerceFundsController::class, 'getTransactions'])->name('transactions');
-    });
 });
 
 // Serve product images (workaround for nginx 403 on /storage)

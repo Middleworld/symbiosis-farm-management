@@ -7,6 +7,7 @@ use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\Api\VegboxSubscriptionApiController;
 use App\Http\Controllers\Api\BoxCustomizationApiController;
 use App\Http\Controllers\Api\BrandingController;
+use App\Http\Controllers\Api\RosTelemetryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -139,3 +140,11 @@ Route::prefix('branding')->group(function () {
         ->name('api.branding.clear-cache')
         ->middleware('admin.auth');
 });
+
+// ===== ROS Telemetry =====
+Route::post('/ros/telemetry', [RosTelemetryController::class, 'store'])
+    ->middleware('verify.ros.api.key')
+    ->name('api.ros.telemetry');
+Route::get('/ros/telemetry', [RosTelemetryController::class, 'latest'])
+    ->middleware(['web', 'admin.auth'])
+    ->name('api.ros.telemetry.latest');

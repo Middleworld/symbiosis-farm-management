@@ -7,6 +7,7 @@ use App\Services\WpApiService;
 use App\Services\FarmOSQueryService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
@@ -31,10 +32,13 @@ class DashboardController extends Controller
             // Get fortnightly information
             $fortnightlyInfo = $this->getFortnightlyInfo();
             
+            // Get ROS telemetry status
+            $rosTelemetry = $this->getROSTelemetryStatus();
+            
             // Trigger async prefetching of orders in background
             $this->prefetchOrdersInBackground();
             
-            return view('admin.dashboard', compact('deliveryStats', 'customerStats', 'fortnightlyInfo'));
+            return view('admin.dashboard', compact('deliveryStats', 'customerStats', 'fortnightlyInfo', 'rosTelemetry'));
             
         } catch (\Exception $e) {
             // Fallback stats if database connection fails
@@ -666,6 +670,37 @@ class DashboardController extends Controller
     public function plantingRecommendations()
     {
         return view('admin.planting-recommendations');
+    }
+
+    private function getROSTelemetryStatus()
+    {
+        try {
+            $telemetry = Cache::get('ros.telemetry.latest');
+            
+            if ($telemetry && isset($telemetry['robots'])) {
+                return [
+                    'status' => 'active',
+                    'robot_count' => count($telemetry['robots']),
+                    'last_update' => $telemetry['timestamp_ms'] ?? null,
+                    'source' => $telemetry['source'] ?? 'unknown'
+                ];
+            }
+            
+            return [
+                'status' => 'inactive',
+                'robot_count' => 0,
+                'last_update' => null,
+                'source' => null
+            ];
+        } catch (\Exception $e) {
+            Log::warning('Failed to get ROS telemetry status', ['error' => $e->getMessage()]);
+            return [
+                'status' => 'error',
+                'robot_count' => 0,
+                'last_update' => null,
+                'source' => null
+            ];
+        }
     }
 
     /**

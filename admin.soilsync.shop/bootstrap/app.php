@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.auth' => \App\Http\Middleware\AdminAuthentication::class,
             'pos.auth' => \App\Http\Middleware\PosAuthentication::class,
             'verify.wc.api.token' => \App\Http\Middleware\VerifyWooCommerceApiToken::class,
+            'verify.ros.api.key' => \App\Http\Middleware\VerifyRosApiKey::class,
         ]);
         
         // Add TrustProxies middleware to web middleware group

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Collection;
 
 /**
@@ -314,10 +315,19 @@ class FarmOSQueryService
             ->leftJoin('asset__plant_type as pt', 'afd.id', '=', 'pt.entity_id') // Plant variety
             ->leftJoin('taxonomy_term_field_data as variety', 'pt.plant_type_target_id', '=', 'variety.tid')
             ->leftJoin('taxonomy_term__maturity_days as md', 'variety.tid', '=', 'md.entity_id')
-            ->leftJoin('taxonomy_term__harvest_window_days as hw', 'variety.tid', '=', 'hw.entity_id')
             ->whereIn('l.type', ['seeding', 'transplanting']) // Include BOTH seeding (direct-sown) AND transplanting
             ->whereIn('lfd.status', ['done', 'pending']) // Show both completed AND planned plantings
             ->whereNotNull('ll.location_target_id'); // Must have bed location
+
+        // Optional harvest window field (varies by farmOS setup)
+        $harvestWindowSelect = DB::raw('NULL as harvest_window_days');
+        if (Schema::connection('farmos')->hasTable('taxonomy_term__harvest_window_days')) {
+            $query->leftJoin('taxonomy_term__harvest_window_days as hw', 'variety.tid', '=', 'hw.entity_id');
+            $harvestWindowSelect = DB::raw('hw.harvest_window_days_value as harvest_window_days');
+        } elseif (Schema::connection('farmos')->hasTable('taxonomy_term__harvest_days')) {
+            $query->leftJoin('taxonomy_term__harvest_days as hw', 'variety.tid', '=', 'hw.entity_id');
+            $harvestWindowSelect = DB::raw('hw.harvest_days_value as harvest_window_days');
+        }
 
         // Date range filter (transplant date)
         if (!empty($options['start_date'])) {
@@ -338,7 +348,7 @@ class FarmOSQueryService
             'variety.name as variety_name',
             'variety.tid as variety_id',
             'md.maturity_days_value as maturity_days',
-            'hw.harvest_window_days_value as harvest_window_days'
+            $harvestWindowSelect
         )
         ->orderBy('lfd.timestamp', 'desc')
         ->get();

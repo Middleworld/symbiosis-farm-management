@@ -89,6 +89,35 @@
             </div>
         </div>
     </div>
+
+    <div class="col-md-3 mb-4">
+        <div class="card bg-secondary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">ROS Telemetry</h6>
+                        <h2 class="mb-0" id="ros-status">
+                            @if($rosTelemetry['status'] === 'active')
+                                <i class="fas fa-robot text-success"></i> {{ $rosTelemetry['robot_count'] }}
+                            @elseif($rosTelemetry['status'] === 'error')
+                                <i class="fas fa-exclamation-triangle text-warning"></i>
+                            @else
+                                <i class="fas fa-times text-danger"></i>
+                            @endif
+                        </h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-robot fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="/admin/ros" class="text-white text-decoration-none">
+                    <small>View Dashboard <i class="fas fa-arrow-right"></i></small>
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="row">
@@ -102,32 +131,46 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
                         <a href="/admin/deliveries" class="btn btn-outline-primary w-100 p-3">
                             <i class="fas fa-truck mb-2 d-block fa-2x"></i>
                             <h6>Manage Deliveries</h6>
                             <small class="text-muted">View and manage deliveries & collections</small>
                         </a>
                     </div>
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
                         <a href="/admin/users" class="btn btn-outline-success w-100 p-3">
                             <i class="fas fa-users mb-2 d-block fa-2x"></i>
                             <h6>Customer Management</h6>
                             <small class="text-muted">Search and manage customers</small>
                         </a>
                     </div>
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
+                        <a href="/admin/ros" class="btn btn-outline-secondary w-100 p-3">
+                            <i class="fas fa-robot mb-2 d-block fa-2x"></i>
+                            <h6>ROS Swarm</h6>
+                            <small class="text-muted">Monitor robot simulation & telemetry</small>
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-3">
                         <a href="/admin/reports" class="btn btn-outline-info w-100 p-3">
                             <i class="fas fa-chart-bar mb-2 d-block fa-2x"></i>
                             <h6>Generate Reports</h6>
                             <small class="text-muted">View delivery and sales reports</small>
                         </a>
                     </div>
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
                         <a href="/admin/settings" class="btn btn-outline-warning w-100 p-3">
                             <i class="fas fa-cog mb-2 d-block fa-2x"></i>
                             <h6>System Settings</h6>
                             <small class="text-muted">Configure system preferences</small>
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <a href="/admin/farmos" class="btn btn-outline-success w-100 p-3">
+                            <i class="fas fa-seedling mb-2 d-block fa-2x"></i>
+                            <h6>FarmOS</h6>
+                            <small class="text-muted">Manage farm data & planning</small>
                         </a>
                     </div>
                 </div>
@@ -429,6 +472,58 @@
         font-size: 0.9rem;
     }
     
+    /* Modern card styling */
+    .card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        transform: translateY(-2px);
+    }
+    
+    .card-header {
+        border-radius: 12px 12px 0 0 !important;
+        border: none;
+        font-weight: 600;
+    }
+    
+    /* Hero gradient */
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    /* Stats cards with gradients */
+    .bg-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    }
+    
+    .bg-success {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%) !important;
+    }
+    
+    .bg-info {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    }
+    
+    .bg-warning {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+    }
+    
+    .bg-secondary {
+        background: linear-gradient(135deg, #434343 0%, #000000 100%) !important;
+    }
+    
+    /* Quick action buttons */
+    .btn-outline-primary:hover, .btn-outline-success:hover, .btn-outline-info:hover, 
+    .btn-outline-warning:hover, .btn-outline-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
     /* Enhanced map layer control styling */
     .leaflet-control-layers {
         background: rgba(255, 255, 255, 0.95) !important;
@@ -569,6 +664,39 @@ console.log('🔗 WordPress Admin URL:', '{{ session('wp_admin_url') }}');
 @else
 console.log('⚠️ WordPress Integration: Not Available');
 @endif
+
+// --- ROS Telemetry Status Check ---
+document.addEventListener('DOMContentLoaded', function() {
+    // Start with server-rendered status, then update dynamically after 2 seconds
+    setTimeout(checkROSTelemetryStatus, 2000);
+    
+    // Check ROS status every 30 seconds
+    setInterval(checkROSTelemetryStatus, 30000);
+});
+
+function checkROSTelemetryStatus() {
+    const statusElement = document.getElementById('ros-status');
+    
+    fetch('/api/ros/telemetry')
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error('API not responding');
+            }
+        })
+        .then(data => {
+            if (data && data.robots && data.robots.length > 0) {
+                statusElement.innerHTML = '<i class="fas fa-robot"></i> ' + data.robots.length;
+            } else {
+                statusElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+            }
+        })
+        .catch(error => {
+            console.log('ROS telemetry check failed:', error);
+            statusElement.innerHTML = '<i class="fas fa-times"></i>';
+        });
+}
 
 // --- FarmOS Map Integration ---
 document.addEventListener('DOMContentLoaded', function() {

@@ -26,7 +26,7 @@ class WooCommerceOrder extends Model
         parent::boot();
         
         static::addGlobalScope('orders', function ($builder) {
-            $builder->whereIn('post_type', ['shop_order', 'shop_subscription']);
+            $builder->where('post_type', 'shop_order');
         });
     }
 
@@ -77,7 +77,7 @@ class WooCommerceOrder extends Model
      */
     public function scopeSubscriptions($query)
     {
-        return $query->where('post_type', 'shop_subscription');
+        return $query->withoutGlobalScope('orders')->where('post_type', 'shop_subscription');
     }
 
     /**

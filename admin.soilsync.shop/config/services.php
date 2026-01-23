@@ -121,4 +121,8 @@ return [
         'api_key' => env('MWF_API_KEY'),
     ],
 
+    'ros' => [
+        'api_key' => env('ROS_API_KEY', ''),
+    ],
+
 ];

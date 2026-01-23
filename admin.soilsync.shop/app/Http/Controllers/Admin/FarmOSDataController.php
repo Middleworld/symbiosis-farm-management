@@ -11,7 +11,9 @@ use App\Models\CropPlan;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
 class FarmOSDataController extends Controller
@@ -1127,28 +1129,69 @@ class FarmOSDataController extends Controller
         try {
             // Query farmOS database directly for logs related to this location
             // Get seeding, transplanting, and harvest logs for plantings in this bed
-            $logs = DB::connection('farmos')
+            $hasLogStatus = Schema::connection('farmos')->hasTable('log__status');
+            $hasMaturityDays = Schema::connection('farmos')->hasTable('taxonomy_term__maturity_days');
+            $hasHarvestWindowDays = Schema::connection('farmos')->hasTable('taxonomy_term__harvest_window_days');
+            $hasHarvestDays = Schema::connection('farmos')->hasTable('taxonomy_term__harvest_days');
+
+            $query = DB::connection('farmos')
                 ->table('log_field_data as l')
                 ->join('log__location as ll', 'l.id', '=', 'll.entity_id')
                 ->leftJoin('log__asset as la', 'l.id', '=', 'la.entity_id')
                 ->leftJoin('asset_field_data as a', 'la.asset_target_id', '=', 'a.id')
                 ->leftJoin('asset__plant_type as apt', 'a.id', '=', 'apt.entity_id')
-                ->leftJoin('taxonomy_term_field_data as t', 'apt.plant_type_target_id', '=', 't.tid')
-                ->leftJoin('taxonomy_term__maturity_days as md', 't.tid', '=', 'md.entity_id')
-                ->leftJoin('taxonomy_term__harvest_window_days as hw', 't.tid', '=', 'hw.entity_id')
+                ->leftJoin('taxonomy_term_field_data as t', 'apt.plant_type_target_id', '=', 't.tid');
+
+            if ($hasLogStatus) {
+                $query->leftJoin('log__status as ls', 'l.id', '=', 'ls.entity_id');
+            }
+
+            if ($hasMaturityDays) {
+                $query->leftJoin('taxonomy_term__maturity_days as md', 't.tid', '=', 'md.entity_id');
+            }
+
+            if ($hasHarvestWindowDays) {
+                $query->leftJoin('taxonomy_term__harvest_window_days as hw', 't.tid', '=', 'hw.entity_id');
+            } elseif ($hasHarvestDays) {
+                $query->leftJoin('taxonomy_term__harvest_days as hd', 't.tid', '=', 'hd.entity_id');
+            }
+
+            $selects = [
+                'l.id as log_id',
+                'l.type as log_type',
+                'l.timestamp',
+                'a.id as plant_id',
+                'a.name as plant_name',
+                't.name as variety',
+            ];
+
+            $selects[] = $hasMaturityDays
+                ? 'md.maturity_days_value as maturity_days'
+                : DB::raw('NULL as maturity_days');
+
+            if ($hasHarvestWindowDays) {
+                $selects[] = 'hw.harvest_window_days_value as harvest_window_days';
+            } elseif ($hasHarvestDays) {
+                $selects[] = 'hd.harvest_days_value as harvest_window_days';
+            } else {
+                $selects[] = DB::raw('NULL as harvest_window_days');
+            }
+
+            if ($hasLogStatus) {
+                $selects[] = 'ls.status_value as log_status';
+            }
+
+            $query
                 ->where('ll.location_target_id', $assetId)
-                ->where('l.status', 'done')
-                ->whereIn('l.type', ['seeding', 'transplanting', 'harvest'])
-                ->select(
-                    'l.id as log_id',
-                    'l.type as log_type',
-                    'l.timestamp',
-                    'a.id as plant_id',
-                    'a.name as plant_name',
-                    't.name as variety',
-                    'md.maturity_days_value as maturity_days',
-                    'hw.harvest_window_days_value as harvest_window_days'
-                )
+                ->where('l.status', 1)
+                ->whereIn('l.type', ['seeding', 'transplanting', 'harvest']);
+
+            if ($hasLogStatus) {
+                $query->whereIn('ls.status_value', ['done', 'planned', 'in_progress', 'active']);
+            }
+
+            $logs = $query
+                ->select($selects)
                 ->orderBy('l.timestamp', 'asc')
                 ->get();
             
