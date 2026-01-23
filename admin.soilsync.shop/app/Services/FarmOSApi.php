@@ -25,7 +25,7 @@ class FarmOSApi
         
         $this->client = new Client([
             'base_uri' => $this->baseUrl,
-            'timeout' => 30,
+            'timeout' => 60, // Increased from 30 to 60 seconds for complex queries
             'headers' => [
                 'Accept' => 'application/vnd.api+json',
                 'Content-Type' => 'application/vnd.api+json',

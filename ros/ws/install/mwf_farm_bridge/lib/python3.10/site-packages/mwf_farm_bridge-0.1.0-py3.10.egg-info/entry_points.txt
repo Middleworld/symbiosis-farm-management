@@ -1,0 +1,3 @@
+[console_scripts]
+laravel_bridge = mwf_farm_bridge.laravel_bridge:main
+

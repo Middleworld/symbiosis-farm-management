@@ -1,0 +1,20 @@
+version: "3.9"
+services:
+  ros-sim:
+    image: osrf/ros:humble-desktop
+    container_name: symbiosis-ros-sim
+    network_mode: host
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - LARAVEL_BASE_URL=https://admin.soilsync.shop
+      - LARAVEL_ROS_ENDPOINT=/api/ros/telemetry
+      - LARAVEL_API_KEY=ros-demo-key
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./ws:/root/ws
+      - ./startup.sh:/root/startup.sh:ro
+    stdin_open: true
+    tty: true
+    command: bash -lc "/root/startup.sh"

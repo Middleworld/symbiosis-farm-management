@@ -844,27 +844,24 @@ class FarmOSDataController extends Controller
     public function plantingChart(Request $request)
     {
         try {
-            // Get farmOS land assets (your actual farm structure)
-            $geometryAssets = $this->farmOSApi->getGeometryAssets();
-            $cropPlans = $this->farmOSApi->getCropPlanningData();
-            $cropTypesData = $this->farmOSApi->getAvailableCropTypes();
+            // Get farmOS land assets using direct database query (much faster)
+            $geometryAssets = $this->farmOSQuery->getGeometryAssets();
             
-            // Extract simple crop type names for the filter dropdown
-            $cropTypes = [];
-            if (isset($cropTypesData['types'])) {
-                foreach ($cropTypesData['types'] as $type) {
-                    $cropTypes[] = $type['name'] ?? $type['label'] ?? 'Unknown';
-                }
-            }
+            // Get plant assets using direct database query (much faster)
+            $cropPlans = $this->farmOSQuery->getPlantAssets();
+            
+            // Get crop types using direct database query (already optimized)
+            $cropTypesData = $this->farmOSQuery->getPlantVarieties(['active_only' => true]);
+            $cropTypes = $cropTypesData->pluck('name')->toArray();
             
             // Debug: Log the data we're getting
-            Log::info('Planting Chart Debug - Geometry Assets Count: ' . count($geometryAssets['features'] ?? []));
-            Log::info('Planting Chart Debug - Crop Plans Count: ' . count($cropPlans));
+            Log::info('Planting Chart Debug - Geometry Assets Count: ' . $geometryAssets->count());
+            Log::info('Planting Chart Debug - Crop Plans Count: ' . $cropPlans->count());
             Log::info('Planting Chart Debug - Crop Types: ', $cropTypes);
             
             // Transform land assets into chart data showing your actual blocks and beds
-            $chartData = $this->transformLandAssetsToChart($geometryAssets, $cropPlans);
-            $locations = $this->extractLocationsFromAssets($geometryAssets);
+            $chartData = $this->transformGeometryAssetsToChart($geometryAssets, $cropPlans);
+            $locations = $this->extractLocationsFromGeometryAssets($geometryAssets);
             
             // Debug: Log sample of chart data
             foreach (array_slice($chartData, 0, 3) as $location => $activities) {
@@ -885,7 +882,7 @@ class FarmOSDataController extends Controller
             }
             
             // If we don't have good data or no planting data, use fallback
-            if (empty($chartData) || count($geometryAssets['features'] ?? []) < 5 || !$hasPlantingData) {
+            if (empty($chartData) || $geometryAssets->count() < 5 || !$hasPlantingData) {
                 throw new \Exception('Insufficient farmOS planting data, using fallback');
             }
             
@@ -1040,33 +1037,24 @@ class FarmOSDataController extends Controller
     /**
      * Transform land assets (blocks/beds) into planting chart timeline format
      */
-    private function transformLandAssetsToChart($geometryAssets, $cropPlans = [])
+    private function transformGeometryAssetsToChart($geometryAssets, $cropPlans = [])
     {
         $chartData = [];
-        
-        if (!isset($geometryAssets['features'])) {
-            return $chartData;
-        }
         
         // Group assets by location (blocks and beds)
         $locationGroups = [];
         
-        foreach ($geometryAssets['features'] as $feature) {
-            $properties = $feature['properties'] ?? [];
-            $name = $properties['name'] ?? 'Unnamed';
-            $landType = $properties['land_type'] ?? 'field';
+        foreach ($geometryAssets as $asset) {
+            $name = $asset['name'] ?? 'Unnamed';
+            $landType = $asset['land_type'] ?? 'field';
             
             // Skip property-level assets, focus on blocks and beds
             if ($landType === 'property') {
                 continue;
             }
             
-            // Determine if this is a block or bed
-            $isBlock = $properties['is_block'] ?? false;
-            $isBed = $properties['is_bed'] ?? false;
-            
             // Create timeline activities for this asset
-            $activities = $this->generateActivitiesForAsset($properties, $cropPlans);
+            $activities = $this->generateActivitiesForGeometryAsset($asset, $cropPlans);
             
             if (!empty($activities)) {
                 $chartData[$name] = $activities;
@@ -1082,18 +1070,13 @@ class FarmOSDataController extends Controller
     /**
      * Extract location names from geometry assets
      */
-    private function extractLocationsFromAssets($geometryAssets)
+    private function extractLocationsFromGeometryAssets($geometryAssets)
     {
         $locations = [];
         
-        if (!isset($geometryAssets['features'])) {
-            return $locations;
-        }
-        
-        foreach ($geometryAssets['features'] as $feature) {
-            $properties = $feature['properties'] ?? [];
-            $name = $properties['name'] ?? null;
-            $landType = $properties['land_type'] ?? 'field';
+        foreach ($geometryAssets as $asset) {
+            $name = $asset['name'] ?? null;
+            $landType = $asset['land_type'] ?? 'field';
             
             // Skip property-level assets
             if ($landType === 'property' || !$name) {
@@ -1114,13 +1097,13 @@ class FarmOSDataController extends Controller
     }
     
     /**
-     * Generate timeline activities for a specific asset by reading farmOS logs
+     * Generate timeline activities for a specific geometry asset by reading farmOS logs
      */
-    private function generateActivitiesForAsset($properties, $cropPlans)
+    private function generateActivitiesForGeometryAsset($asset, $cropPlans)
     {
         $activities = [];
-        $assetId = $properties['id'] ?? null;
-        $assetName = $properties['name'] ?? 'Unnamed';
+        $assetId = $asset['id'] ?? null;
+        $assetName = $asset['name'] ?? 'Unnamed';
         
         if (!$assetId) {
             return $activities;
@@ -1273,6 +1256,86 @@ class FarmOSDataController extends Controller
                         'type' => 'harvest',
                         'crop' => $cropName,
                         'variety' => $timeline['variety'],
+                        'start' => $harvestStartDate,
+                        'end' => $harvestEndDate,
+                        'status' => 'planned'
+                    ];
+                }
+            }
+
+            // Also check for planned crop plans (plant assets) that don't have logs yet
+            // These are 2026+ plans that exist as assets but haven't been planted
+            Log::info("About to check crop plans for {$assetName}", ['count' => count($cropPlans)]);
+            foreach ($cropPlans as $plan) {
+                $planName = $plan['variety'] ?? '';
+                Log::info("Checking plan: {$planName} against bed: {$assetName}");
+                
+                // Check if this plan's name contains the current bed name (e.g., "B1/1" in "2026 Season B1/1 Carrot")
+                if (strpos($planName, $assetName) !== false) {
+                    Log::info("MATCH FOUND: {$planName} contains {$assetName}");
+                    // This plan is for this bed - create a planned activity
+                    $plannedSeedingDate = date('Y-m-d'); // Default to today if no date specified
+                    $maturityDays = 60; // Default maturity period
+                    $harvestWindowDays = 14; // Default harvest window
+                    
+                    // Try to extract dates from the plan name or use defaults
+                    $bedOffset = 0; // Initialize bed offset
+                    if (preg_match('/(\d{4})/', $planName, $yearMatch)) {
+                        $year = $yearMatch[1];
+                        
+                        // Extract bed number to create staggered planting (succession planting)
+                        if (preg_match('/B\d+\/(\d+)/', $assetName, $bedMatch)) {
+                            $bedOffset = intval($bedMatch[1]) - 1; // 0-based offset
+                            Log::info("Bed match for {$assetName}: captured '{$bedMatch[1]}', offset = {$bedOffset}");
+                        } else {
+                            Log::info("No bed match for {$assetName}");
+                        }
+                        
+                        // Stagger planting by bed number (every 3 days for succession)
+                        $staggerDays = $bedOffset * 3;
+                        Log::info("Stagger calculation for {$assetName}: offset={$bedOffset}, staggerDays={$staggerDays}");
+                        $plannedSeedingDate = date('Y-m-d', strtotime($year . '-04-01 +' . $staggerDays . ' days'));
+                        Log::info("Calculated date for {$assetName}: {$plannedSeedingDate}");
+                    }
+                    
+                    $harvestStartDate = date('Y-m-d', strtotime($plannedSeedingDate . ' +' . $maturityDays . ' days'));
+                    $harvestEndDate = date('Y-m-d', strtotime($harvestStartDate . ' +' . $harvestWindowDays . ' days'));
+                    
+                    Log::info("Creating staggered planned timeline for {$planName} in {$assetName}", [
+                        'seeding' => $plannedSeedingDate,
+                        'harvest_start' => $harvestStartDate,
+                        'harvest_end' => $harvestEndDate,
+                        'bed_offset' => $bedOffset
+                    ]);
+                    
+                    // Create planned seeding activity (light green)
+                    $activities[] = [
+                        'id' => 'planned_seeding_' . $plan['farmos_asset_id'],
+                        'type' => 'seeding',
+                        'crop' => $planName,
+                        'variety' => $planName,
+                        'start' => $plannedSeedingDate,
+                        'end' => date('Y-m-d', strtotime($plannedSeedingDate . ' +21 days')),
+                        'status' => 'planned'
+                    ];
+                    
+                    // Create planned growing activity (light blue)
+                    $activities[] = [
+                        'id' => 'planned_growing_' . $plan['farmos_asset_id'],
+                        'type' => 'growing',
+                        'crop' => $planName,
+                        'variety' => $planName,
+                        'start' => date('Y-m-d', strtotime($plannedSeedingDate . ' +21 days')),
+                        'end' => $harvestStartDate,
+                        'status' => 'planned'
+                    ];
+                    
+                    // Create planned harvest activity (light yellow)
+                    $activities[] = [
+                        'id' => 'planned_harvest_' . $plan['farmos_asset_id'],
+                        'type' => 'harvest',
+                        'crop' => $planName,
+                        'variety' => $planName,
                         'start' => $harvestStartDate,
                         'end' => $harvestEndDate,
                         'status' => 'planned'

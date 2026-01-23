@@ -407,4 +407,151 @@ class FarmOSQueryService
             'harvest_logs' => $this->getHarvestLogs(null, null, ['search' => $searchTerm]),
         ];
     }
+
+    /**
+     * Get geometry assets (land/beds) with geometry data for mapping
+     * 
+     * @param array $options - Filtering options
+     * @return Collection
+     */
+    public function getGeometryAssets(array $options = []): Collection
+    {
+        $query = DB::connection('farmos')
+            ->table('asset_field_data as afd')
+            ->join('asset as a', 'afd.id', '=', 'a.id')
+            ->leftJoin('asset__intrinsic_geometry as geom', 'afd.id', '=', 'geom.entity_id')
+            ->where('afd.type', 'land')
+            ->where('afd.status', 'active')
+            ->whereNotNull('geom.intrinsic_geometry_value');
+
+        // Filter by location
+        if (!empty($options['location_id'])) {
+            $query->join('asset__location as loc', 'afd.id', '=', 'loc.entity_id')
+                  ->where('loc.location_target_id', $options['location_id']);
+        }
+
+        // Search by name
+        if (!empty($options['search'])) {
+            $query->where('afd.name', 'like', '%' . $options['search'] . '%');
+        }
+
+        $results = $query->select(
+            'afd.id',
+            'a.uuid',
+            'afd.name',
+            'afd.status',
+            'afd.type as land_type',
+            'geom.intrinsic_geometry_value as geometry_value',
+            'geom.intrinsic_geometry_geo_type as geo_type'
+        )->get();
+
+        // Transform to match API format
+        return $results->map(function($asset) {
+            $geometry = null;
+            if ($asset->geometry_value && $asset->geo_type) {
+                // Convert WKT to GeoJSON format (simplified)
+                if (strtoupper($asset->geo_type) === 'POLYGON') {
+                    $geometry = $this->convertWktToGeoJson($asset->geometry_value, $asset->geo_type);
+                }
+            }
+
+            return [
+                'id' => $asset->id,
+                'name' => $asset->name,
+                'status' => $asset->status,
+                'land_type' => $asset->land_type,
+                'geometry' => $geometry
+            ];
+        });
+    }
+
+    /**
+     * Get plant assets for crop planning
+     * 
+     * @param array $options - Filtering options
+     * @return Collection
+     */
+    public function getPlantAssets(array $options = []): Collection
+    {
+        $query = DB::connection('farmos')
+            ->table('asset_field_data as afd')
+            ->join('asset as a', 'afd.id', '=', 'a.id')
+            ->leftJoin('asset__plant_type as pt', 'afd.id', '=', 'pt.entity_id')
+            ->leftJoin('taxonomy_term_field_data as variety', 'pt.plant_type_target_id', '=', 'variety.tid')
+            ->where('afd.type', 'plant')
+            ->where('afd.status', 'active');
+
+        // Filter by location
+        if (!empty($options['location_id'])) {
+            $query->join('asset__location as loc', 'afd.id', '=', 'loc.entity_id')
+                  ->where('loc.location_target_id', $options['location_id']);
+        }
+
+        // Search by name
+        if (!empty($options['search'])) {
+            $query->where('afd.name', 'like', '%' . $options['search'] . '%');
+        }
+
+        $results = $query->select(
+            'afd.id as farmos_asset_id',
+            'a.uuid',
+            'afd.name as variety',
+            'afd.status',
+            'variety.name as variety_name',
+            'variety.tid as variety_id',
+            DB::raw('FROM_UNIXTIME(afd.created) as created_at'),
+            DB::raw('FROM_UNIXTIME(afd.changed) as updated_at')
+        )->get();
+
+        // Transform to match API format
+        return $results->map(function($asset) {
+            return [
+                'farmos_asset_id' => $asset->farmos_asset_id,
+                'crop_type' => 'vegetable', // Default crop type
+                'variety' => $asset->variety ?: $asset->variety_name ?: 'Unknown',
+                'status' => $asset->status,
+                'created_at' => $asset->created_at,
+                'updated_at' => $asset->updated_at,
+            ];
+        });
+    }
+
+    /**
+     * Simple WKT to GeoJSON conversion (simplified version)
+     */
+    private function convertWktToGeoJson(string $wkt, string $geoType): ?array
+    {
+        if (strtoupper($geoType) === 'POLYGON') {
+            // Simple POLYGON parsing - extract coordinates
+            if (preg_match('/^POLYGON\s*\(\((.*)\)\)$/i', $wkt, $matches)) {
+                $coordinateString = $matches[1];
+                $coordinates = $this->parseCoordinateString($coordinateString);
+                
+                return [
+                    'type' => 'Polygon',
+                    'coordinates' => [$coordinates]
+                ];
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Parse coordinate string from WKT
+     */
+    private function parseCoordinateString(string $coordString): array
+    {
+        $coordinates = [];
+        $pairs = explode(',', trim($coordString));
+        
+        foreach ($pairs as $pair) {
+            $pair = trim($pair);
+            if (preg_match('/^([-\d.]+)\s+([-\d.]+)$/', $pair, $matches)) {
+                $coordinates[] = [(float)$matches[1], (float)$matches[2]];
+            }
+        }
+        
+        return $coordinates;
+    }
 }
