@@ -38,6 +38,17 @@
 /* Ensure badges and buttons fit properly */
 .badge {
     font-size: 0.75rem;
+    color: white !important;
+}
+.badge.bg-warning {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+}
+.badge.bg-success {
+    background-color: #198754 !important;
+}
+.badge.bg-secondary {
+    background-color: #6c757d !important;
 }
 .btn-group .btn {
     padding: 0.25rem 0.5rem;
@@ -163,6 +174,9 @@
                             <button type="button" class="btn btn-outline-primary btn-sm" onclick="bulkSyncSelected()">
                                 <i class="fab fa-wordpress"></i> Sync Selected to WooCommerce
                             </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="bulkDeleteSelected()">
+                                <i class="fas fa-trash"></i> Delete Selected
+                            </button>
                         </div>
                         <small class="text-muted ml-2">
                             <span id="selected-count">0</span> products selected
@@ -236,7 +250,7 @@
                                         @if($product->stock_quantity !== null)
                                             {{ $product->stock_quantity }}
                                             @if($product->min_stock_level && $product->stock_quantity <= $product->min_stock_level)
-                                                <span class="badge badge-warning">Low</span>
+                                                <span class="badge bg-warning text-dark">Low</span>
                                             @endif
                                         @else
                                             <span class="text-muted">-</span>
@@ -244,17 +258,26 @@
                                     </td>
                                     <td>
                                         @if($product->woo_product_id)
-                                            <span class="badge badge-success" title="Linked to WooCommerce product #{{ $product->woo_product_id }}">
-                                                <i class="fab fa-wordpress"></i> Linked
-                                            </span>
+                                            @php
+                                                $needsSync = !$product->last_woo_sync_at || $product->updated_at > $product->last_woo_sync_at;
+                                            @endphp
+                                            @if($needsSync)
+                                                <span class="badge bg-warning text-dark" title="Linked to WooCommerce product #{{ $product->woo_product_id }} but needs syncing (last synced: {{ $product->last_woo_sync_at ? $product->last_woo_sync_at->diffForHumans() : 'never' }})">
+                                                    <i class="fas fa-exclamation-triangle"></i> Needs Sync
+                                                </span>
+                                            @else
+                                                <span class="badge bg-success" title="Linked to WooCommerce product #{{ $product->woo_product_id }} (last synced: {{ $product->last_woo_sync_at->diffForHumans() }})">
+                                                    <i class="fab fa-wordpress"></i> Linked
+                                                </span>
+                                            @endif
                                         @else
-                                            <span class="badge badge-secondary" title="Not linked to WooCommerce">
+                                            <span class="badge bg-secondary" title="Not linked to WooCommerce">
                                                 <i class="fas fa-unlink"></i> Not Linked
                                             </span>
                                         @endif
                                     </td>
                                     <td>
-                                        <span class="badge {{ $product->is_active ? 'badge-success' : 'badge-secondary' }}">
+                                        <span class="badge {{ $product->is_active ? 'bg-success' : 'bg-secondary' }}">
                                             {{ $product->is_active ? 'Active' : 'Inactive' }}
                                         </span>
                                     </td>
@@ -277,22 +300,6 @@
                                                         title="Sync with WooCommerce">
                                                     <i class="fab fa-wordpress"></i>
                                                 </button>
-                                                <a href="{{ route('admin.products.api-edit', $product) }}" 
-                                                   class="btn btn-outline-info btn-sm" 
-                                                   title="Edit via MWF API">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                                <a href="{{ route('admin.products.iframe-edit', $product) }}" 
-                                                   class="btn btn-outline-secondary btn-sm" 
-                                                   target="_blank"
-                                                   title="Edit in WooCommerce Admin">
-                                                    <i class="fas fa-external-link-alt"></i>
-                                                </a>
-                                                <a href="{{ route('admin.products.variations', $product) }}" 
-                                                   class="btn btn-outline-purple btn-sm" 
-                                                   title="Manage Variations">
-                                                    <i class="fas fa-layer-group"></i>
-                                                </a>
                                             @else
                                                 <button type="button" class="btn btn-outline-success btn-sm"
                                                         onclick="syncWithWooCommerce({{ $product->id }})"
@@ -541,6 +548,48 @@ function bulkSyncSelected() {
                 button.disabled = false;
                 button.innerHTML = originalHtml;
                 alert('An error occurred during bulk sync: ' + (xhr.responseJSON?.message || 'Unknown error'));
+            }
+        });
+    }
+}
+
+function bulkDeleteSelected() {
+    const selectedProducts = Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => parseInt(cb.value));
+    
+    if (selectedProducts.length === 0) {
+        alert('Please select products to delete.');
+        return;
+    }
+    
+    if (confirm(`Are you sure you want to permanently delete ${selectedProducts.length} selected product${selectedProducts.length > 1 ? 's' : ''}?\n\nThis action cannot be undone!`)) {
+        // Show loading indicator
+        const button = event.target.closest('button');
+        const originalHtml = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm mr-1"></span> Deleting...';
+        
+        $.ajax({
+            url: '{{ route("admin.products.bulk-delete") }}',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                product_ids: selectedProducts
+            },
+            success: function(response) {
+                button.disabled = false;
+                button.innerHTML = originalHtml;
+                
+                if (response.success) {
+                    alert(`Bulk delete completed!\n\n✓ ${response.success_count} deleted\n✗ ${response.failed_count} failed${response.errors.length > 0 ? '\n\nErrors:\n' + response.errors.slice(0, 3).join('\n') : ''}`);
+                    location.reload();
+                } else {
+                    alert('Bulk delete failed: ' + response.message);
+                }
+            },
+            error: function(xhr) {
+                button.disabled = false;
+                button.innerHTML = originalHtml;
+                alert('An error occurred during bulk delete: ' + (xhr.responseJSON?.message || 'Unknown error'));
             }
         });
     }

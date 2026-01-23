@@ -270,14 +270,6 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
     Route::get('/analytics', [App\Http\Controllers\Admin\AnalyticsController::class, 'index'])->name('admin.analytics');
     Route::get('/analytics/realtime', [App\Http\Controllers\Admin\AnalyticsController::class, 'realtime'])->name('admin.analytics.realtime');
 
-    // Unified Backup routes
-    Route::get('/unified-backup', [App\Http\Controllers\Admin\UnifiedBackupController::class, 'index'])->name('admin.unified-backup');
-    Route::post('/unified-backup/run', [App\Http\Controllers\Admin\UnifiedBackupController::class, 'run'])->name('admin.unified-backup.run');
-    Route::get('/unified-backup/status', [App\Http\Controllers\Admin\UnifiedBackupController::class, 'status'])->name('admin.unified-backup.status');
-    Route::get('/unified-backup/files', [App\Http\Controllers\Admin\UnifiedBackupController::class, 'files'])->name('admin.unified-backup.files');
-    Route::get('/unified-backup/download/{filename}', [App\Http\Controllers\Admin\UnifiedBackupController::class, 'download'])->name('admin.unified-backup.download');
-    Route::post('/unified-backup/delete', [App\Http\Controllers\Admin\UnifiedBackupController::class, 'delete'])->name('admin.unified-backup.delete');
-
     // System routes
     Route::get('/settings', [App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('admin.settings');
     Route::post('/settings', [App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('admin.settings.update');
@@ -410,6 +402,7 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         Route::post('/fetch-all-woocommerce', [App\Http\Controllers\Admin\ProductController::class, 'fetchAllFromWooCommerce'])->name('fetch-all-woocommerce');
         Route::post('/bulk-fetch-woocommerce', [App\Http\Controllers\Admin\ProductController::class, 'bulkFetchFromWooCommerce'])->name('bulk-fetch-woocommerce');
         Route::post('/fetch-woocommerce', [App\Http\Controllers\Admin\ProductController::class, 'fetchFromWooCommerce'])->name('fetch-woocommerce');
+        Route::post('/bulk-delete', [App\Http\Controllers\Admin\ProductController::class, 'bulkDelete'])->name('bulk-delete');
         
         // Generic {product} routes come after specific routes
         Route::get('/{product}', [App\Http\Controllers\Admin\ProductController::class, 'show'])->name('show');

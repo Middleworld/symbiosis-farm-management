@@ -221,8 +221,14 @@ class ProductController extends Controller
         // Handle WooCommerce categories (checkboxes to metadata)
         if ($request->has('woo_categories')) {
             $metadata = $data['metadata'] ?? [];
-            $metadata['woo_categories'] = $request->input('woo_categories', []);
+            $wooCategories = $request->input('woo_categories', []);
+            $metadata['woo_categories'] = $wooCategories;
             $data['metadata'] = $metadata;
+            
+            // Set primary category from first WooCommerce category for backward compatibility
+            if (!empty($wooCategories) && empty($data['category'])) {
+                $data['category'] = $wooCategories[0];
+            }
         }
 
         // Handle product tags (comma-separated or array)
@@ -353,6 +359,9 @@ class ProductController extends Controller
             'gallery_images_count' => count($galleryImages),
             'image_url' => $data['image_url'] ?? 'none'
         ]);
+
+        // Clear WooCommerce sync timestamp to indicate product needs syncing
+        $data['last_woo_sync_at'] = null;
 
         $product->update($data);
         
@@ -615,6 +624,91 @@ class ProductController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Bulk sync failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk delete selected products
+     */
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            'product_ids' => 'required|array',
+            'product_ids.*' => 'integer'
+        ]);
+
+        try {
+            $productIds = $request->input('product_ids');
+            $products = Product::whereIn('id', $productIds)->get();
+
+            // Check if any products were not found
+            $foundIds = $products->pluck('id')->toArray();
+            $missingIds = array_diff($productIds, $foundIds);
+
+            $results = [
+                'success' => 0,
+                'failed' => 0,
+                'errors' => []
+            ];
+
+            // Add errors for missing products
+            foreach ($missingIds as $missingId) {
+                $results['failed']++;
+                $results['errors'][] = "Product with ID {$missingId} does not exist";
+            }
+
+            DB::beginTransaction();
+
+            foreach ($products as $product) {
+                try {
+                    // Log the bulk deletion
+                    Log::warning('Bulk product deletion', [
+                        'product_id' => $product->id,
+                        'product_name' => $product->name,
+                        'request_url' => request()->fullUrl(),
+                        'request_method' => request()->method(),
+                        'ip' => request()->ip(),
+                        'user_agent' => request()->userAgent(),
+                        'referer' => request()->header('referer')
+                    ]);
+
+                    // Delete image if exists
+                    if ($product->image_url && Storage::disk('public')->exists($product->image_url)) {
+                        Storage::disk('public')->delete($product->image_url);
+                    }
+
+                    $product->delete();
+                    $results['success']++;
+                } catch (\Exception $e) {
+                    $results['failed']++;
+                    $results['errors'][] = "{$product->name}: {$e->getMessage()}";
+                    \Log::error("Bulk delete failed for product {$product->id}: " . $e->getMessage());
+                }
+            }
+
+            DB::commit();
+
+            $message = "Bulk delete completed. {$results['success']} deleted, {$results['failed']} failed.";
+            if (!empty($results['errors'])) {
+                $message .= " Errors: " . implode('; ', array_slice($results['errors'], 0, 3));
+                if (count($results['errors']) > 3) {
+                    $message .= " (and " . (count($results['errors']) - 3) . " more)";
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'success_count' => $results['success'],
+                'failed_count' => $results['failed'],
+                'errors' => $results['errors']
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Bulk delete failed: ' . $e->getMessage()
             ], 500);
         }
     }

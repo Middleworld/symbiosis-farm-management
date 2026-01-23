@@ -169,34 +169,6 @@
                                             </div>
                                         </div>
 
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label for="category">Category</label>
-                                                    <input type="text" class="form-control @error('category') is-invalid @enderror"
-                                                           id="category" name="category" value="{{ old('category', $product->category) }}"
-                                                           list="categories">
-                                                    @error('category')
-                                                        <div class="invalid-feedback">{{ $message }}</div>
-                                                    @enderror
-                                                    <datalist id="categories">
-                                                        @foreach($categories as $category)
-                                                            <option value="{{ $category }}">
-                                                        @endforeach
-                                                    </datalist>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label for="subcategory">Subcategory</label>
-                                                    <input type="text" class="form-control @error('subcategory') is-invalid @enderror"
-                                                           id="subcategory" name="subcategory" value="{{ old('subcategory', $product->subcategory) }}">
-                                                    @error('subcategory')
-                                                        <div class="invalid-feedback">{{ $message }}</div>
-                                                    @enderror
-                                                </div>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -209,146 +181,155 @@
                                         <h4 class="card-title">Pricing & Inventory</h4>
                                     </div>
                                     <div class="card-body">
-                                        <div class="form-group">
-                                            <label for="price">Price <span class="text-danger">*</span></label>
-                                            <div class="input-group">
-                                                <div class="input-group-prepend">
-                                                    <span class="input-group-text">{{ env('CURRENCY_SYMBOL', '$') }}</span>
+                                        <!-- Pricing Section -->
+                                        <div class="mb-4">
+                                            <h6 class="text-muted mb-3"><i class="fas fa-pound-sign"></i> Pricing</h6>
+
+                                            <div class="form-group">
+                                                <label for="price">Price <span class="text-danger">*</span></label>
+                                                <div class="input-group">
+                                                    <div class="input-group-prepend">
+                                                        <span class="input-group-text">{{ env('CURRENCY_SYMBOL', '$') }}</span>
+                                                    </div>
+                                                    <input type="number" class="form-control @error('price') is-invalid @enderror"
+                                                           id="price" name="price" value="{{ old('price', $product->price) }}" step="0.01" min="0" required>
                                                 </div>
-                                                <input type="number" class="form-control @error('price') is-invalid @enderror"
-                                                       id="price" name="price" value="{{ old('price', $product->price) }}" step="0.01" min="0" required>
+                                                @error('price')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
                                             </div>
-                                            @error('price')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
+
+                                            <div class="form-group">
+                                                <label for="cost_price">Cost Price</label>
+                                                <div class="input-group">
+                                                    <div class="input-group-prepend">
+                                                        <span class="input-group-text">{{ env('CURRENCY_SYMBOL', '$') }}</span>
+                                                    </div>
+                                                    <input type="number" class="form-control @error('cost_price') is-invalid @enderror"
+                                                           id="cost_price" name="cost_price" value="{{ old('cost_price', $product->cost_price) }}" step="0.01" min="0">
+                                                </div>
+                                                @error('cost_price')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
                                         </div>
 
-                                        <div class="form-group">
-                                            <label for="cost_price">Cost Price</label>
-                                            <div class="input-group">
-                                                <div class="input-group-prepend">
-                                                    <span class="input-group-text">{{ env('CURRENCY_SYMBOL', '$') }}</span>
-                                                </div>
-                                                <input type="number" class="form-control @error('cost_price') is-invalid @enderror"
-                                                       id="cost_price" name="cost_price" value="{{ old('cost_price', $product->cost_price) }}" step="0.01" min="0">
+                                        <!-- Inventory Section -->
+                                        <div class="mb-4">
+                                            <h6 class="text-muted mb-3"><i class="fas fa-boxes"></i> Inventory</h6>
+
+                                            <div class="form-group">
+                                                <label for="stock_quantity">Stock Quantity</label>
+                                                <input type="number" class="form-control @error('stock_quantity') is-invalid @enderror"
+                                                       id="stock_quantity" name="stock_quantity" value="{{ old('stock_quantity', $product->stock_quantity) }}" min="0">
+                                                @error('stock_quantity')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
                                             </div>
-                                            @error('cost_price')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
+
+                                            <div class="row">
+                                                <div class="col-6">
+                                                    <div class="form-group">
+                                                        <label for="min_stock_level">Min Stock</label>
+                                                        <input type="number" class="form-control @error('min_stock_level') is-invalid @enderror"
+                                                               id="min_stock_level" name="min_stock_level" value="{{ old('min_stock_level', $product->min_stock_level) }}" min="0">
+                                                        @error('min_stock_level')
+                                                            <div class="invalid-feedback">{{ $message }}</div>
+                                                        @enderror
+                                                    </div>
+                                                </div>
+                                                <div class="col-6">
+                                                    <div class="form-group">
+                                                        <label for="max_stock_level">Max Stock</label>
+                                                        <input type="number" class="form-control @error('max_stock_level') is-invalid @enderror"
+                                                               id="max_stock_level" name="max_stock_level" value="{{ old('max_stock_level', $product->max_stock_level) }}" min="0">
+                                                        @error('max_stock_level')
+                                                            <div class="invalid-feedback">{{ $message }}</div>
+                                                        @enderror
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
 
-                                        <div class="form-group">
-                                            <label for="stock_quantity">Stock Quantity</label>
-                                            <input type="number" class="form-control @error('stock_quantity') is-invalid @enderror"
-                                                   id="stock_quantity" name="stock_quantity" value="{{ old('stock_quantity', $product->stock_quantity) }}" min="0">
-                                            @error('stock_quantity')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
+                                        <!-- Tax & Shipping Section -->
+                                        <div>
+                                            <h6 class="text-muted mb-3"><i class="fas fa-truck"></i> Tax & Shipping</h6>
 
-                                        <div class="row">
-                                            <div class="col-6">
-                                                <div class="form-group">
-                                                    <label for="min_stock_level">Min Stock</label>
-                                                    <input type="number" class="form-control @error('min_stock_level') is-invalid @enderror"
-                                                           id="min_stock_level" name="min_stock_level" value="{{ old('min_stock_level', $product->min_stock_level) }}" min="0">
-                                                    @error('min_stock_level')
-                                                        <div class="invalid-feedback">{{ $message }}</div>
-                                                    @enderror
+                                            <div class="form-check mb-3">
+                                                <input type="checkbox" class="form-check-input" id="is_taxable" name="is_taxable" value="1" {{ old('is_taxable', $product->is_taxable) ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="is_taxable">Taxable</label>
+                                            </div>
+
+                                            <div class="form-group mb-3">
+                                                <label for="tax_rate">Tax Rate (%)</label>
+                                                <input type="number" class="form-control @error('tax_rate') is-invalid @enderror"
+                                                       id="tax_rate" name="tax_rate" value="{{ old('tax_rate', $product->tax_rate) }}" step="0.01" min="0" max="100">
+                                                @error('tax_rate')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+
+                                            <div class="row mb-3">
+                                                <div class="col-6">
+                                                    <div class="form-group">
+                                                        <label for="weight">Weight</label>
+                                                        <input type="number" class="form-control @error('weight') is-invalid @enderror"
+                                                               id="weight" name="weight" value="{{ old('weight', $product->weight) }}" step="0.01" min="0">
+                                                        @error('weight')
+                                                            <div class="invalid-feedback">{{ $message }}</div>
+                                                        @enderror
+                                                    </div>
+                                                </div>
+                                                <div class="col-6">
+                                                    <div class="form-group">
+                                                        <label for="unit">Unit</label>
+                                                        <select class="form-control @error('unit') is-invalid @enderror" id="unit" name="unit">
+                                                            <option value="">Select Unit</option>
+                                                            <option value="kg" {{ old('unit', $product->unit) == 'kg' ? 'selected' : '' }}>Kilogram (kg)</option>
+                                                            <option value="g" {{ old('unit', $product->unit) == 'g' ? 'selected' : '' }}>Gram (g)</option>
+                                                            <option value="lb" {{ old('unit', $product->unit) == 'lb' ? 'selected' : '' }}>Pound (lb)</option>
+                                                            <option value="oz" {{ old('unit', $product->unit) == 'oz' ? 'selected' : '' }}>Ounce (oz)</option>
+                                                            <option value="l" {{ old('unit', $product->unit) == 'l' ? 'selected' : '' }}>Liter (l)</option>
+                                                            <option value="ml" {{ old('unit', $product->unit) == 'ml' ? 'selected' : '' }}>Milliliter (ml)</option>
+                                                            <option value="each" {{ old('unit', $product->unit) == 'each' ? 'selected' : '' }}>Each</option>
+                                                        </select>
+                                                        @error('unit')
+                                                            <div class="invalid-feedback">{{ $message }}</div>
+                                                        @enderror
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div class="col-6">
-                                                <div class="form-group">
-                                                    <label for="max_stock_level">Max Stock</label>
-                                                    <input type="number" class="form-control @error('max_stock_level') is-invalid @enderror"
-                                                           id="max_stock_level" name="max_stock_level" value="{{ old('max_stock_level', $product->max_stock_level) }}" min="0">
-                                                    @error('max_stock_level')
-                                                        <div class="invalid-feedback">{{ $message }}</div>
-                                                    @enderror
-                                                </div>
+
+                                            <div class="form-group">
+                                                <label for="shipping_class_id">Shipping Class</label>
+                                                <select class="form-control @error('shipping_class_id') is-invalid @enderror" id="shipping_class_id" name="shipping_class_id">
+                                                    <option value="">Select Shipping Class</option>
+                                                    @foreach(\App\Models\ShippingClass::active()->orderBy('sort_order')->orderBy('name')->get() as $shippingClass)
+                                                        <option value="{{ $shippingClass->id }}" {{ old('shipping_class_id', $product->shipping_class_id) == $shippingClass->id ? 'selected' : '' }}>
+                                                            {{ $shippingClass->name }}
+                                                            @if($shippingClass->is_farm_collection)
+                                                                (Farm Collection)
+                                                            @elseif($shippingClass->is_free)
+                                                                (Free Shipping)
+                                                            @else
+                                                                ({{ env('CURRENCY_SYMBOL') }}{{ number_format($shippingClass->cost, 2) }})
+                                                            @endif
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                                @error('shipping_class_id')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                                <small class="form-text text-muted">
+                                                    Determines delivery options and costs for this product.
+                                                    <a href="{{ route('admin.shipping-classes.index') }}" target="_blank">Manage shipping classes</a>
+                                                </small>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Tax & Shipping -->
-                                <div class="card mt-3">
-                                    <div class="card-header">
-                                        <h4 class="card-title">Tax & Shipping</h4>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="form-check">
-                                            <input type="checkbox" class="form-check-input" id="is_taxable" name="is_taxable" value="1" {{ old('is_taxable', $product->is_taxable) ? 'checked' : '' }}>
-                                            <label class="form-check-label" for="is_taxable">Taxable</label>
-                                        </div>
 
-                                        <div class="form-group mt-3">
-                                            <label for="tax_rate">Tax Rate (%)</label>
-                                            <input type="number" class="form-control @error('tax_rate') is-invalid @enderror"
-                                                   id="tax_rate" name="tax_rate" value="{{ old('tax_rate', $product->tax_rate) }}" step="0.01" min="0" max="100">
-                                            @error('tax_rate')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-
-                                        <div class="row">
-                                            <div class="col-6">
-                                                <div class="form-group">
-                                                    <label for="weight">Weight</label>
-                                                    <input type="number" class="form-control @error('weight') is-invalid @enderror"
-                                                           id="weight" name="weight" value="{{ old('weight', $product->weight) }}" step="0.01" min="0">
-                                                    @error('weight')
-                                                        <div class="invalid-feedback">{{ $message }}</div>
-                                                    @enderror
-                                                </div>
-                                            </div>
-                                            <div class="col-6">
-                                                <div class="form-group">
-                                                    <label for="unit">Unit</label>
-                                                    <select class="form-control @error('unit') is-invalid @enderror" id="unit" name="unit">
-                                                        <option value="">Select Unit</option>
-                                                        <option value="kg" {{ old('unit', $product->unit) == 'kg' ? 'selected' : '' }}>Kilogram (kg)</option>
-                                                        <option value="g" {{ old('unit', $product->unit) == 'g' ? 'selected' : '' }}>Gram (g)</option>
-                                                        <option value="lb" {{ old('unit', $product->unit) == 'lb' ? 'selected' : '' }}>Pound (lb)</option>
-                                                        <option value="oz" {{ old('unit', $product->unit) == 'oz' ? 'selected' : '' }}>Ounce (oz)</option>
-                                                        <option value="l" {{ old('unit', $product->unit) == 'l' ? 'selected' : '' }}>Liter (l)</option>
-                                                        <option value="ml" {{ old('unit', $product->unit) == 'ml' ? 'selected' : '' }}>Milliliter (ml)</option>
-                                                        <option value="each" {{ old('unit', $product->unit) == 'each' ? 'selected' : '' }}>Each</option>
-                                                    </select>
-                                                    @error('unit')
-                                                        <div class="invalid-feedback">{{ $message }}</div>
-                                                    @enderror
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="form-group">
-                                            <label for="shipping_class_id">Shipping Class</label>
-                                            <select class="form-control @error('shipping_class_id') is-invalid @enderror" id="shipping_class_id" name="shipping_class_id">
-                                                <option value="">Select Shipping Class</option>
-                                                @foreach(\App\Models\ShippingClass::active()->orderBy('sort_order')->orderBy('name')->get() as $shippingClass)
-                                                    <option value="{{ $shippingClass->id }}" {{ old('shipping_class_id', $product->shipping_class_id) == $shippingClass->id ? 'selected' : '' }}>
-                                                        {{ $shippingClass->name }}
-                                                        @if($shippingClass->is_farm_collection)
-                                                            (Farm Collection)
-                                                        @elseif($shippingClass->is_free)
-                                                            (Free Shipping)
-                                                        @else
-                                                            ({{ env('CURRENCY_SYMBOL') }}{{ number_format($shippingClass->cost, 2) }})
-                                                        @endif
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                            @error('shipping_class_id')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                            <small class="form-text text-muted">
-                                                Determines delivery options and costs for this product.
-                                                <a href="{{ route('admin.shipping-classes.index') }}" target="_blank">Manage shipping classes</a>
-                                            </small>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                             @endif
 
@@ -814,10 +795,17 @@ document.getElementById('seo_description')?.addEventListener('input', function()
     document.getElementById('seo-desc-count').textContent = `(${count}/160)`;
 });
 
+// Helper function to get selected categories from checkboxes
+function getSelectedCategories() {
+    const checkboxes = document.querySelectorAll('input[name="woo_categories[]"]:checked');
+    const categories = Array.from(checkboxes).map(cb => cb.value);
+    return categories.length > 0 ? categories.join(', ') : '';
+}
+
 // Generate product descriptions using AI
 async function generateDescription(type) {
     const productName = document.getElementById('name').value;
-    const productCategory = document.getElementById('category').value;
+    const productCategory = getSelectedCategories();
     
     if (!productName) {
         alert('Please enter a product name first');
@@ -876,7 +864,7 @@ async function generateDescription(type) {
 // Generate product tags using AI
 async function generateTags() {
     const productName = document.getElementById('name').value;
-    const productCategory = document.getElementById('category').value;
+    const productCategory = getSelectedCategories();
     const productDescription = quillDescription.root.innerText.substring(0, 200);
     
     if (!productName) {
@@ -948,7 +936,7 @@ async function generateSEOContent() {
             body: JSON.stringify({
                 product_name: productName,
                 description: quillDescription.root.innerText.substring(0, 500),
-                category: document.getElementById('category').value
+                category: getSelectedCategories()
             })
         });
         
