@@ -94,7 +94,7 @@
                                                     <i class="fas fa-copy"></i> Duplicate
                                                 </button>
                                                 <button class="btn btn-sm btn-outline-danger delete-week" data-week="{{ $weekKey }}" title="Delete entire week">
-                                                    <i class="fas fa-trash"></i> Delete Week
+                                                    <i class="fas fa-trash-alt"></i>
                                                 </button>
                                             </td>
                                         </tr>
@@ -109,17 +109,17 @@
                                                                 <span class="badge bg-info ms-2">{{ $config->items->count() }} items</span>
                                                                 <span class="badge bg-success ms-1">£{{ number_format($config->getAllocationSummary()['total_value'], 2) }}</span>
                                                                 <div class="configuration-actions">
-                                                                    <a href="{{ route('admin.box-configurations.show', $config) }}" class="btn btn-sm btn-info me-1">
-                                                                        <i class="fas fa-eye"></i> View
+                                                                    <a href="{{ route('admin.box-configurations.show', $config) }}" class="btn btn-sm btn-outline-info me-1">
+                                                                        <i class="fas fa-eye"></i>
                                                                     </a>
-                                                                    <a href="{{ route('admin.box-configurations.edit', $config) }}" class="btn btn-sm btn-primary me-1">
-                                                                        <i class="fas fa-edit"></i> Edit
+                                                                    <a href="{{ route('admin.box-configurations.edit', $config) }}" class="btn btn-sm btn-outline-primary me-1">
+                                                                        <i class="fas fa-edit"></i>
                                                                     </a>
                                                                     <form action="{{ route('admin.box-configurations.destroy', $config) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this configuration? This action cannot be undone.')">
                                                                         @csrf
                                                                         @method('DELETE')
-                                                                        <button type="submit" class="btn btn-sm btn-danger">
-                                                                            <i class="fas fa-trash"></i> Delete
+                                                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                                            <i class="fas fa-trash-alt"></i>
                                                                         </button>
                                                                     </form>
                                                                 </div>
@@ -286,7 +286,7 @@ function deleteWeek(week, button) {
         } else {
             alert('Error: ' + (data.error || 'Unknown error'));
             button.disabled = false;
-            button.innerHTML = '<i class="fas fa-trash"></i> Delete Week';
+            button.innerHTML = '<i class="fas fa-trash-alt"></i>
         }
     })
     .catch(error => {
@@ -339,6 +339,20 @@ function deleteWeek(week, button) {
 
 .configuration-actions {
     margin-left: auto;
+    display: flex;
+    gap: 2px;
+}
+
+.configuration-actions .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.configuration-actions .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .configuration-content {
