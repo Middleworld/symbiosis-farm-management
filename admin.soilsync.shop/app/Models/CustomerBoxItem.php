@@ -11,14 +11,12 @@ class CustomerBoxItem extends Model
         'customer_box_selection_id',
         'box_configuration_item_id',
         'quantity',
-        'tokens_used',
         'is_substitution',
         'substitution_note',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
-        'tokens_used' => 'integer',
         'is_substitution' => 'boolean',
     ];
 
@@ -38,11 +36,4 @@ class CustomerBoxItem extends Model
         return $this->belongsTo(BoxConfigurationItem::class, 'box_configuration_item_id');
     }
 
-    /**
-     * Get total tokens for this line item.
-     */
-    public function getTotalTokensAttribute(): int
-    {
-        return $this->quantity * $this->tokens_used;
-    }
 }

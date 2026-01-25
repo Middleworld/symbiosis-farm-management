@@ -225,7 +225,6 @@ boxItems[{{ $plan->id }}] = [];
                 price: parseFloat('{{ $item->price_at_time ?: 0 }}'),
                 quantity: {{ $item->quantity }},
                 unit: '{{ $item->unit }}',
-                tokenValue: {{ $item->token_value }},
                 quantityAvailable: {{ $item->quantity_available ?? 'null' }},
                 plantVarietyId: {{ $item->plant_variety_id ?? 'null' }},
                 isFeatured: {{ $item->is_featured ? 'true' : 'false' }}
@@ -341,7 +340,6 @@ function renderBoxContents(planId) {
                 </div>
                 ${item.id ? `<input type="hidden" name="items[${index}][id]" value="${item.id}">` : `<input type="hidden" name="items[${index}][product_id]" value="${item.productId}">`}
                 <input type="hidden" name="items[${index}][item_name]" value="${item.name}">
-                <input type="hidden" name="items[${index}][token_value]" value="${item.tokenValue || 1}">
                 <input type="hidden" name="items[${index}][quantity_available]" value="${item.quantityAvailable || ''}">
                 <input type="hidden" name="items[${index}][unit]" value="${item.unit}">
                 <input type="hidden" name="items[${index}][plant_variety_id]" value="${item.plantVarietyId || ''}">

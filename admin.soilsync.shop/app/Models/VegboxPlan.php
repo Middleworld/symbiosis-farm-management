@@ -33,7 +33,6 @@ class VegboxPlan extends BasePlan
         'delivery_frequency', // weekly, bi-weekly
         'max_deliveries_per_month',
         'contents_description',
-        'default_tokens', // Token allocation for box customization
     ];
 
     protected $casts = [
@@ -49,7 +48,6 @@ class VegboxPlan extends BasePlan
         'active_subscribers_limit' => 'integer',
         'sort_order' => 'integer',
         'max_deliveries_per_month' => 'integer',
-        'default_tokens' => 'integer',
     ];
 
     /**

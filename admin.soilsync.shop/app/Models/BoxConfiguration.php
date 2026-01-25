@@ -13,14 +13,12 @@ class BoxConfiguration extends Model
         'week_starting',
         'plan_id',
         'is_active',
-        'default_tokens',
         'admin_notes',
     ];
 
     protected $casts = [
         'week_starting' => 'date',
         'is_active' => 'boolean',
-        'default_tokens' => 'integer',
     ];
 
     /**

@@ -62,7 +62,7 @@ class BoxCustomizationApiController extends Controller
                     'delivery_date' => $subscription->next_delivery_date ?? $weekStart->addDays(3), // Default to Thursday
                 ],
                 [
-                    'tokens_allocated' => $configuration->default_tokens,
+                    'tokens_allocated' => 10, // Default token allocation
                     'tokens_used' => 0,
                 ]
             );
@@ -90,7 +90,7 @@ class BoxCustomizationApiController extends Controller
                             'id' => $item->id,
                             'name' => $item->item_name,
                             'description' => $item->description,
-                            'token_value' => $item->token_value,
+                            'price' => $item->price_at_time,
                             'unit' => $item->unit,
                             'is_featured' => $item->is_featured,
                             'is_available' => $item->is_available,
@@ -164,8 +164,7 @@ class BoxCustomizationApiController extends Controller
                             'configuration_item_id' => $item->box_configuration_item_id,
                             'name' => $item->configurationItem->item_name,
                             'quantity' => $item->quantity,
-                            'token_value' => $item->configurationItem->token_value,
-                            'tokens_used' => $item->tokens_used,
+                            'price' => $item->configurationItem->price_at_time,
                             'unit' => $item->configurationItem->unit,
                         ];
                     }),
@@ -214,24 +213,23 @@ class BoxCustomizationApiController extends Controller
 
             $totalTokens = 0;
 
-            // Create new items and calculate tokens
+            // Create new items and calculate total price
+            $totalPrice = 0;
             foreach ($validated['items'] as $itemData) {
                 $configItem = \App\Models\BoxConfigurationItem::findOrFail($itemData['configuration_item_id']);
                 
-                $tokensForItem = $configItem->token_value * $itemData['quantity'];
+                $priceForItem = $configItem->price_at_time * $itemData['quantity'];
                 
                 $selection->items()->create([
                     'box_configuration_item_id' => $itemData['configuration_item_id'],
                     'quantity' => $itemData['quantity'],
-                    'tokens_used' => $configItem->token_value,
                 ]);
 
-                $totalTokens += $tokensForItem;
+                $totalPrice += $priceForItem;
             }
 
             // Update selection
             $selection->update([
-                'tokens_used' => $totalTokens,
                 'is_customized' => true,
                 'customized_at' => now(),
             ]);

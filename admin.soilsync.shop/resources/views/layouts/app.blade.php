@@ -621,6 +621,11 @@
                                 <i class="fas fa-exclamation-triangle"></i>
                                 <span>Failed Payments</span>
                             </a>
+                            
+                            <a href="{{ route('admin.box-configurations.index') }}" class="mega-menu-item {{ request()->is('admin/box-configurations*') ? 'active' : '' }}">
+                                <i class="fas fa-cogs"></i>
+                                <span>Box Configurations</span>
+                            </a>
                         </div>
                     </div>
                 </div>

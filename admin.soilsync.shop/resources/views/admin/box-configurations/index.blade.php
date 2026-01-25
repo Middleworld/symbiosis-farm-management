@@ -27,7 +27,7 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Overview</h5>
-                    <p>Set up weekly box configurations with available items and token values. Customers can then customize their boxes by dragging items from the available list.</p>
+                    <p>Set up weekly box configurations with available items and prices. Customers can then customize their boxes by dragging items from the available list.</p>
                     <div class="row">
                         <div class="col-md-3">
                             <div class="stat-card">
@@ -90,8 +90,11 @@
                                                 <button class="btn btn-sm btn-outline-primary toggle-week me-1" data-week="{{ $weekKey }}">
                                                     <i class="fas fa-chevron-down"></i> Expand
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-secondary duplicate-week" data-week="{{ $weekKey }}" title="Duplicate to next week">
+                                                <button class="btn btn-sm btn-outline-secondary duplicate-week me-1" data-week="{{ $weekKey }}" title="Duplicate to next week">
                                                     <i class="fas fa-copy"></i> Duplicate
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger delete-week" data-week="{{ $weekKey }}" title="Delete entire week">
+                                                    <i class="fas fa-trash"></i> Delete Week
                                                 </button>
                                             </td>
                                         </tr>
@@ -104,14 +107,21 @@
                                                                 <i class="fas fa-chevron-right toggle-icon"></i>
                                                                 <strong>{{ $config->plan->name }}</strong>
                                                                 <span class="badge bg-info ms-2">{{ $config->items->count() }} items</span>
-                                                                <span class="badge bg-warning ms-1">{{ $config->default_tokens }} tokens</span>
+                                                                <span class="badge bg-success ms-1">£{{ number_format($config->getAllocationSummary()['total_value'], 2) }}</span>
                                                                 <div class="configuration-actions">
                                                                     <a href="{{ route('admin.box-configurations.show', $config) }}" class="btn btn-sm btn-info me-1">
                                                                         <i class="fas fa-eye"></i> View
                                                                     </a>
-                                                                    <a href="{{ route('admin.box-configurations.edit', $config) }}" class="btn btn-sm btn-primary">
+                                                                    <a href="{{ route('admin.box-configurations.edit', $config) }}" class="btn btn-sm btn-primary me-1">
                                                                         <i class="fas fa-edit"></i> Edit
                                                                     </a>
+                                                                    <form action="{{ route('admin.box-configurations.destroy', $config) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this configuration? This action cannot be undone.')">
+                                                                        @csrf
+                                                                        @method('DELETE')
+                                                                        <button type="submit" class="btn btn-sm btn-danger">
+                                                                            <i class="fas fa-trash"></i> Delete
+                                                                        </button>
+                                                                    </form>
                                                                 </div>
                                                             </div>
                                                             <div class="configuration-content" id="config-{{ $config->id }}" style="display: none;">
@@ -124,6 +134,9 @@
                                                                                         <strong>{{ $item->plantVariety->name ?? $item->item_name ?? 'Unknown Item' }}</strong>
                                                                                         @if($item->quantity)
                                                                                             <br><small class="text-muted">{{ $item->quantity }} units</small>
+                                                                                        @endif
+                                                                                        @if($item->price_at_time)
+                                                                                            <br><small class="text-success">£{{ number_format($item->price_at_time, 2) }}</small>
                                                                                         @endif
                                                                                     </div>
                                                                                 </div>
@@ -175,6 +188,15 @@ document.addEventListener('DOMContentLoaded', function() {
             e.stopPropagation();
             const week = this.getAttribute('data-week');
             duplicateWeek(week, this);
+        });
+    });
+
+    // Delete week
+    document.querySelectorAll('.delete-week').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const week = this.getAttribute('data-week');
+            deleteWeek(week, this);
         });
     });
 });
@@ -238,6 +260,39 @@ function duplicateWeek(week, button) {
         alert('Error duplicating week: ' + error.message);
         button.disabled = false;
         button.innerHTML = '<i class="fas fa-copy"></i> Duplicate';
+    });
+}
+
+function deleteWeek(week, button) {
+    if (!confirm('Are you sure you want to delete ALL configurations for this week? This action cannot be undone.')) {
+        return;
+    }
+
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+
+    fetch(`/admin/box-configurations/delete-week/${encodeURIComponent(week)}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Reload the page to remove the deleted week
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-trash"></i> Delete Week';
+        }
+    })
+    .catch(error => {
+        alert('Error deleting week: ' + error.message);
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-trash"></i> Delete Week';
     });
 }
 </script>

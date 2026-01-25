@@ -14,7 +14,6 @@ class BoxConfigurationItem extends Model
         'product_id',
         'item_name',
         'description',
-        'token_value',
         'price_at_time',
         'quantity',
         'quantity_available',
@@ -26,7 +25,7 @@ class BoxConfigurationItem extends Model
     ];
 
     protected $casts = [
-        'token_value' => 'integer',
+        'price_at_time' => 'decimal:2',
         'quantity_available' => 'integer',
         'quantity_allocated' => 'integer',
         'is_featured' => 'boolean',

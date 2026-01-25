@@ -12,8 +12,6 @@ class CustomerBoxSelection extends Model
         'subscription_id',
         'box_configuration_id',
         'delivery_date',
-        'tokens_allocated',
-        'tokens_used',
         'is_customized',
         'is_locked',
         'customized_at',
@@ -22,8 +20,6 @@ class CustomerBoxSelection extends Model
 
     protected $casts = [
         'delivery_date' => 'date',
-        'tokens_allocated' => 'integer',
-        'tokens_used' => 'integer',
         'is_customized' => 'boolean',
         'is_locked' => 'boolean',
         'customized_at' => 'datetime',
@@ -52,14 +48,6 @@ class CustomerBoxSelection extends Model
     public function items(): HasMany
     {
         return $this->hasMany(CustomerBoxItem::class);
-    }
-
-    /**
-     * Get tokens remaining.
-     */
-    public function getRemainingTokensAttribute(): int
-    {
-        return max(0, $this->tokens_allocated - $this->tokens_used);
     }
 
     /**

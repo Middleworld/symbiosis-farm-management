@@ -109,7 +109,6 @@ class BoxConfigurationController extends Controller
             $configuration = BoxConfiguration::create([
                 'week_starting' => Carbon::parse($validated['week_starting'])->startOfWeek(),
                 'plan_id' => $validated['plan_id'],
-                'default_tokens' => $plan->default_tokens, // Use plan's default
                 'admin_notes' => $validated['admin_notes'] ?? null,
                 'is_active' => true,
             ]);
@@ -131,7 +130,7 @@ class BoxConfigurationController extends Controller
                         'quantity' => $itemData['quantity'],
                         'price_at_time' => $itemData['price'],
                         'unit' => $product->unit ?? 'item',
-                        'token_value' => 0, // Not used in admin config
+                        'sort_order' => $index,
                     ]);
                 }
                 \Log::info('All items added');
@@ -204,7 +203,6 @@ class BoxConfigurationController extends Controller
         $configuration = BoxConfiguration::findOrFail($id);
 
         $validated = $request->validate([
-            'default_tokens' => 'required|integer|min:1|max:50',
             'is_active' => 'boolean',
             'admin_notes' => 'nullable|string',
             'items' => 'nullable|array',
@@ -224,7 +222,6 @@ class BoxConfigurationController extends Controller
         DB::beginTransaction();
         try {
             $configuration->update([
-                'default_tokens' => $validated['default_tokens'],
                 'is_active' => $request->has('is_active'),
                 'admin_notes' => $validated['admin_notes'] ?? null,
             ]);
@@ -241,7 +238,6 @@ class BoxConfigurationController extends Controller
                         \Log::info('Updating existing item', ['id' => $itemData['id'], 'item_exists' => $item ? true : false]);
                         $item->update([
                             'item_name' => $itemData['item_name'],
-                            'token_value' => $itemData['token_value'] ?? 1,
                             'quantity_available' => $itemData['quantity_available'] ?? null,
                             'unit' => $itemData['unit'] ?? 'item',
                             'plant_variety_id' => $itemData['plant_variety_id'] ?? null,
@@ -255,7 +251,6 @@ class BoxConfigurationController extends Controller
                         $item = $configuration->items()->create([
                             'product_id' => $itemData['product_id'] ?? null,
                             'item_name' => $itemData['item_name'],
-                            'token_value' => $itemData['token_value'] ?? 1,
                             'quantity_available' => $itemData['quantity_available'] ?? null,
                             'unit' => $itemData['unit'] ?? 'item',
                             'plant_variety_id' => $itemData['plant_variety_id'] ?? null,
@@ -338,7 +333,6 @@ class BoxConfigurationController extends Controller
                     $configuration->items()->create([
                         'item_name' => $harvest['crop_name'] ?? 'Unknown',
                         'description' => $harvest['notes'] ?? null,
-                        'token_value' => 2, // Default value
                         'quantity_available' => $harvest['quantity'] ?? null,
                         'unit' => $harvest['unit'] ?? 'item',
                         'plant_variety_id' => $variety->id ?? null,
@@ -442,6 +436,54 @@ class BoxConfigurationController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error' => 'Failed to duplicate week: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Delete all configurations for a specific week
+     */
+    public function deleteWeek($week)
+    {
+        try {
+            // Parse the week string (format: "W - Y")
+            $parts = explode(' - ', $week);
+            if (count($parts) !== 2) {
+                return response()->json(['error' => 'Invalid week format'], 400);
+            }
+            
+            $weekNumber = (int) $parts[0];
+            $year = (int) $parts[1];
+            
+            // Find the start date of the week
+            $weekStart = Carbon::now()->setISODate($year, $weekNumber)->startOfWeek();
+            
+            // Get all configurations for this week
+            $configs = BoxConfiguration::where('week_starting', $weekStart)->get();
+            
+            if ($configs->isEmpty()) {
+                return response()->json(['error' => 'No configurations found for this week'], 404);
+            }
+            
+            DB::beginTransaction();
+            try {
+                foreach ($configs as $config) {
+                    // Delete associated items first
+                    $config->items()->delete();
+                    // Delete the configuration
+                    $config->delete();
+                }
+                
+                DB::commit();
+                
+                return response()->json(['success' => 'Week deleted successfully']);
+                
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return response()->json(['error' => 'Failed to delete week: ' . $e->getMessage()], 500);
+            }
+            
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Invalid week parameter'], 400);
         }
     }
 }

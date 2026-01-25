@@ -51,9 +51,6 @@
                 <div class="card-body">
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <strong>Default Tokens:</strong> {{ $configuration->default_tokens }}
-                        </div>
-                        <div class="col-md-6">
                             <strong>Status:</strong>
                             @if($configuration->is_active)
                                 <span class="text-success">Active</span>

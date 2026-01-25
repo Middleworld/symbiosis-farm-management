@@ -233,6 +233,8 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         Route::delete('/{id}', [App\Http\Controllers\Admin\BoxConfigurationController::class, 'destroy'])->name('destroy');
         Route::post('/{id}/import-harvests', [App\Http\Controllers\Admin\BoxConfigurationController::class, 'importHarvests'])->name('import-harvests');
         Route::post('/{id}/duplicate', [App\Http\Controllers\Admin\BoxConfigurationController::class, 'duplicate'])->name('duplicate');
+        Route::post('/duplicate-week/{week}', [App\Http\Controllers\Admin\BoxConfigurationController::class, 'duplicateWeek'])->name('duplicate-week');
+        Route::delete('/delete-week/{week}', [App\Http\Controllers\Admin\BoxConfigurationController::class, 'deleteWeek'])->name('delete-week');
     });
 
     // Payment Method Management routes

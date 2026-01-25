@@ -14,7 +14,18 @@ class BoxConfigurationTest extends TestCase
 
     public function test_can_create_box_configuration_without_token_value()
     {
-        $plan = VegboxPlan::factory()->create();
+        // Create a plan directly without factory
+        $plan = VegboxPlan::create([
+            'name' => ['en' => 'Test Plan'],
+            'slug' => 'test-plan',
+            'price' => 25.00,
+            'currency' => 'GBP',
+            'invoice_period' => 1,
+            'invoice_interval' => 'month',
+            'box_size' => 'medium',
+            'delivery_frequency' => 'weekly',
+            'max_deliveries_per_month' => 4,
+        ]);
 
         $data = [
             'week_starting' => '2024-01-01',
@@ -43,14 +54,30 @@ class BoxConfigurationTest extends TestCase
         $this->assertDatabaseHas('box_configuration_items', [
             'box_configuration_id' => $boxConfig->id,
             'item_name' => 'Test Product',
-            'token_value' => 1, // Should default to 1
+            'price_at_time' => 5.00,
         ]);
     }
 
     public function test_can_update_box_configuration_without_token_value()
     {
-        $plan = VegboxPlan::factory()->create();
-        $boxConfig = BoxConfiguration::factory()->create(['plan_id' => $plan->id]);
+        // Create a plan directly
+        $plan = VegboxPlan::create([
+            'name' => ['en' => 'Test Plan'],
+            'slug' => 'test-plan-2',
+            'price' => 25.00,
+            'currency' => 'GBP',
+            'invoice_period' => 1,
+            'invoice_interval' => 'month',
+            'box_size' => 'medium',
+            'delivery_frequency' => 'weekly',
+            'max_deliveries_per_month' => 4,
+        ]);
+        
+        $boxConfig = BoxConfiguration::create([
+            'week_starting' => '2024-01-01',
+            'plan_id' => $plan->id,
+            'is_active' => true,
+        ]);
 
         $data = [
             'items' => [
@@ -71,7 +98,7 @@ class BoxConfigurationTest extends TestCase
         $this->assertDatabaseHas('box_configuration_items', [
             'box_configuration_id' => $boxConfig->id,
             'item_name' => 'Updated Product',
-            'token_value' => 1, // Should default to 1
+            'price_at_time' => 7.50,
         ]);
     }
 }
