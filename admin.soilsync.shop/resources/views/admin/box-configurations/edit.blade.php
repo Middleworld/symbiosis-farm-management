@@ -13,6 +13,29 @@
                 </a>
             </div>
             <p class="text-muted">Configure what products go into each box size for the week. Prices are from product catalog.</p>
+            
+            @if($errors->any())
+                <div class="alert alert-danger">
+                    <h5>Please fix the following errors:</h5>
+                    <ul class="mb-0">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+            
+            @if(session('error'))
+                <div class="alert alert-danger">
+                    {{ session('error') }}
+                </div>
+            @endif
+            
+            @if(session('success'))
+                <div class="alert alert-success">
+                    {{ session('success') }}
+                </div>
+            @endif
         </div>
     </div>
 
@@ -138,7 +161,35 @@
                                                   id="admin_notes_{{ $plan->id }}" 
                                                   name="admin_notes" 
                                                   rows="3"
-                                                  placeholder="Internal notes about this configuration..."></textarea>
+                                                  placeholder="Internal notes about this configuration...">{{ $configuration->admin_notes }}</textarea>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="default_tokens_{{ $plan->id }}" class="form-label">Default Tokens</label>
+                                        <input type="number" 
+                                               class="form-control" 
+                                               id="default_tokens_{{ $plan->id }}" 
+                                               name="default_tokens" 
+                                               value="{{ $configuration->default_tokens }}" 
+                                               min="1" 
+                                               max="50" 
+                                               required>
+                                        <small class="text-muted">Number of tokens customers get by default</small>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" 
+                                                   type="checkbox" 
+                                                   id="is_active_{{ $plan->id }}" 
+                                                   name="is_active" 
+                                                   value="1" 
+                                                   {{ $configuration->is_active ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="is_active_{{ $plan->id }}">
+                                                Active Configuration
+                                            </label>
+                                        </div>
+                                        <small class="text-muted">Inactive configurations won't be available for new orders</small>
                                     </div>
                                     
                                     <button type="submit" class="btn btn-primary w-100" onclick="return validateForm({{ $plan->id }})">
@@ -160,27 +211,43 @@
 let boxItems = {};
 
 // Initialize for the configuration's plan
-boxItems[{{ $configuration->plan_id }}] = [];
+boxItems[{{ $plan->id }}] = [];
 
 // Pre-populate with existing items for this configuration's plan
 @if($configuration->items->count() > 0)
-    boxItems[{{ $configuration->plan_id }}] = [
+    console.log('Found {{ $configuration->items->count() }} items for configuration {{ $configuration->id }}');
+    boxItems[{{ $plan->id }}] = [
         @foreach($configuration->items as $item)
             {
+                id: {{ $item->id }},
                 productId: {{ $item->product_id }},
                 name: '{{ addslashes($item->item_name) }}',
-                price: {{ $item->price_at_time }},
+                price: parseFloat('{{ $item->price_at_time ?: 0 }}'),
                 quantity: {{ $item->quantity }},
-                unit: '{{ $item->unit }}'
+                unit: '{{ $item->unit }}',
+                tokenValue: {{ $item->token_value }},
+                quantityAvailable: {{ $item->quantity_available ?? 'null' }},
+                plantVarietyId: {{ $item->plant_variety_id ?? 'null' }},
+                isFeatured: {{ $item->is_featured ? 'true' : 'false' }}
             }{{ $loop->last ? '' : ',' }}
         @endforeach
     ];
     
-    // Render the pre-populated items when page loads
-    document.addEventListener('DOMContentLoaded', function() {
-        renderBoxContents({{ $configuration->plan_id }});
-    });
+    console.log('Loaded boxItems:', boxItems[{{ $plan->id }}]);
+@else
+    console.log('No items found for configuration {{ $configuration->id }}');
 @endif
+
+// Ensure DOM is loaded before rendering
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOMContentLoaded fired, plan ID: {{ $plan->id }}');
+    if (boxItems[{{ $plan->id }}] && boxItems[{{ $plan->id }}].length > 0) {
+        console.log('Rendering existing items for plan {{ $plan->id }}');
+        renderBoxContents({{ $plan->id }});
+    } else {
+        console.log('No items to render for plan {{ $plan->id }}');
+    }
+});
 
 // Update all week fields when global week changes
 function updateAllWeekFields(weekValue) {
@@ -204,7 +271,11 @@ function addProductToBox(planId, productId, productName, price, unit) {
         name: productName,
         price: parseFloat(price),
         quantity: 1,
-        unit: unit
+        unit: unit,
+        tokenValue: 1,
+        quantityAvailable: null,
+        plantVarietyId: null,
+        isFeatured: false
     });
     
     console.log('Box items for plan', planId, ':', boxItems[planId]);
@@ -245,7 +316,7 @@ function renderBoxContents(planId) {
     let totalValue = 0;
     let html = '<div class="list-group">';
     
-    boxItems[planId].forEach(item => {
+    boxItems[planId].forEach((item, index) => {
         const itemTotal = item.price * item.quantity;
         totalValue += itemTotal;
         
@@ -268,9 +339,13 @@ function renderBoxContents(planId) {
                     </div>
                     <span class="badge bg-success">£${itemTotal.toFixed(2)}</span>
                 </div>
-                <input type="hidden" name="items[${item.productId}][product_id]" value="${item.productId}">
-                <input type="hidden" name="items[${item.productId}][quantity]" value="${item.quantity}">
-                <input type="hidden" name="items[${item.productId}][price]" value="${item.price}">
+                ${item.id ? `<input type="hidden" name="items[${index}][id]" value="${item.id}">` : `<input type="hidden" name="items[${index}][product_id]" value="${item.productId}">`}
+                <input type="hidden" name="items[${index}][item_name]" value="${item.name}">
+                <input type="hidden" name="items[${index}][token_value]" value="${item.tokenValue || 1}">
+                <input type="hidden" name="items[${index}][quantity_available]" value="${item.quantityAvailable || ''}">
+                <input type="hidden" name="items[${index}][unit]" value="${item.unit}">
+                <input type="hidden" name="items[${index}][plant_variety_id]" value="${item.plantVarietyId || ''}">
+                <input type="hidden" name="items[${index}][is_featured]" value="${item.isFeatured ? '1' : '0'}">
             </div>
         `;
     });
@@ -306,6 +381,7 @@ function validateForm(planId) {
     renderBoxContents(planId);
     
     console.log('Form valid, submitting with', boxItems[planId].length, 'items');
+    console.log('Form data will be:', new FormData(document.querySelector('form')));
     return true;
 }
 </script>

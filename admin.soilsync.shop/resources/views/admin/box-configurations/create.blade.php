@@ -20,7 +20,7 @@
     <div class="card mb-4">
         <div class="card-body">
             <div class="row align-items-end">
-                <div class="col-md-4">
+                <div class="col-md-2">
                     <label for="global_week_starting" class="form-label">Week Starting (Monday) <span class="text-danger">*</span></label>
                     <input type="date" 
                            class="form-control" 
@@ -29,7 +29,41 @@
                            onchange="updateAllWeekFields(this.value)">
                     <small class="text-muted">This week applies to all box configurations below</small>
                 </div>
-                <div class="col-md-8">
+                <div class="col-md-2">
+                    <label for="year_select" class="form-label">Year</label>
+                    <select class="form-select" id="year_select" onchange="updateWeekOptions()">
+                        @php
+                            $currentYear = \Carbon\Carbon::now()->year;
+                            for ($year = $currentYear; $year <= $currentYear + 2; $year++) {
+                                $selected = ($year == $weekStart->year) ? 'selected' : '';
+                                echo "<option value='{$year}' {$selected}>{$year}</option>";
+                            }
+                        @endphp
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="week_number_select" class="form-label">Week Number</label>
+                    <select class="form-select" id="week_number_select" onchange="updateDateFromWeekSelection()">
+                        <option value="">Select Week</option>
+                        @php
+                            $selectedYear = $weekStart->year;
+                            $currentDate = \Carbon\Carbon::now();
+                            
+                            // Generate weeks for the selected year
+                            $yearStart = \Carbon\Carbon::create($selectedYear, 1, 1)->startOfWeek();
+                            $yearEnd = \Carbon\Carbon::create($selectedYear, 12, 31)->endOfWeek();
+                            
+                            $weekNum = 1;
+                            for ($date = $yearStart->copy(); $date->lte($yearEnd); $date->addWeek()) {
+                                $monday = $date->format('M j, Y');
+                                $selected = ($date->format('Y-m-d') === $weekStart->format('Y-m-d')) ? 'selected' : '';
+                                echo "<option value='{$date->format('Y-m-d')}' {$selected}>Week {$weekNum} ({$monday})</option>";
+                                $weekNum++;
+                            }
+                        @endphp
+                    </select>
+                </div>
+                <div class="col-md-6">
                     <div class="alert alert-info mb-0">
                         <i class="fas fa-info-circle"></i> Configure products for each box size. Use the tabs below to switch between plans.
                     </div>
@@ -300,6 +334,49 @@ function validateForm(planId) {
     
     console.log('Form valid, submitting with', boxItems[planId].length, 'items');
     return true;
+}
+
+// Update date field when week number is selected
+function updateDateFromWeekSelection() {
+    const weekSelect = document.getElementById('week_number_select');
+    const selectedDate = weekSelect.value;
+    if (selectedDate) {
+        document.getElementById('global_week_starting').value = selectedDate;
+        updateAllWeekFields(selectedDate);
+    }
+}
+
+// Update week options when year is changed
+function updateWeekOptions() {
+    const yearSelect = document.getElementById('year_select');
+    const weekSelect = document.getElementById('week_number_select');
+    const selectedYear = yearSelect.value;
+    
+    // Clear current options
+    weekSelect.innerHTML = '<option value="">Select Week</option>';
+    
+    // Generate weeks for the selected year
+    const yearStart = new Date(selectedYear, 0, 1); // January 1st
+    const yearEnd = new Date(selectedYear, 11, 31); // December 31st
+    
+    // Find first Monday of the year
+    let firstMonday = new Date(yearStart);
+    firstMonday.setDate(firstMonday.getDate() + (1 - firstMonday.getDay() + 7) % 7);
+    
+    let weekNum = 1;
+    let currentDate = new Date(firstMonday);
+    
+    while (currentDate <= yearEnd) {
+        const monday = new Date(currentDate);
+        const option = document.createElement('option');
+        option.value = monday.toISOString().split('T')[0];
+        option.textContent = `Week ${weekNum} (${monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})`;
+        weekSelect.appendChild(option);
+        
+        // Move to next Monday
+        currentDate.setDate(currentDate.getDate() + 7);
+        weekNum++;
+    }
 }
 </script>
 @endsection

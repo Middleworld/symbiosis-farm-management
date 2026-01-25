@@ -26,12 +26,12 @@ class BoxConfigurationController extends Controller
      */
     public function index(Request $request)
     {
-        $configurations = BoxConfiguration::with(['plan', 'items'])
-            ->when($request->week, function ($query, $week) {
-                $query->where('week_starting', Carbon::parse($week)->startOfWeek());
-            })
+        $configurations = BoxConfiguration::with(['plan', 'items.plantVariety'])
             ->upcoming()
-            ->paginate(20);
+            ->get()
+            ->groupBy(function ($config) {
+                return Carbon::parse($config->week_starting)->format('W - Y'); // Week number and year
+            });
 
         $plans = VegboxPlan::active()->get();
 
@@ -43,7 +43,7 @@ class BoxConfigurationController extends Controller
      */
     public function show($id)
     {
-        $configuration = BoxConfiguration::with(['plan', 'items.plantVariety'])
+        $configuration = BoxConfiguration::with(['plan', 'items.plantVariety', 'items.product'])
             ->findOrFail($id);
 
         $allocationSummary = $configuration->getAllocationSummary();
@@ -194,6 +194,13 @@ class BoxConfigurationController extends Controller
      */
     public function update(Request $request, $id)
     {
+        \Log::info('BoxConfiguration update attempt', [
+            'id' => $id,
+            'all_data' => $request->all(),
+            'has_items' => $request->has('items'),
+            'items_count' => $request->has('items') ? count($request->input('items')) : 0
+        ]);
+
         $configuration = BoxConfiguration::findOrFail($id);
 
         $validated = $request->validate([
@@ -202,12 +209,16 @@ class BoxConfigurationController extends Controller
             'admin_notes' => 'nullable|string',
             'items' => 'nullable|array',
             'items.*.id' => 'nullable|exists:box_configuration_items,id',
+            'items.*.product_id' => 'nullable|exists:products,id',
             'items.*.item_name' => 'required|string',
-            'items.*.token_value' => 'required|integer|min:1|max:10',
             'items.*.quantity_available' => 'nullable|integer|min:0',
             'items.*.unit' => 'nullable|string',
             'items.*.plant_variety_id' => 'nullable|exists:plant_varieties,id',
             'items.*.is_featured' => 'boolean',
+        ]);
+
+        \Log::info('BoxConfiguration update validation passed', [
+            'validated' => $validated
         ]);
 
         DB::beginTransaction();
@@ -220,14 +231,17 @@ class BoxConfigurationController extends Controller
 
             // Handle items
             if (isset($validated['items'])) {
+                \Log::info('Processing items', ['count' => count($validated['items'])]);
                 $itemIds = [];
                 foreach ($validated['items'] as $index => $itemData) {
+                    \Log::info('Processing item', ['index' => $index, 'has_id' => isset($itemData['id']), 'data' => $itemData]);
                     if (isset($itemData['id'])) {
                         // Update existing
                         $item = BoxConfigurationItem::find($itemData['id']);
+                        \Log::info('Updating existing item', ['id' => $itemData['id'], 'item_exists' => $item ? true : false]);
                         $item->update([
                             'item_name' => $itemData['item_name'],
-                            'token_value' => $itemData['token_value'],
+                            'token_value' => $itemData['token_value'] ?? 1,
                             'quantity_available' => $itemData['quantity_available'] ?? null,
                             'unit' => $itemData['unit'] ?? 'item',
                             'plant_variety_id' => $itemData['plant_variety_id'] ?? null,
@@ -237,9 +251,11 @@ class BoxConfigurationController extends Controller
                         $itemIds[] = $item->id;
                     } else {
                         // Create new
+                        \Log::info('Creating new item', ['product_id' => $itemData['product_id'] ?? null]);
                         $item = $configuration->items()->create([
+                            'product_id' => $itemData['product_id'] ?? null,
                             'item_name' => $itemData['item_name'],
-                            'token_value' => $itemData['token_value'],
+                            'token_value' => $itemData['token_value'] ?? 1,
                             'quantity_available' => $itemData['quantity_available'] ?? null,
                             'unit' => $itemData['unit'] ?? 'item',
                             'plant_variety_id' => $itemData['plant_variety_id'] ?? null,
@@ -372,6 +388,60 @@ class BoxConfigurationController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Failed to duplicate: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Duplicate all configurations from a week to the next week
+     */
+    public function duplicateWeek($week)
+    {
+        // Parse the week key (format: "W - Y")
+        [$weekNum, $year] = explode(' - ', $week);
+        
+        // Get the start date of the current week
+        $currentWeekStart = Carbon::now()->setISODate($year, $weekNum)->startOfWeek();
+        
+        // Next week start
+        $nextWeekStart = $currentWeekStart->copy()->addWeek();
+        
+        // Check if next week already has configurations
+        $existingNextWeek = BoxConfiguration::where('week_starting', $nextWeekStart)->exists();
+        if ($existingNextWeek) {
+            return response()->json(['error' => 'Next week already has configurations'], 400);
+        }
+        
+        // Get all configurations for the current week
+        $currentConfigs = BoxConfiguration::with('items')
+            ->where('week_starting', $currentWeekStart)
+            ->get();
+        
+        if ($currentConfigs->isEmpty()) {
+            return response()->json(['error' => 'No configurations found for this week'], 404);
+        }
+        
+        DB::beginTransaction();
+        try {
+            foreach ($currentConfigs as $config) {
+                $newConfig = $config->replicate();
+                $newConfig->week_starting = $nextWeekStart;
+                $newConfig->save();
+                
+                foreach ($config->items as $item) {
+                    $newItem = $item->replicate();
+                    $newItem->box_configuration_id = $newConfig->id;
+                    $newItem->quantity_allocated = 0; // Reset allocations
+                    $newItem->save();
+                }
+            }
+            
+            DB::commit();
+            
+            return response()->json(['success' => 'Week duplicated successfully']);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Failed to duplicate week: ' . $e->getMessage()], 500);
         }
     }
 }

@@ -50,8 +50,12 @@ class BoxConfigurationItem extends Model
     }
 
     /**
-     * Get customer box items using this configuration item.
+     * Get the product if linked.
      */
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
     public function customerBoxItems(): HasMany
     {
         return $this->hasMany(CustomerBoxItem::class);

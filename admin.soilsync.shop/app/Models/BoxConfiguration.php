@@ -88,13 +88,25 @@ class BoxConfiguration extends Model
     {
         $items = $this->items;
         
+        $totalValue = $items->sum(function ($item) {
+            return $item->price_at_time * $item->quantity;
+        });
+        
+        $categories = $items->groupBy(function ($item) {
+            return $item->product->category ?? 'Uncategorized';
+        })->map(function ($group) {
+            return $group->count();
+        });
+        
         return [
             'total_items' => $items->count(),
+            'total_value' => $totalValue,
             'total_available' => $items->sum('quantity_available'),
             'total_allocated' => $items->sum('quantity_allocated'),
             'utilization_percent' => $items->sum('quantity_available') > 0 
                 ? round(($items->sum('quantity_allocated') / $items->sum('quantity_available')) * 100, 1)
                 : 0,
+            'categories' => $categories->toArray(),
         ];
     }
 }
