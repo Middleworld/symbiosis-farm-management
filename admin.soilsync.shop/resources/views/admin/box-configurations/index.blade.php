@@ -86,7 +86,7 @@
                                             <td>
                                                 <span class="badge bg-primary">{{ $weekConfigs->count() }} configuration{{ $weekConfigs->count() > 1 ? 's' : '' }}</span>
                                             </td>
-                                            <td>
+                                            <td class="actions-cell">
                                                 <button class="btn btn-sm btn-outline-primary toggle-week me-1" data-week="{{ $weekKey }}">
                                                     <i class="fas fa-chevron-down"></i> Expand
                                                 </button>
@@ -174,9 +174,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Toggle on row click
-    document.querySelectorAll('.week-row').forEach(row => {
-        row.addEventListener('click', function() {
+// Toggle on row click (but not on actions cell)
+document.querySelectorAll('.week-row').forEach(row => {
+    row.addEventListener('click', function(e) {
+        // Don't toggle if clicking on actions cell
+        if (e.target.closest('.actions-cell')) {
+            return;
+        }
             const week = this.getAttribute('data-week');
             toggleWeek(week);
         });
