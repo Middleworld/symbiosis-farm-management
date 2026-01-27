@@ -1681,15 +1681,13 @@ class SuccessionPlanningController extends Controller
     public function getCropPlans(Request $request): JsonResponse
     {
         try {
-            // Query farmOS database directly for crop plans with season data (fast ~50ms vs API 2-30s)
+            // Query farmOS database directly for crop plans (fast ~50ms vs API 2-30s)
             $plans = DB::connection('farmos')
-                ->table('plan_field_data as p')
-                ->leftJoin('plan__season as ps', 'p.id', '=', 'ps.entity_id')
-                ->leftJoin('taxonomy_term_field_data as t', 'ps.season_target_id', '=', 't.tid')
-                ->where('p.type', 'crop')
-                ->where('p.status', 'active') // Status is string "active", not integer 1
-                ->select('p.id', 'p.name', 'p.status', 'p.type', 't.tid as season_id', 't.name as season_name')
-                ->orderBy('p.name')
+                ->table('plan_field_data')
+                ->where('type', 'crop')
+                ->where('status', 'active') // Status is string "active", not integer 1
+                ->select('id', 'name', 'status', 'type')
+                ->orderBy('name')
                 ->get();
             
             // Format for dropdown
@@ -1697,9 +1695,7 @@ class SuccessionPlanningController extends Controller
                 return [
                     'id' => $plan->id,
                     'name' => $plan->name,
-                    'status' => $plan->status,
-                    'season_id' => $plan->season_id,
-                    'season_name' => $plan->season_name
+                    'status' => $plan->status
                 ];
             })->toArray();
 
@@ -1722,7 +1718,7 @@ class SuccessionPlanningController extends Controller
     }
 
     /**
-     * Get variety details from farmOS database with all available custom fields
+     * Get variety details from farmOS database
      */
     public function getVariety(string $id): JsonResponse
     {
@@ -1758,90 +1754,15 @@ class SuccessionPlanningController extends Controller
                 $parentName = $parentTerm->name ?? null;
             }
 
-            // Get image if available (check taxonomy_term__image table)
-            $image = DB::connection('farmos')
-                ->table('taxonomy_term__image')
-                ->where('entity_id', $id)
-                ->first();
-
-            $imageUrl = null;
-            $imageAlt = null;
-            if ($image && $image->image_target_id) {
-                // Get file URL from file_managed table
-                $file = DB::connection('farmos')
-                    ->table('file_managed')
-                    ->where('fid', $image->image_target_id)
-                    ->first();
-                
-                if ($file && $file->uri) {
-                    // Convert internal URI to web-accessible URL
-                    // e.g., public://variety-photos/carrot.jpg -> /sites/default/files/variety-photos/carrot.jpg
-                    $imageUrl = str_replace('public://', '/sites/default/files/', $file->uri);
-                    $imageUrl = 'https://farmos.soilsync.shop' . $imageUrl;
-                }
-                $imageAlt = $image->image_alt ?? $variety->name;
-            }
-
-            // Get all custom fields from taxonomy_term__* tables
-            $maturityDays = DB::connection('farmos')
-                ->table('taxonomy_term__maturity_days')
-                ->where('entity_id', $id)
-                ->value('maturity_days_value');
-
-            $inRowSpacing = DB::connection('farmos')
-                ->table('taxonomy_term__in_row_spacing_cm')
-                ->where('entity_id', $id)
-                ->value('in_row_spacing_cm_value');
-
-            $betweenRowSpacing = DB::connection('farmos')
-                ->table('taxonomy_term__between_row_spacing_cm')
-                ->where('entity_id', $id)
-                ->value('between_row_spacing_cm_value');
-
-            $harvestWindowDays = DB::connection('farmos')
-                ->table('taxonomy_term__harvest_window_days')
-                ->where('entity_id', $id)
-                ->value('harvest_window_days_value');
-
-            $frostTolerance = DB::connection('farmos')
-                ->table('taxonomy_term__frost_tolerance')
-                ->where('entity_id', $id)
-                ->value('frost_tolerance_value');
-
-            $plantingMethod = DB::connection('farmos')
-                ->table('taxonomy_term__planting_method')
-                ->where('entity_id', $id)
-                ->value('planting_method_value');
-
-            $germinationDaysMin = DB::connection('farmos')
-                ->table('taxonomy_term__germination_days_min')
-                ->where('entity_id', $id)
-                ->value('germination_days_min_value');
-
-            $germinationDaysMax = DB::connection('farmos')
-                ->table('taxonomy_term__germination_days_max')
-                ->where('entity_id', $id)
-                ->value('germination_days_max_value');
-
-            // Format variety data with all available fields
+            // Format variety data
             $varietyData = [
                 'id' => $variety->tid,
-                'farmos_id' => $variety->tid,
                 'name' => $variety->name,
                 'title' => $variety->name,
-                'description' => $variety->description__value ?? 'No description available for this variety.',
+                'description' => $variety->description__value ?? '',
                 'crop_family' => $parentName,
                 'plant_type' => $parentName,
-                'image_url' => $imageUrl,
-                'image_alt' => $imageAlt,
-                'maturity_days' => $maturityDays,
-                'in_row_spacing_cm' => $inRowSpacing,
-                'between_row_spacing_cm' => $betweenRowSpacing,
-                'harvest_window_days' => $harvestWindowDays,
-                'frost_tolerance' => $frostTolerance,
-                'planting_method' => $plantingMethod,
-                'propagation_days' => $germinationDaysMin ? ($germinationDaysMin + $germinationDaysMax) / 2 : null,
-                'transplant_days' => $germinationDaysMin ? ($germinationDaysMin + $germinationDaysMax) / 2 : null,
+                // Add any additional fields as needed
             ];
 
             return response()->json([

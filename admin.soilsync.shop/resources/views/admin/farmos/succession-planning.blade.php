@@ -4,18 +4,6 @@
 
 @section('page-title', 'farmOS Succession Planner')
 
-@php
-    $appUrl = config('app.url');
-    $appHost = parse_url($appUrl, PHP_URL_HOST);
-    $appScheme = parse_url($appUrl, PHP_URL_SCHEME) ?: request()->getScheme();
-    $farmosUrl = config('farmos.url'); // Default from config
-    
-    if ($appHost && strpos($appHost, 'admin.') === 0) {
-        $baseDomain = substr($appHost, 6); // Remove 'admin.' prefix
-        $farmosUrl = $appScheme . '://farmos.' . $baseDomain;
-    }
-@endphp
-
 @section('page-header')
     <div class="d-flex justify-content-center align-items-center w-100">
         <div class="text-center">
@@ -25,10 +13,6 @@
 @endsection
 
 @section('styles')
-<!-- Chart.js for timeline visualization -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-
 <!-- Force page to start at top -->
 <style>
     html, body {
@@ -824,50 +808,6 @@
         padding: 20px;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         margin: 20px 0;
-        position: relative;
-    }
-
-    /* Scrollable timeline container */
-    .timeline-scroll-container {
-        overflow-x: auto;
-        overflow-y: visible;
-        position: relative;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        margin-top: 10px;
-    }
-
-    .timeline-scroll-content {
-        min-width: 100%;
-        width: max-content;
-        position: relative;
-    }
-
-    /* Timeline zoom controls */
-    .timeline-zoom-controls {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        display: flex;
-        gap: 5px;
-        z-index: 10;
-        background: white;
-        padding: 5px;
-        border-radius: 6px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .timeline-zoom-controls button {
-        padding: 5px 10px;
-        border: 1px solid #ddd;
-        background: white;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 12px;
-    }
-
-    .timeline-zoom-controls button:hover {
-        background: #f8f9fa;
     }
 
     .timeline-header {
@@ -878,56 +818,6 @@
     .timeline-header h5 {
         color: #28a745;
         margin-bottom: 5px;
-    }
-
-    /* Date axis with day markers */
-    .timeline-date-axis {
-        display: flex;
-        position: sticky;
-        top: 0;
-        background: white;
-        z-index: 5;
-        border-bottom: 2px solid #28a745;
-        padding: 10px 0;
-        margin-bottom: 10px;
-    }
-
-    .timeline-month-marker {
-        position: relative;
-        flex: 1;
-        text-align: center;
-        border-right: 1px solid #ddd;
-        padding: 5px;
-    }
-
-    .timeline-month-marker:last-child {
-        border-right: none;
-    }
-
-    .timeline-month-name {
-        font-weight: bold;
-        font-size: 14px;
-        color: #28a745;
-        margin-bottom: 5px;
-    }
-
-    .timeline-days-container {
-        display: flex;
-        font-size: 10px;
-        color: #666;
-    }
-
-    .timeline-day-marker {
-        flex: 1;
-        text-align: center;
-        border-right: 1px solid #f0f0f0;
-        padding: 2px 0;
-    }
-
-    .timeline-day-marker.week-start {
-        font-weight: bold;
-        color: #333;
-        border-right: 1px solid #ccc;
     }
 
     .beds-container {
@@ -1704,6 +1594,41 @@
             </div>
 
             <!-- Season/Year Selection - Now conditional/informational -->
+            <div class="planning-card mb-3" id="seasonYearCard">
+                <div class="planning-section">
+                    <h3>
+                        <i class="fas fa-calendar section-icon"></i>
+                        Planning Season & Year <span class="badge bg-secondary">Optional for AI Context</span>
+                    </h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="planningYear" class="form-label">Planning Year</label>
+                            <select class="form-select" id="planningYear" name="planningYear">
+                                <option value="2024" {{ date('Y') == '2024' ? 'selected' : '' }}>2024</option>
+                                <option value="2025" {{ date('Y') == '2025' ? 'selected' : '' }}>2025</option>
+                                <option value="2026" {{ date('Y') == '2026' ? 'selected' : '' }}>2026</option>
+                                <option value="2027" {{ date('Y') == '2027' ? 'selected' : '' }}>2027</option>
+                                <option value="2028" {{ date('Y') == '2028' ? 'selected' : '' }}>2028</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="planningSeason" class="form-label">Primary Season</label>
+                            <select class="form-select" id="planningSeason" name="planningSeason">
+                                <option value="spring">Spring (Mar-May)</option>
+                                <option value="summer">Summer (Jun-Aug)</option>
+                                <option value="fall" selected>Fall (Sep-Nov)</option>
+                                <option value="winter">Winter (Dec-Feb)</option>
+                                <option value="year-round">Year-Round Planning</option>
+                            </select>
+                        </div>
+                    </div>
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Used for AI advice context. If using a crop plan, season/year will be pulled from the plan automatically.
+                    </small>
+                </div>
+            </div>
+
             <div class="planning-card">
                 <!-- Step 1: Crop Selection from farmOS -->
                 <div class="planning-section">
@@ -2396,6 +2321,9 @@
 
                     <div class="mt-3">
                         <div class="d-grid gap-2 mb-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="syncVarietiesFromFarmOS()" title="Sync latest variety data from FarmOS">
+                                <i class="fas fa-sync"></i> Sync Varieties from FarmOS
+                            </button>
                             <button class="btn btn-outline-danger btn-sm" onclick="clearAllAllocations()" title="Clear all bed allocations to start fresh">
                                 <i class="fas fa-trash"></i> Clear All Allocations
                             </button>
@@ -2409,13 +2337,12 @@
                     <!-- Info about farmOS embedded forms -->
                     <div class="alert alert-info mt-4">
                         <h6><i class="fas fa-info-circle"></i> farmOS Quick Forms</h6>
-                        <p class="mb-2">Succession forms are embedded below with pre-filled data:</p>
+                        <p class="mb-2">Each succession has embedded farmOS forms below. Submit each form directly in farmOS:</p>
                         <ul class="mb-0 small">
-                            <li>All forms pre-filled with succession data</li>
-                            <li>Review each form carefully before submitting</li>
-                            <li>Click "Save" in each form to create logs in farmOS</li>
-                            <li>Tab badges show submission status (✓ = submitted)</li>
-                            <li>Plant assets use auto-generated names: [Season] [Location] [Crop]</li>
+                            <li>Forms are pre-filled with succession data</li>
+                            <li>Submit each form individually when ready</li>
+                            <li>farmOS handles all validation and storage</li>
+                            <li>No need for bulk submission - work at your own pace</li>
                         </ul>
                     </div>
 
@@ -3018,12 +2945,12 @@
             // Add visual indicator that value is from database
             inRowSpacingInput.classList.add('border-success');
             inRowSpacingInput.title = `Auto-filled from database: ${varietyData.in_row_spacing_cm} cm`;
-            console.log('✅ Auto-populated in-row spacing:', varietyData.in_row_spacing_cm, 'cm');
+            // console.log('✅ Auto-populated in-row spacing:', varietyData.in_row_spacing_cm, 'cm');
         } else {
             // Keep default value, remove database indicator
             inRowSpacingInput.classList.remove('border-success');
             inRowSpacingInput.title = 'Default spacing - adjust as needed';
-            console.log('ℹ️ No in-row spacing in database, using default');
+            // console.log('ℹ️ No in-row spacing in database, using default');
         }
         
         if (varietyData.between_row_spacing_cm && varietyData.between_row_spacing_cm > 0) {
@@ -3031,7 +2958,7 @@
             // Add visual indicator that value is from database
             betweenRowSpacingInput.classList.add('border-success');
             betweenRowSpacingInput.title = `Auto-filled from database: ${varietyData.between_row_spacing_cm} cm`;
-            console.log('✅ Auto-populated between-row spacing:', varietyData.between_row_spacing_cm, 'cm');
+            // console.log('✅ Auto-populated between-row spacing:', varietyData.between_row_spacing_cm, 'cm');
         } else {
             // Keep default value, remove database indicator
             betweenRowSpacingInput.classList.remove('border-success');
@@ -5555,8 +5482,6 @@ Calculate for ${contextPayload.planning_year}.`;
      * @returns {object} Calculated quantities for seeding and transplanting
      */
     function calculatePlantQuantity(bedLength, bedWidth, inRowSpacing, betweenRowSpacing, method = 'direct') {
-        console.log('🧮 Calculating plant quantity:', { bedLength, bedWidth, inRowSpacing, betweenRowSpacing, method });
-        
         // Convert measurements to consistent units (cm)
         const lengthCm = bedLength * 100;
         const widthCm = bedWidth * 100;
@@ -5596,7 +5521,7 @@ Calculate for ${contextPayload.planning_year}.`;
             seedingQuantity = Math.ceil(totalPlants * 1.2); // 20% extra for transplant trays
         }
         
-        const result = {
+        return {
             totalPlants: totalPlants,
             seedingQuantity: seedingQuantity,
             transplantQuantity: transplantQuantity,
@@ -5604,10 +5529,6 @@ Calculate for ${contextPayload.planning_year}.`;
             plantsPerRow: plantsPerRow,
             bedArea: (bedLength * bedWidth).toFixed(2) // m²
         };
-        
-        console.log('✅ Calculated quantities:', result);
-        
-        return result;
     }
 
     /**
@@ -5732,19 +5653,10 @@ Calculate for ${contextPayload.planning_year}.`;
             const harvestDuration = Math.ceil((harvestEnd - harvestStart) / (1000 * 60 * 60 * 24));
             totalHarvestDuration = harvestDuration;
             
-            // Space successions evenly across the harvest period
-            // If harvest window >> variety harvest duration: space to cover full period with overlap
-            // If harvest window ≈ variety harvest duration: space evenly to extend coverage
-            // Formula: total duration / number of successions (not gaps)
-            if (harvestDuration > harvestWindowDays * 1.5) {
-                // Long period: space to create overlapping coverage
-                harvestSpacing = successionCount > 1 ? 
-                    Math.floor((harvestDuration - harvestWindowDays) / (successionCount - 1)) : 0;
-            } else {
-                // Short period or similar length: evenly distribute successions
-                harvestSpacing = successionCount > 1 ? 
-                    Math.floor(harvestDuration / successionCount) : 0;
-            }
+            // Space successions so their harvest windows OVERLAP to cover the entire duration
+            // Formula: (total duration - harvest window) / (number of gaps between successions)
+            harvestSpacing = successionCount > 1 ? 
+                Math.floor((harvestDuration - harvestWindowDays) / (successionCount - 1)) : 0;
             
             console.log(`📊 Succession spacing: ${harvestSpacing} days between harvest starts (${harvestDuration} day window, ${harvestWindowDays} day harvest duration, ${successionCount} successions)`);
         }
@@ -6176,8 +6088,7 @@ Calculate for ${contextPayload.planning_year}.`;
             const btn = document.createElement('button');
             btn.className = 'tab-button' + (i === 0 ? ' active' : '');
             btn.type = 'button';
-            btn.id = `tab-button-${i}`; // Add ID for easy reference
-            btn.innerHTML = `Succession ${i+1}${p.variety_name ? `: ${p.variety_name}` : ''} <span class="submission-badge" id="badge-${i}" style="display: none; margin-left: 8px; color: #28a745; font-weight: bold;">✓</span>`;
+            btn.textContent = `Succession ${i+1}${p.variety_name ? `: ${p.variety_name}` : ''}`;
             btn.addEventListener('click', () => switchTab(i));
             nav.appendChild(btn);
 
@@ -6250,17 +6161,12 @@ Calculate for ${contextPayload.planning_year}.`;
 
             // Generate farmOS quick form URLs with iframe embedding
             // IMPORTANT: Add plan_id parameter so farmOS links the quick form to the crop plan
-            const farmosUrl = '{{ $farmosUrl }}'; // Dynamic farmOS URL
+            const farmosUrl = 'https://farmos.soilsync.shop'; // Direct farmOS URL
             const planId = p.plan_id || window.cropPlanId || ''; // Get plan ID from planting or global var
             const seasonName = p.season || window.cropPlanSeason || new Date().getFullYear() + ' Season';
             
             console.log('🌾 Generating quick form for planting:', p);
             console.log('🥕 Variety name:', p.variety_name, 'Variety ID:', p.variety_id);
-            console.log('📋 Plan ID being used:', planId, 'window.cropPlanId:', window.cropPlanId);
-            
-            // Determine seeding location: greenhouse for transplants, bed for direct-seeded
-            const isDirectSeeded = !p.transplant_date;
-            const seedingLocation = isDirectSeeded ? (p.bed_name || 'Unassigned') : 'Greenhouse';
             
             // Build parameters - conditionally include transplanting for non-direct-sown crops
             const params = {
@@ -6270,20 +6176,18 @@ Calculate for ${contextPayload.planning_year}.`;
                 'log_types[seeding]': 'seeding',
                 'log_types[harvest]': 'harvest',
                 'seeding[date]': p.seeding_date || '',
-                'seeding[location]': seedingLocation,
+                'seeding[location]': 'Greenhouse',
                 'seeding[quantity][0][measure]': 'count',
                 'seeding[quantity][0][value]': p.seeding_quantity || p.quantity || '',
-                'seeding[quantity][0][units]': 'seeds',
+                'seeding[quantity][0][units]': 'plants',
                 'seeding[notes][value]': `Succession ${i + 1} - ${p.in_row_spacing_cm || 15}cm in-row × ${p.between_row_spacing_cm || 20}cm between-row spacing`,
                 'seeding[done]': '0',
-                'seeding[customize_asset_name]': '1', // Enable customize plant asset name checkbox by default
                 'harvest[date]': p.harvest_date || '',
                 'harvest[quantity][0][measure]': 'weight',
                 'harvest[quantity][0][value]': p.estimated_harvest_kg || '',
                 'harvest[quantity][0][units]': 'kg',
                 'harvest[notes][value]': `Succession ${i + 1} harvest - Estimated yield based on ${p.bed_length || 0}m × ${p.bed_width || 0}m bed`,
-                'harvest[done]': '0',
-                'harvest[customize_asset_name]': '1' // Enable customize plant asset name checkbox by default
+                'harvest[done]': '0'
             };
             
             // Only add transplanting if succession has transplant date
@@ -6307,14 +6211,9 @@ Calculate for ${contextPayload.planning_year}.`;
             // Display embedded farmOS planting quick form
             pane.innerHTML += `
                 <div class="quick-form-container mt-1">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <p class="mb-0 small text-muted">
-                            <i class="fas fa-seedling"></i> Pre-filled with succession data - use form checkboxes to select logs
-                        </p>
-                        <button class="btn btn-sm btn-success" onclick="markSuccessionSubmitted(${i})" id="mark-submitted-${i}">
-                            <i class="fas fa-check"></i> Mark as Submitted
-                        </button>
-                    </div>
+                    <p class="mb-1 small text-muted">
+                        <i class="fas fa-seedling"></i> Pre-filled with succession data - use form checkboxes to select logs
+                    </p>
                 </div>
 
                 <!-- Embedded farmOS Planting Quick Form -->
@@ -6328,20 +6227,20 @@ Calculate for ${contextPayload.planning_year}.`;
                         </div>
                     </div>
                     <iframe 
-                        data-src="${quickFormUrls.planting}"
+                        src="${quickFormUrls.planting}"
                         class="farmos-quickform-iframe"
                         title="farmOS Planting Quick Form - Succession ${i + 1}"
                         id="planting-iframe-${i}"
                         data-season="${p.season || new Date().getFullYear() + ' Season'}"
                         data-variety="${p.variety?.name || p.variety || ''}"
-                        data-seeding-location="${seedingLocation}"
+                        data-seeding-location="Greenhouse"
                         data-transplanting-location="${p.bed_name || ''}"
                         sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation"
                         style="width: 100%; min-height: 1200px; border: 1px solid #dee2e6; border-radius: 0.5rem; display: none;"
                         onload="
                             this.style.display='block'; 
                             document.getElementById('loading-planting-${i}').style.display='none';
-                            setTimeout(() => injectIframeValues(this), 500);
+                            setTimeout(() => injectIframeValues(this), 1000);
                         "
                     ></iframe>
                 </div>
@@ -6353,13 +6252,6 @@ Calculate for ${contextPayload.planning_year}.`;
         // Show the tabs container
         // console.log('✅ Showing tabs container');
         tabsWrap.style.display = 'block';
-
-        // Lazy load iframes - only load the first tab's iframe immediately
-        const firstIframe = document.querySelector('#planting-iframe-0');
-        if (firstIframe && firstIframe.dataset.src) {
-            firstIframe.src = firstIframe.dataset.src;
-            delete firstIframe.dataset.src;
-        }
 
         // Initialize form visibility based on default checkbox states
         (plan.plantings || []).forEach((p, i) => {
@@ -6397,39 +6289,10 @@ Calculate for ${contextPayload.planning_year}.`;
         panes.forEach((pane, i) => {
             if (i === index) {
                 pane.classList.add('active');
-                
-                // Lazy load iframe if not already loaded
-                const iframe = pane.querySelector('.farmos-quickform-iframe');
-                if (iframe && iframe.dataset.src) {
-                    iframe.src = iframe.dataset.src;
-                    delete iframe.dataset.src;
-                }
             } else {
                 pane.classList.remove('active');
             }
         });
-    }
-
-    /**
-     * Mark a succession as submitted and show checkmark badge
-     */
-    function markSuccessionSubmitted(index) {
-        const badge = document.getElementById(`badge-${index}`);
-        const button = document.getElementById(`mark-submitted-${index}`);
-        
-        if (badge && button) {
-            badge.style.display = 'inline';
-            button.disabled = true;
-            button.innerHTML = '<i class="fas fa-check-circle"></i> Submitted';
-            button.classList.remove('btn-success');
-            button.classList.add('btn-secondary');
-            
-            // Store submission status in localStorage
-            const submissionKey = `succession_submitted_${window.currentSuccessionPlan?.plantings[index]?.seeding_date}_${index}`;
-            localStorage.setItem(submissionKey, 'true');
-            
-            console.log(`✅ Marked succession ${index + 1} as submitted`);
-        }
     }
 
     async function renderFarmOSTimeline(plan) {
@@ -6691,135 +6554,6 @@ Calculate for ${contextPayload.planning_year}.`;
         return data;
     }
 
-    // Timeline zoom level (stored globally)
-    let currentTimelineZoom = 'month'; // 'week', 'month', 'quarter'
-
-    /**
-     * Generate detailed date axis with day markers
-     * @param {Date} minDate - Start of timeline
-     * @param {Date} maxDate - End of timeline
-     * @returns {string} HTML for date axis
-     */
-    function generateDateAxis(minDate, maxDate) {
-        const months = [];
-        const current = new Date(minDate);
-        
-        while (current <= maxDate) {
-            const monthStart = new Date(current.getFullYear(), current.getMonth(), 1);
-            const monthEnd = new Date(current.getFullYear(), current.getMonth() + 1, 0);
-            
-            // Calculate days in this month
-            const daysInMonth = monthEnd.getDate();
-            const days = [];
-            
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayDate = new Date(current.getFullYear(), current.getMonth(), day);
-                const isWeekStart = dayDate.getDay() === 1; // Monday
-                
-                days.push({
-                    day: day,
-                    isWeekStart: isWeekStart,
-                    date: dayDate
-                });
-            }
-            
-            months.push({
-                label: current.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-                date: new Date(current),
-                days: days,
-                daysCount: daysInMonth
-            });
-            
-            current.setMonth(current.getMonth() + 1);
-        }
-        
-        // Generate HTML based on zoom level
-        if (currentTimelineZoom === 'week') {
-            // Show individual days with week highlights
-            return `
-                <div class="timeline-date-axis">
-                    ${months.map(month => `
-                        <div class="timeline-month-marker" style="flex: ${month.daysCount};">
-                            <div class="timeline-month-name">${month.label}</div>
-                            <div class="timeline-days-container">
-                                ${month.days.map(day => `
-                                    <div class="timeline-day-marker ${day.isWeekStart ? 'week-start' : ''}">
-                                        ${day.day}
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        } else if (currentTimelineZoom === 'month') {
-            // Show months with week markers
-            return `
-                <div class="timeline-date-axis">
-                    ${months.map(month => `
-                        <div class="timeline-month-marker" style="flex: ${month.daysCount};">
-                            <div class="timeline-month-name">${month.label}</div>
-                            <div class="timeline-days-container">
-                                ${month.days.filter(d => d.isWeekStart).map(day => `
-                                    <div class="timeline-day-marker week-start">
-                                        W${Math.ceil(day.day / 7)}
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        } else {
-            // Quarter view - just show months
-            return `
-                <div class="timeline-date-axis">
-                    ${months.map(month => `
-                        <div class="timeline-month-marker" style="flex: ${month.daysCount};">
-                            <div class="timeline-month-name">${month.label}</div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-    }
-
-    /**
-     * Zoom timeline to different levels
-     * @param {string} level - 'week', 'month', or 'quarter'
-     */
-    function zoomTimeline(level) {
-        currentTimelineZoom = level;
-        
-        // Reload timeline with new zoom
-        const timelineContainer = document.querySelector('.bed-occupancy-timeline');
-        if (!timelineContainer) return;
-        
-        const minDate = new Date(timelineContainer.dataset.minDate);
-        const maxDate = new Date(timelineContainer.dataset.maxDate);
-        
-        // Regenerate date axis
-        const dateAxis = generateDateAxis(minDate, maxDate);
-        const existingAxis = document.querySelector('.timeline-date-axis');
-        if (existingAxis) {
-            existingAxis.outerHTML = dateAxis;
-        }
-        
-        // Adjust scroll container width based on zoom
-        const scrollContent = document.querySelector('.timeline-scroll-content');
-        if (scrollContent) {
-            if (level === 'week') {
-                scrollContent.style.minWidth = '200%'; // Wide for day view
-            } else if (level === 'month') {
-                scrollContent.style.minWidth = '150%'; // Medium for week view
-            } else {
-                scrollContent.style.minWidth = '100%'; // Normal for quarter view
-            }
-        }
-        
-        console.log(`🔍 Timeline zoomed to ${level} view`);
-    }
-
     function createBedOccupancyTimeline(plan, bedData) {
         console.log('🔍 createBedOccupancyTimeline called with bedData:', bedData);
         
@@ -6957,37 +6691,14 @@ Calculate for ${contextPayload.planning_year}.`;
                 // Match plantings by bed name (e.g., "1/1"), not UUID
                 const bedPlantings = actualBedData.plantings.filter(p => p.bed_id === bed.name);
                 
-                // ALSO get allocated successions from the current plan for this bed
-                const allocatedSuccessions = [];
-                if (plan && plan.plantings) {
-                    plan.plantings.forEach((planting, index) => {
-                        if (planting.bed_name === bed.name) {
-                            allocatedSuccessions.push({
-                                crop: planting.variety_name || planting.crop_name || 'Unknown',
-                                variety: null, // Already in crop name
-                                seeding_date: planting.seeding_date,
-                                transplant_date: planting.transplant_date,
-                                harvest_date: planting.harvest_date,
-                                end_date: planting.harvest_end_date,
-                                is_direct_seeded: !planting.transplant_date,
-                                notes: `Succession ${index + 1} (Planned)`,
-                                isPlanned: true // Flag to style differently
-                            });
-                        }
-                    });
-                }
-                
-                // Combine farmOS plantings and planned successions
-                const allPlantings = [...bedPlantings, ...allocatedSuccessions];
-                
                 // console.log(`🔍 Bed ${bed.name} (id: ${bed.id}):`, {
                 //     bedPlantingsFound: bedPlantings.length,
                 //     allPlantings: actualBedData.plantings.length,
                 //     samplePlanting: actualBedData.plantings[0]
                 // });
 
-                // Create occupancy blocks for this bed (farmOS plantings + planned successions)
-                const occupancyBlocks = allPlantings.flatMap(planting => {
+                // Create occupancy blocks for this bed
+                const occupancyBlocks = bedPlantings.flatMap(planting => {
                     const blocks = [];
                     const varietyText = planting.variety ? ` (${planting.variety})` : '';
                     const notesText = planting.notes ? ` | ${planting.notes}` : '';
@@ -6999,11 +6710,6 @@ Calculate for ${contextPayload.planning_year}.`;
                     
                     const harvestStart = planting.harvest_date;
                     const harvestEnd = planting.end_date;
-                    
-                    // Style differently for planned vs actual plantings
-                    const isPlanned = planting.isPlanned;
-                    const plannedStyle = isPlanned ? 'border: 2px dashed #fff; opacity: 0.85;' : '';
-                    const plannedLabel = isPlanned ? ' 📋' : '';
                     
                     if (!bedOccupancyStart) {
                         return blocks; // Skip if we don't know when it started occupying the bed
@@ -7022,10 +6728,10 @@ Calculate for ${contextPayload.planning_year}.`;
                         const growingTooltip = `${planting.crop}${varietyText}\n${startLabel}: ${bedOccupancyStart}\nMatures: ${harvestStart}${notesText}`;
                         
                         blocks.push(`
-                            <div class="bed-occupancy-block growing ${isPlanned ? 'planned' : ''}"
-                                 style="left: ${Math.max(0, growingLeft)}%; width: ${Math.max(2, Math.min(100 - growingLeft, growingWidth))}%; background: linear-gradient(135deg, #28a745, #20c997); ${plannedStyle}"
+                            <div class="bed-occupancy-block growing"
+                                 style="left: ${Math.max(0, growingLeft)}%; width: ${Math.max(2, Math.min(100 - growingLeft, growingWidth))}%; background: linear-gradient(135deg, #28a745, #20c997);"
                                  title="${growingTooltip}">
-                                <span class="crop-label">${planting.crop}${varietyText}${plannedLabel}</span>
+                                <span class="crop-label">${planting.crop}${varietyText}</span>
                             </div>
                         `);
                         
@@ -7038,10 +6744,10 @@ Calculate for ${contextPayload.planning_year}.`;
                             const harvestTooltip = `${planting.crop}${varietyText}\nHarvest Window: ${harvestStart} → ${harvestEnd}${notesText}`;
                             
                             blocks.push(`
-                                <div class="bed-occupancy-block harvesting ${isPlanned ? 'planned' : ''}"
-                                     style="left: ${Math.max(0, harvestLeft)}%; width: ${Math.max(2, Math.min(100 - harvestLeft, harvestWidth))}%; background: linear-gradient(135deg, #ffc107, #ffb300); ${plannedStyle}"
+                                <div class="bed-occupancy-block harvesting"
+                                     style="left: ${Math.max(0, harvestLeft)}%; width: ${Math.max(2, Math.min(100 - harvestLeft, harvestWidth))}%; background: linear-gradient(135deg, #ffc107, #ffb300);"
                                      title="${harvestTooltip}">
-                                    <span class="crop-label">🌾 ${planting.crop}${plannedLabel}</span>
+                                    <span class="crop-label">🌾 ${planting.crop}</span>
                                 </div>
                             `);
                         }
@@ -7054,10 +6760,10 @@ Calculate for ${contextPayload.planning_year}.`;
                         const tooltip = `${planting.crop}${varietyText}\n${startLabel}: ${bedOccupancyStart}\nStill growing${notesText}`;
                         
                         blocks.push(`
-                            <div class="bed-occupancy-block growing ${isPlanned ? 'planned' : ''}"
-                                 style="left: ${Math.max(0, growingLeft)}%; width: ${Math.max(2, Math.min(100 - growingLeft, growingWidth))}%; background: linear-gradient(135deg, #28a745, #20c997); ${plannedStyle}"
+                            <div class="bed-occupancy-block growing"
+                                 style="left: ${Math.max(0, growingLeft)}%; width: ${Math.max(2, Math.min(100 - growingLeft, growingWidth))}%; background: linear-gradient(135deg, #28a745, #20c997);"
                                  title="${tooltip}">
-                                <span class="crop-label">${planting.crop}${varietyText}${plannedLabel}</span>
+                                <span class="crop-label">${planting.crop}${varietyText}</span>
                             </div>
                         `);
                     }
@@ -7119,9 +6825,6 @@ Calculate for ${contextPayload.planning_year}.`;
             });
         }
 
-        // Generate detailed date axis with day markers
-        const dateAxisHTML = generateDateAxis(minDate, maxDate);
-
         return `
             <div class="bed-occupancy-timeline" data-min-date="${minDate.toISOString()}" data-max-date="${maxDate.toISOString()}">
                 <div class="timeline-header">
@@ -7129,42 +6832,22 @@ Calculate for ${contextPayload.planning_year}.`;
                     <p class="text-muted small">Live bed availability from your FarmOS database • Yellow stars show planned harvest dates</p>
                 </div>
 
-                <!-- Zoom controls -->
-                <div class="timeline-zoom-controls">
-                    <button onclick="zoomTimeline('week')" title="Week View">
-                        <i class="fas fa-compress"></i> Week
-                    </button>
-                    <button onclick="zoomTimeline('month')" title="Month View">
-                        <i class="fas fa-arrows-alt-h"></i> Month
-                    </button>
-                    <button onclick="zoomTimeline('quarter')" title="Quarter View">
-                        <i class="fas fa-expand"></i> Quarter
-                    </button>
+                <div class="timeline-axis">
+                    ${months.map(month => `<div class="timeline-month">${month.label}</div>`).join('')}
                 </div>
 
-                <!-- Scrollable timeline container -->
-                <div class="timeline-scroll-container">
-                    <div class="timeline-scroll-content">
-                        ${dateAxisHTML}
+                <div class="beds-container">
+                    ${bedRows}
+                </div>
 
-                        <div class="beds-container">
-                            ${bedRows}
-                        </div>
-
-                        <div class="timeline-indicators">
-                            ${successionIndicators.join('')}
-                        </div>
-                    </div>
+                <div class="timeline-indicators">
+                    ${successionIndicators.join('')}
                 </div>
 
                 <div class="timeline-legend">
                     <div class="legend-item">
                         <div class="legend-color active"></div>
-                        <span>Currently Planted (farmOS)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color active" style="border: 2px dashed #fff; opacity: 0.85;"></div>
-                        <span>Planned 📋 (Not yet submitted)</span>
+                        <span>Currently Planted</span>
                     </div>
                     <div class="legend-item">
                         <div class="legend-color completed"></div>
@@ -7476,12 +7159,6 @@ Calculate for ${contextPayload.planning_year}.`;
                     harvestDate: new Date(allocationData.harvestDate),
                     method: allocationData.method
                 }, new Date(allocationData.occupationStart), new Date(allocationData.harvestDate), harvestEndDate);
-
-                // Regenerate quick forms with updated bed locations
-                if (window.currentSuccessionPlan) {
-                    console.log('🔄 Regenerating quick forms with updated bed location...');
-                    renderQuickFormTabs(window.currentSuccessionPlan);
-                }
 
                 console.log('✅ Moved succession block to new bed:', bedName);
             }
@@ -10439,111 +10116,6 @@ Plantings:`;
     }
 
     /**
-     * Submit all succession forms to farmOS
-     */
-    async function submitAllSuccessions() {
-        const button = document.getElementById('submitAllBtn');
-        const originalText = button.innerHTML;
-        
-        // Disable button and show progress
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Opening forms...';
-        
-        try {
-            // Get all plantings from the current succession plan
-            if (!window.currentSuccessionPlan || !window.currentSuccessionPlan.plantings) {
-                alert('No succession plan found. Please generate a plan first.');
-                return;
-            }
-            
-            const plantings = window.currentSuccessionPlan.plantings;
-            const total = plantings.length;
-            
-            if (total === 0) {
-                alert('No successions found to submit.');
-                return;
-            }
-            
-            // Confirm bulk operation
-            const confirmed = confirm(`This will open ${total} farmOS quick form tabs for submission.\n\nYou'll need to click "Save" in each tab manually.\n\nContinue?`);
-            
-            if (!confirmed) {
-                button.disabled = false;
-                button.innerHTML = originalText;
-                return;
-            }
-            
-            // Open each form in a new tab with a delay to prevent browser popup blocking
-            for (let i = 0; i < plantings.length; i++) {
-                const p = plantings[i];
-                
-                // Update progress
-                button.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Opening ${i + 1}/${total}...`;
-                
-                // Build farmOS quick form URL (same logic as in renderQuickFormTabs)
-                const farmosUrl = '{{ $farmosUrl }}';
-                const planId = p.plan_id || window.cropPlanId || '';
-                const seasonName = p.season || window.cropPlanSeason || new Date().getFullYear() + ' Season';
-                
-                const isDirectSeeded = !p.transplant_date;
-                const seedingLocation = isDirectSeeded ? (p.bed_name || 'Unassigned') : 'Greenhouse';
-                
-                const params = {
-                    plan: planId,
-                    seasons: seasonName,
-                    'crops[0]': p.variety_name || '',
-                    'log_types[seeding]': 'seeding',
-                    'log_types[harvest]': 'harvest',
-                    'seeding[date]': p.seeding_date || '',
-                    'seeding[location]': seedingLocation,
-                    'seeding[quantity][0][measure]': 'count',
-                    'seeding[quantity][0][value]': p.seeding_quantity || p.quantity || '',
-                    'seeding[quantity][0][units]': 'seeds',
-                    'seeding[notes][value]': `Succession ${i + 1} - ${p.in_row_spacing || 15}cm in-row × ${p.between_row_spacing || 20}cm between-row spacing`,
-                    'seeding[done]': '0',
-                    'harvest[date]': p.harvest_date || '',
-                    'harvest[quantity][0][measure]': 'weight',
-                    'harvest[quantity][0][value]': p.estimated_harvest_kg || '',
-                    'harvest[quantity][0][units]': 'kg',
-                    'harvest[notes][value]': `Succession ${i + 1} harvest`,
-                    'harvest[done]': '0'
-                };
-                
-                if (p.transplant_date) {
-                    params['log_types[transplanting]'] = 'transplanting';
-                    params['transplanting[date]'] = p.transplant_date;
-                    params['transplanting[location]'] = p.bed_name || '';
-                    params['transplanting[quantity][0][measure]'] = 'count';
-                    params['transplanting[quantity][0][value]'] = p.transplant_quantity || Math.round((p.seeding_quantity || p.quantity || 0) * 0.8);
-                    params['transplanting[quantity][0][units]'] = 'plants';
-                    params['transplanting[notes][value]'] = `Succession ${i + 1} transplant`;
-                    params['transplanting[done]'] = '0';
-                }
-                
-                const quickFormUrl = farmosUrl + '/quick/planting?' + new URLSearchParams(params).toString();
-                
-                // Open in new tab
-                window.open(quickFormUrl, `_blank_succession_${i}`);
-                
-                // Delay between openings to prevent popup blocker
-                if (i < plantings.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                }
-            }
-            
-            alert(`Opened ${total} quick form tabs. Please review and click "Save" in each tab to submit to farmOS.`);
-            
-        } catch (error) {
-            console.error('Error opening succession forms:', error);
-            alert('Error opening forms. Please try individual submission or check console for details.');
-        } finally {
-            // Re-enable button
-            button.disabled = false;
-            button.innerHTML = originalText;
-        }
-    }
-
-    /**
      * Bed Dimensions Persistence (localStorage)
      * Save only bed dimensions - spacing and dates auto-fill per crop
      */
@@ -11729,7 +11301,7 @@ Plantings:`;
         
         if (modal && iframe) {
             // Set iframe source with iframe_embed parameter
-            iframe.src = '{{ $farmosUrl }}/plan/add/crop?iframe_embed=1';
+            iframe.src = 'https://farmos.soilsync.shop/plan/add/crop?iframe_embed=1';
             modal.style.display = 'block';
             document.body.style.overflow = 'hidden'; // Prevent background scrolling
         }
@@ -11768,7 +11340,7 @@ Plantings:`;
             return;
         }
         
-        const farmOSUrl = `{{ $farmosUrl }}/plan/${planId}`;
+        const farmOSUrl = `https://farmos.soilsync.shop/plan/${planId}`;
         
         // Open in new tab
         const newWindow = window.open(farmOSUrl, '_blank');
