@@ -1,0 +1,36 @@
+{
+  "name": "field-module-tasks",
+  "version": "2.0.0-beta.2",
+  "description": "View, update and create farmOS logs for your assigned farm tasks.",
+  "main": "module.config.js",
+  "type": "module",
+  "scripts": {
+    "start": "npm run dev",
+    "dev": "field-scripts develop-module",
+    "build": "field-scripts build-module --config module.config.js",
+    "preview": "vite preview",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "farmOS"
+  ],
+  "author": "Jamie Gaehring <gaehj457@gmail.com> (https://jgaehring.com)",
+  "license": "GPL-3.0-or-later",
+  "devDependencies": {
+    "@farmos.org/field-kit": "^2.0.0-alpha.7",
+    "@farmos.org/field-scripts": "2.0.0-alpha.3",
+    "@originjs/vite-plugin-commonjs": "^1.0.3",
+    "@vitejs/plugin-vue": "^4.2.3",
+    "js-yaml": "^4.1.0",
+    "minimist": "^1.2.8",
+    "vite": "^4.3.9"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/farmOS/field-kit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/farmOS/field-kit/issues"
+  },
+  "homepage": "https://farmos.org"
+}

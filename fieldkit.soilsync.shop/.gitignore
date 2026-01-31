@@ -1,0 +1,27 @@
+.DS_Store
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.keystore
+build-storybook.log
+storybook-static/
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Build artifacts and generated files
+service-worker.js
+workbox-*.js
+manifest.json
+SETUP.md
+index.html
+favicon.ico
+icons/
+assets/

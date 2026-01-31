@@ -1,0 +1,29 @@
+{
+  "name": "qr-scanner",
+  "description": "",
+  "version": "0.0.0",
+  "main": "module.config.js",
+  "type": "module",
+  "scripts": {
+    "start": "npm run dev",
+    "dev": "field-scripts develop-module",
+    "build": "field-scripts build-module --config module.config.js",
+    "preview": "vite preview",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "farmOS"
+  ],
+  "devDependencies": {
+    "@farmos.org/field-kit": "^2.0.0-alpha.7",
+    "@farmos.org/field-scripts": "2.0.0-alpha.3",
+    "@originjs/vite-plugin-commonjs": "^1.0.3",
+    "@vitejs/plugin-vue": "^4.2.3",
+    "js-yaml": "^4.1.0",
+    "minimist": "^1.2.8",
+    "vite": "^4.3.9"
+  },
+  "dependencies": {
+    "html5-qrcode": "^2.3.8"
+  }
+}
