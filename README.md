@@ -115,7 +115,7 @@ If you prefer manual setup or need to modify services:
   - Plant variety taxonomy with growing data
   - Seeding/transplanting/harvest logs
   - Quick forms for rapid data entry
-  - SSO integration with Laravel Admin
+  - Embedded interface in Laravel Admin
 
 ### farmOS Field Kit (Coming Soon)
 - **Purpose:** Mobile data collection and offline field work
@@ -137,7 +137,7 @@ WordPress Shop ←→ Laravel Admin ←→ farmOS ←→ Field Kit
   - Plant variety data and growing metadata
   - Succession planning with crop plan linking
   - Planting schedules and harvest tracking
-  - SSO authentication (OAuth2/OpenID Connect)
+  - Embedded farmOS interface and API integration
 - **farmOS ↔ Field Kit:** Real-time field observations, offline-first data collection
 
 ## 🗄️ Database Structure
