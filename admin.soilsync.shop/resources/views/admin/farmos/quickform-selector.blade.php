@@ -17,7 +17,7 @@
                     
                     <div class="alert alert-info">
                         <strong>🔬 Embedding Test</strong> - These forms are loaded from farmOS in an iframe. 
-                        SSO authentication should work automatically.
+                        Session authentication should work automatically.
                     </div>
                     
                     <div class="row g-3 mt-3">

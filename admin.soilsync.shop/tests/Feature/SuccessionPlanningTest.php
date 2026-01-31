@@ -9,7 +9,7 @@ use Tests\TestCase;
 class SuccessionPlanningTest extends TestCase
 {
     /**
-     * Test that root redirects to admin area (which requires SSO login)
+     * Test that root redirects to admin area (which requires admin login)
      */
     public function test_root_redirects_to_admin_area(): void
     {

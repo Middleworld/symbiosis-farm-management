@@ -22,11 +22,6 @@
                 "description": "Pay-what-you-can pricing modal",
                 "file": "httpdocs/wp-content/plugins/mwf-solidarity-pricing/mwf-solidarity-pricing.php"
             },
-            "mwf-sso": {
-                "version": "1.0.0",
-                "description": "Single sign-on to farmOS",
-                "file": "httpdocs/wp-content/plugins/mwf-sso/mwf-sso.php"
-            },
             "mwf-subscriptions": {
                 "version": "1.0.0",
                 "description": "Subscription management",

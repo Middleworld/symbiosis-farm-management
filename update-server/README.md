@@ -26,7 +26,6 @@ Returns current gold master version information.
         "plugins": {
             "mwf-integration": "1.0.0",
             "mwf-solidarity-pricing": "1.0.0",
-            "mwf-sso": "1.0.0",
             "mwf-subscriptions": "1.0.0",
             "mwf-team-members": "1.0.0",
             "mwf-reviews": "1.0.0"

@@ -55,7 +55,6 @@ docs/
 │   └── SECURITY.md
 │
 ├── FARMOS_FIELD_KIT_INSTALLATION.md     # FarmOS Field Kit setup
-├── SSO_IMPLEMENTATION_GUIDE.md          # SSO authentication guide
 ├── SUCCESSION_PLANNER_README.md         # Succession planning workflow
 ├── SUBSCRIPTION_TESTING_GUIDE.md        # Subscription testing procedures
 │
@@ -72,7 +71,6 @@ docs/
 - **Crop Planning**: [User Manual](user-manual/SUCCESSION_PLANNING.md) | [Succession Planner](SUCCESSION_PLANNER_README.md)
 - **Task System**: [User Manual](user-manual/TASK_SYSTEM.md)
 - **CRM Integration**: [User Manual](user-manual/CRM_USAGE.md) | [Developer Guide](developer/integrations/3CX.md)
-- **SSO Authentication**: [Implementation Guide](SSO_IMPLEMENTATION_GUIDE.md)
 - **Subscription Testing**: [Testing Guide](SUBSCRIPTION_TESTING_GUIDE.md)
 
 ### By Audience
