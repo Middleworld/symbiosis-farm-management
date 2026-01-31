@@ -47,28 +47,49 @@ symbiosis-farm-management/
 └── README.md                    # This file
 ```
 
-## 🚀 Quick Start
+## 🚀 How to Run Locally
 
-### Prerequisites
+### Option 1: Docker Compose (Recommended - 5 minutes)
 
-- PHP 8.3+
-- MySQL 8.0+
-- Node.js 18+
-- Composer 2.x
-- Git
+The fastest way to get all services running:
 
-### Initial Setup
+```bash
+# Clone and start everything
+git clone git@github.com:Middleworld/symbiosis-farm-management.git
+cd symbiosis-farm-management
+docker-compose up -d
 
-1. **Clone the repository:**
+# Services will be available at:
+# - Laravel Admin: http://localhost:8000
+# - farmOS: http://localhost:8080
+# - FieldKit: http://localhost:3000
+# - WordPress: http://localhost:8081
+# - AI Service: http://localhost:5000
+```
+
+**Default credentials:**
+- MySQL: `root` / `password`
+- All services use standard development configs
+
+### Option 2: Manual Setup
+
+If you prefer manual setup or need to modify services:
+
+1. **Prerequisites:**
+   - PHP 8.3+, MySQL 8.0+, Node.js 18+, Composer 2.x
+   - Git
+
+2. **Clone and setup:**
    ```bash
    git clone git@github.com:Middleworld/symbiosis-farm-management.git
    cd symbiosis-farm-management
    ```
 
-2. **Set up each application:**
+3. **Individual service setup:**
    - [WordPress Setup](httpdocs/README.md)
    - [Laravel Admin Setup](admin.soilsync.shop/README.md)
    - [farmOS Setup](farmos.soilsync.shop/README.md)
+   - [AI Service Setup](ai_service/README.md)
 
 ## 🏗️ Architecture
 
