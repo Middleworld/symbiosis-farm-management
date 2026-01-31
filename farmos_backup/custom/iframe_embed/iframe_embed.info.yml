@@ -1,5 +1,0 @@
-name: 'Iframe Embed Mode'
-type: module
-description: 'Hides farmOS UI elements when embedded in iframe'
-core_version_requirement: ^10
-package: 'Custom'

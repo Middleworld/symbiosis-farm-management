@@ -1,7 +1,0 @@
-_core:
-  default_config_hash: 7F1ngE9fiONEo0Nk1cfez_GTGzhHBLuPaHlrDqYI_hg
-enabled: true
-settings:
-  client_id: YOUR_ONLOGIN_CLIENT_ID
-  client_secret: YOUR_ONLOGIN_CLIENT_SECRET
-  okta_domain: your-org.onelogin.com

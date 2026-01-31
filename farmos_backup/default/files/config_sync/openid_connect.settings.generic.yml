@@ -1,9 +1,0 @@
-_core:
-  default_config_hash: FJ7FfwlYzcbFfG0AqVPlqsLJIRhkzS1Rv6eO1vssSkM
-enabled: 1
-settings:
-  client_id: 019b79d1-29cd-7078-8662-d4413a597a1f
-  client_secret: DemoLaravelSync2025
-  authorization_endpoint: 'https://admin.soilsync.shop/oauth/authorize'
-  token_endpoint: 'https://admin.soilsync.shop/oauth/token'
-  userinfo_endpoint: 'https://admin.soilsync.shop/api/user'

@@ -6,6 +6,11 @@ logs/
 .wp-cli/cache/
 .config/psysh/
 
+# Machine-specific files (never commit)
+.viminfo
+.composer/
+.nodenv/
+
 # Plesk system files
 .imunify_patch_id
 .myimunify_id
@@ -16,6 +21,7 @@ web/
 
 # Backups
 wordpress-backups/
+farmos_backup/
 
 # Environment files (keep .env.example)
 .env
@@ -63,7 +69,6 @@ httpdocs/force-*.php
 farmos.soilsync.shop/oauth-credentials-*.txt
 
 # FieldKit (separate installation)
-feildkit.soilsync.shop/
 
 # WordPress additional themes/templates (not custom)
 httpdocs/wp-content/themes/blockbase/
