@@ -24,7 +24,7 @@ return [
                 // Trusted write (no manager approval required)
                 'createPlantAsset' => ['desc' => 'Create a new plant asset (trusted_public_write)', 'tier' => 'trusted_public_write', 'status' => 'planned']
             ],
-            'env' => ['FARMOS_CLIENT_ID','FARMOS_CLIENT_SECRET','FARMOS_OAUTH_CLIENT_ID','FARMOS_OAUTH_CLIENT_SECRET','FARMOS_URL']
+            'env' => ['FARMOS_URL']
         ],
         'woocommerce' => [
             'description' => 'WooCommerce + WordPress integration (read-only AI surface)',

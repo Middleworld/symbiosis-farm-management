@@ -136,7 +136,7 @@
                                                                                             <br><small class="text-muted">{{ $item->quantity }} units</small>
                                                                                         @endif
                                                                                         @if($item->price_at_time)
-                                                                                            <br><small class="text-success">£{{ number_format($item->price_at_time, 2) }}</small>
+                                                                                            <br><small class="text-success">£{{ number_format($item->price_at_time * $item->quantity, 2) }}</small>
                                                                                         @endif
                                                                                     </div>
                                                                                 </div>
@@ -201,6 +201,13 @@ document.querySelectorAll('.week-row').forEach(row => {
             e.stopPropagation();
             const week = this.getAttribute('data-week');
             deleteWeek(week, this);
+        });
+    });
+
+    // Prevent configuration toggle when clicking on actions
+    document.querySelectorAll('.configuration-actions').forEach(actions => {
+        actions.addEventListener('click', function(e) {
+            e.stopPropagation();
         });
     });
 });
@@ -290,7 +297,7 @@ function deleteWeek(week, button) {
         } else {
             alert('Error: ' + (data.error || 'Unknown error'));
             button.disabled = false;
-            button.innerHTML = '<i class="fas fa-trash-alt"></i>
+            button.innerHTML = '<i class="fas fa-trash-alt"></i>';
         }
     })
     .catch(error => {

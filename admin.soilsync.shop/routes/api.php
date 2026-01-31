@@ -20,22 +20,6 @@ use App\Http\Controllers\Api\RosTelemetryController;
 |
 */
 
-// Passport::routes();
-
-// OAuth2 userinfo endpoint for OpenID Connect
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    $user = $request->user();
-    
-    // Return user info in OpenID Connect format
-    return response()->json([
-        'sub' => (string) $user->id,
-        'name' => $user->name,
-        'email' => $user->email,
-        'email_verified' => true,
-        'preferred_username' => $user->email,
-    ]);
-});
-
 // Conversation API routes - SECURED with ADMIN authentication only
 Route::middleware('admin.auth')->prefix('conversations')->group(function () {
     Route::post('/', [ConversationController::class, 'store']);

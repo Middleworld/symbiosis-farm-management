@@ -43,16 +43,7 @@
     <div class="card mb-4">
         <div class="card-body">
             <div class="row align-items-end">
-                <div class="col-md-4">
-                    <label for="global_week_starting" class="form-label">Week Starting (Monday) <span class="text-danger">*</span></label>
-                    <input type="date" 
-                           class="form-control" 
-                           id="global_week_starting" 
-                           value="{{ $configuration->week_starting->format('Y-m-d') }}"
-                           onchange="updateAllWeekFields(this.value)">
-                    <small class="text-muted">This week applies to all box configurations below</small>
-                </div>
-                <div class="col-md-8">
+                <div class="col-md-12">
                     <div class="alert alert-info mb-0">
                         <i class="fas fa-info-circle"></i> Configure products for each box size. Use the tabs below to switch between plans.
                     </div>
@@ -248,13 +239,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Update all week fields when global week changes
-function updateAllWeekFields(weekValue) {
-    document.querySelectorAll('.week-starting-field').forEach(field => {
-        field.value = weekValue;
-    });
-}
-
 // Add product to box
 function addProductToBox(planId, productId, productName, price, unit) {
     console.log('Adding product:', {planId, productId, productName, price, unit});
@@ -340,6 +324,7 @@ function renderBoxContents(planId) {
                 </div>
                 ${item.id ? `<input type="hidden" name="items[${index}][id]" value="${item.id}">` : `<input type="hidden" name="items[${index}][product_id]" value="${item.productId}">`}
                 <input type="hidden" name="items[${index}][item_name]" value="${item.name}">
+                <input type="hidden" name="items[${index}][quantity]" value="${item.quantity}">
                 <input type="hidden" name="items[${index}][quantity_available]" value="${item.quantityAvailable || ''}">
                 <input type="hidden" name="items[${index}][unit]" value="${item.unit}">
                 <input type="hidden" name="items[${index}][plant_variety_id]" value="${item.plantVarietyId || ''}">

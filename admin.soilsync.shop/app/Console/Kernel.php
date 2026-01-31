@@ -73,12 +73,6 @@ class Kernel extends ConsoleKernel
                 ->withoutOverlapping()
                 ->appendOutputTo(storage_path('logs/woocommerce-stock-sync.log'));
 
-        // Sync FarmOS varieties daily at 3 AM
-        $schedule->command('farmos:sync-varieties:legacy')
-                ->dailyAt('03:00')
-                ->withoutOverlapping()
-                ->appendOutputTo(storage_path('logs/farmos-variety-sync.log'));
-
         // Retry failed vegbox payments daily at 10 AM
         $schedule->command('vegbox:retry-failed-payments')
                 ->dailyAt('10:00')

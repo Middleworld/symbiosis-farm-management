@@ -76,20 +76,28 @@ class SuccessionPlanner {
     /**
      * Handle crop selection change
      */
-    handleCropSelection(cropId) {
-        console.log('🌱 Crop selected:', cropId);
+    async handleCropSelection(cropId) {
+        console.log('🌱 handleCropSelection called with cropId:', cropId, typeof cropId);
         this.cropId = cropId;
 
         // Update the crop select element to reflect the selection
         const cropSelect = document.getElementById('cropSelect');
-        if (cropSelect) cropSelect.value = cropId;
+        console.log('🌱 cropSelect element:', cropSelect);
+        if (cropSelect) {
+            cropSelect.value = cropId;
+            console.log('🌱 Set cropSelect value to:', cropId);
+        }
 
-        this.updateVarieties();
+        console.log('🌱 About to call updateVarieties');
+        await this.updateVarieties();
+        console.log('🌱 updateVarieties completed');
         this.savePlannerState();
         
         // Only trigger succession calculation if a variety is already selected
         // This prevents premature calculation when just selecting the crop type
-        if (this.varietyId) {
+        const varietySelect = document.getElementById('varietySelect');
+        const selectedVariety = varietySelect?.value;
+        if (selectedVariety && selectedVariety !== '') {
             console.log('✅ Variety already selected, updating succession impact');
             this.updateSuccessionImpact();
         } else {
@@ -97,14 +105,11 @@ class SuccessionPlanner {
         }
 
         // Check if there are varieties available for this crop
-        const varietySelect = document.getElementById('varietySelect');
         const hasVarieties = varietySelect && varietySelect.options.length > 1; // More than just "Select variety..."
 
-        // If no varieties available, initialize harvest window immediately
-        // Otherwise, wait for variety selection
-        if (!hasVarieties) {
-            this.initializeBasicHarvestWindow(cropId);
-        }
+        // NEVER initialize harvest window on crop selection alone
+        // Wait for variety selection to provide crop + variety context
+        console.log(`📊 Crop ${cropId} has ${hasVarieties ? 'varieties available' : 'no varieties'} - waiting for variety selection`);
     }
 
     /**
@@ -223,32 +228,77 @@ class SuccessionPlanner {
     /**
      * Update varieties dropdown based on selected crop
      */
-    updateVarieties() {
+    async updateVarieties() {
+        console.log('🌱 updateVarieties called, this.cropId:', this.cropId);
         const varietySelect = document.getElementById('varietySelect');
-        if (!varietySelect) return;
+        console.log('🌱 varietySelect element:', varietySelect);
+        if (!varietySelect) {
+            console.error('❌ varietySelect element not found!');
+            return;
+        }
 
         if (!this.cropId) {
+            console.log('🌱 No cropId set, showing "Select crop first..."');
             varietySelect.innerHTML = '<option value="">Select crop first...</option>';
             return;
         }
 
-        // Debug: Log total varieties and sample data
-        console.log(`🔍 Total varieties loaded: ${this.cropVarieties.length}`);
-        if (this.cropVarieties.length > 0) {
-            console.log(`🔍 Sample variety:`, this.cropVarieties[0]);
-            console.log(`🔍 Looking for parent_id matching cropId: "${this.cropId}" (type: ${typeof this.cropId})`);
-        }
+        // Show loading state
+        console.log('🌱 Showing loading state');
+        varietySelect.innerHTML = '<option value="">Loading varieties...</option>';
+        varietySelect.disabled = true;
 
-        // Use loose equality (==) to match string cropId with integer parent_id
-        const filteredVarieties = this.cropVarieties.filter(v => v.parent_id == this.cropId);
-        console.log(`🔍 Filtering varieties: cropId=${this.cropId}, found ${filteredVarieties.length} matches`);
-        
-        if (filteredVarieties.length > 0) {
-            console.log(`✅ Sample filtered variety:`, filteredVarieties[0]);
+        try {
+            console.log(`🌐 Fetching varieties for crop ID: ${this.cropId}`);
+
+            const response = await fetch(`${this.apiBase}/varieties-by-season/${this.cropId}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success && data.varieties) {
+                console.log(`✅ Loaded ${data.varieties.length} varieties for crop ${this.cropId}`);
+
+                // Update the varieties dropdown
+                varietySelect.innerHTML = '<option value="">Select variety...</option>' +
+                    data.varieties.map(v => `<option value="${v.id}" data-crop="${v.parent_id}" data-name="${v.name}" data-season-type="${v.season_type || ''}">${v.name}</option>`).join('');
+
+                // Store varieties for later use (for varietal succession)
+                this.cropVarieties = data.varieties;
+
+                // Check if any varieties support varietal succession
+                const hasSeasonTypes = data.varieties.some(v => v.season_type);
+                if (hasSeasonTypes) {
+                    console.log('🌱 Varieties with season_type found - enabling varietal succession option');
+                    this.enableVarietalSuccession();
+                } else {
+                    console.log('🌱 No varieties with season_type - varietal succession not available');
+                    this.disableVarietalSuccession();
+                }
+
+            } else {
+                console.warn('⚠️ No varieties returned from API');
+                varietySelect.innerHTML = '<option value="">No varieties available</option>';
+                this.disableVarietalSuccession();
+            }
+
+        } catch (error) {
+            console.error('❌ Error fetching varieties:', error);
+            varietySelect.innerHTML = '<option value="">Error loading varieties</option>';
+            this.disableVarietalSuccession();
+        } finally {
+            varietySelect.disabled = false;
         }
-        
-        varietySelect.innerHTML = '<option value="">Select variety...</option>' +
-            filteredVarieties.map(v => `<option value="${v.id}" data-crop="${v.parent_id}" data-name="${v.name}">${v.name}</option>`).join('');
     }
 
     /**
@@ -461,6 +511,35 @@ class SuccessionPlanner {
     initializeHarvestBar() {
         // Implementation for harvest bar initialization
         console.log('📊 Initializing harvest bar');
+    }
+
+    /**
+     * Enable varietal succession UI when varieties with season_type are available
+     */
+    enableVarietalSuccession() {
+        const section = document.getElementById('varietalSuccessionSection');
+        if (section) {
+            section.style.display = 'block';
+            console.log('✅ Varietal succession enabled');
+        }
+    }
+
+    /**
+     * Disable varietal succession UI when no varieties support it
+     */
+    disableVarietalSuccession() {
+        const section = document.getElementById('varietalSuccessionSection');
+        if (section) {
+            section.style.display = 'none';
+            // Also uncheck the checkbox if it was checked
+            const checkbox = document.getElementById('useVarietalSuccession');
+            if (checkbox) {
+                checkbox.checked = false;
+                // Trigger the change event to hide the variety selectors
+                checkbox.dispatchEvent(new Event('change'));
+            }
+            console.log('🚫 Varietal succession disabled');
+        }
     }
 
     /**

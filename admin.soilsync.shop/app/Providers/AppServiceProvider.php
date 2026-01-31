@@ -5,7 +5,6 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use App\Http\ViewComposers\BrandingComposer;
-use Laravel\Passport\Passport;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -16,14 +15,6 @@ class AppServiceProvider extends ServiceProvider
     {
         // No longer binding DirectDatabaseService - it should be removed
         // $this->app->singleton(\App\Services\DirectDatabaseService::class, \App\Services\WpApiService::class);
-
-        // Bind Passport contracts
-        $this->app->bind(
-            \Laravel\Passport\Contracts\AuthorizationViewResponse::class,
-            function () {
-                return new \Laravel\Passport\Http\Responses\SimpleViewResponse('passport::authorize');
-            }
-        );
     }
 
     /**
@@ -31,22 +22,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Register Passport view namespace
-        \View::addNamespace('passport', resource_path('views/passport'));
-        
-        // Define OAuth scopes for OpenID Connect compatibility
-        Passport::tokensCan([
-            'openid' => 'OpenID Connect authentication',
-            'profile' => 'Access user profile information',
-            'email' => 'Access user email address',
-            'farm_manager' => 'Full access to farm management',
-        ]);
-        
-        // Set default scopes to openid, email, profile if none requested
-        // This ensures OpenID Connect flow always gets required user info access
-        Passport::setDefaultScope(['openid', 'email', 'profile']);
-        
-        // Force HTTPS scheme for all URLs
         if (config('app.env') === 'production') {
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }

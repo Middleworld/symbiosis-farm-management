@@ -14,19 +14,8 @@ return [
     'url' => env('FARMOS_URL', 'https://farmos.example.com'),
     
     'username' => env('FARMOS_USERNAME'),
-    
+
     'password' => env('FARMOS_PASSWORD'),
-    
-    'client_id' => env('FARMOS_OAUTH_CLIENT_ID'),
-    
-    'client_secret' => env('FARMOS_OAUTH_CLIENT_SECRET'),
-    
-    'oauth_scope' => env('FARMOS_OAUTH_SCOPE', 'farm_manager'),
-    
-    // OpenID Connect client for SSO login (different from API client)
-    'openid_client_id' => env('FARMOS_OPENID_CLIENT_ID'),
-    
-    'openid_client_secret' => env('FARMOS_OPENID_CLIENT_SECRET'),
     
     /*
     |--------------------------------------------------------------------------

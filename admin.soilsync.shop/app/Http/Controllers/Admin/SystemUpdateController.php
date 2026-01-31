@@ -110,7 +110,6 @@ class SystemUpdateController extends Controller
             $mwfPlugins = [
                 'mwf-integration',
                 'mwf-solidarity-pricing',
-                'mwf-sso',
                 'mwf-subscriptions',
                 'mwf-team-members',
                 'mwf-reviews'

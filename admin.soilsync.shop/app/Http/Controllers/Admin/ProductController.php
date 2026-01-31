@@ -398,49 +398,17 @@ class ProductController extends Controller
             $updates[] = count($data['product_tags']) . " tags";
         }
         
-        // Sync to WooCommerce if linked
-        $wooSyncSuccess = false;
-        $wooSyncErrors = [];
-        
-        if ($product->woo_product_id) {
-            try {
-                $this->syncImagesToWooCommerce($product);
-                $this->syncShortDescriptionToWooCommerce($product);
-                // Note: Shipping classes are determined by subscription plan at checkout, not per-product
-                $this->syncReviewsToWooCommerce($product);
-                $this->syncUpsellsToWooCommerce($product);
-                $this->syncCrosssellsToWooCommerce($product);
-                
-                $wooSyncSuccess = true;
-                $updates[] = "Synced to WooCommerce (ID: {$product->woo_product_id})";
-            } catch (\Exception $e) {
-                $wooSyncErrors[] = "WooCommerce sync failed: " . $e->getMessage();
-                Log::error('WooCommerce sync error', [
-                    'product_id' => $product->id,
-                    'error' => $e->getMessage()
-                ]);
-            }
-        }
-        
         Log::info('Product updated successfully', [
             'product_id' => $product->id,
             'new_name' => $product->fresh()->name,
-            'new_description_length' => strlen($product->fresh()->description ?? ''),
-            'woo_sync' => $wooSyncSuccess ? 'yes' : 'no'
+            'new_description_length' => strlen($product->fresh()->description ?? '')
         ]);
         
         // Build success message with details
         $message = implode(', ', $updates);
         
-        $redirect = redirect()->route('admin.products.index')
+        return redirect()->route('admin.products.index')
                         ->with('success', $message);
-        
-        // Add warnings if WooCommerce sync had issues
-        if (!empty($wooSyncErrors)) {
-            $redirect->with('warning', implode(', ', $wooSyncErrors));
-        }
-        
-        return $redirect;
     }
 
     /**
@@ -523,6 +491,10 @@ class ProductController extends Controller
                     ? $result['data']->id 
                     : $product->woo_product_id;
                     
+                // Update sync timestamp on successful sync
+                $product->last_woo_sync_at = now();
+                $product->save();
+                    
                 return response()->json([
                     'success' => true,
                     'message' => "Product successfully {$action} in WooCommerce.",
@@ -593,6 +565,10 @@ class ProductController extends Controller
                     $result = $wooCommerceService->syncProduct($product);
 
                     if ($result['success']) {
+                        // Update sync timestamp on successful sync
+                        $product->last_woo_sync_at = now();
+                        $product->save();
+                        
                         $results['success']++;
                     } else {
                         $results['failed']++;

@@ -566,8 +566,6 @@ class DashboardController extends Controller
     public function farmosMapData()
     {
         $started = microtime(true);
-        $envClient = (bool) env('FARMOS_OAUTH_CLIENT_ID');
-        $envSecret = (bool) env('FARMOS_OAUTH_CLIENT_SECRET');
         try {
             // Direct farmOS database query (100x faster than API)
             $beds = $this->farmOSQuery->getBeds();
@@ -584,8 +582,6 @@ class DashboardController extends Controller
             $featureCount = $beds->count();
             Log::info('FarmOS map data success', [
                 'features' => $featureCount,
-                'oauth_client_present' => $envClient,
-                'oauth_secret_present' => $envSecret,
                 'duration_ms' => round((microtime(true) - $started) * 1000, 1)
             ]);
             if ($featureCount === 0) {
@@ -598,8 +594,6 @@ class DashboardController extends Controller
         } catch (\Throwable $e) {
             Log::error('FarmOS map data error', [
                 'message' => $e->getMessage(),
-                'oauth_client_present' => $envClient,
-                'oauth_secret_present' => $envSecret,
                 'trace_top' => collect(explode("\n", $e->getTraceAsString()))->take(5)->all(),
                 'duration_ms' => round((microtime(true) - $started) * 1000, 1)
             ]);

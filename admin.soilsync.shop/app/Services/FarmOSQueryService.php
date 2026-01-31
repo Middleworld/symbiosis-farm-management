@@ -87,14 +87,16 @@ class FarmOSQueryService
             ->where('t.tid', $tid)
             ->where('t.vid', 'plant_type');
 
+        $selectFields = ['t.tid', 't.name', 't.description__value as description', 't.status'];
+
         // Join custom fields
         foreach ($withFields as $field) {
-            $table = "taxonomy_term__field_{$field}";
-            $query->leftJoin("{$table} as {$field}", 't.tid', '=', "{$field}.entity_id")
-                  ->addSelect("{$field}.field_{$field}_value as {$field}");
+            $table = "taxonomy_term__{$field}";
+            $query->leftJoin("{$table} as {$field}", 't.tid', '=', "{$field}.entity_id");
+            $selectFields[] = "{$field}.{$field}_value as {$field}";
         }
 
-        $query->select('t.tid', 't.name', 't.description__value as description', 't.status');
+        $query->select($selectFields);
 
         return $query->first();
     }
@@ -113,36 +115,35 @@ class FarmOSQueryService
             ->whereIn('t.tid', $tids)
             ->where('t.vid', 'plant_type');
 
+        $selectFields = ['t.tid', 't.name', 't.description__value as description', 't.status'];
+
         // Join custom fields
         foreach ($withFields as $field) {
-            $table = "taxonomy_term__field_{$field}";
-            $query->leftJoin("{$table} as {$field}", 't.tid', '=', "{$field}.entity_id")
-                  ->addSelect("{$field}.field_{$field}_value as {$field}");
+            $table = "taxonomy_term__{$field}";
+            $query->leftJoin("{$table} as {$field}", 't.tid', '=', "{$field}.entity_id");
+            $selectFields[] = "{$field}.{$field}_value as {$field}";
         }
 
-        $query->select('t.tid', 't.name', 't.description__value as description', 't.status');
+        $query->select($selectFields);
 
         return $query->get()->keyBy('tid');
     }
 
     /**
-     * Get plant types (parent categories like "Vegetables", "Herbs")
-     * 
+     * Get plant types (crop categories like "Lettuce", "Carrot", "Tomato")
+     * These are identified as taxonomy terms without spaces in their names
+     *
      * @return Collection
      */
     public function getPlantTypes(): Collection
     {
         return DB::connection('farmos')
-            ->table('taxonomy_term_field_data as t')
-            ->leftJoin('taxonomy_term__parent as p', 't.tid', '=', 'p.entity_id')
-            ->where('t.vid', 'plant_type')
-            ->where('t.status', 1)
-            ->where(function($q) {
-                $q->whereNull('p.parent_target_id')
-                  ->orWhere('p.parent_target_id', 0); // 0 = top-level in farmOS
-            })
-            ->select('t.tid', 't.name', 't.description__value as description')
-            ->orderBy('t.name')
+            ->table('taxonomy_term_field_data')
+            ->where('vid', 'plant_type')
+            ->where('status', 1)
+            ->where('name', 'not like', '% %') // Crop types don't have spaces in their names
+            ->select('tid', 'name', 'description__value as description')
+            ->orderBy('name')
             ->get();
     }
 

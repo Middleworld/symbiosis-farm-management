@@ -262,11 +262,11 @@
                                                 $needsSync = !$product->last_woo_sync_at || $product->updated_at > $product->last_woo_sync_at;
                                             @endphp
                                             @if($needsSync)
-                                                <span class="badge bg-warning text-dark" title="Linked to WooCommerce product #{{ $product->woo_product_id }} but needs syncing (last synced: {{ $product->last_woo_sync_at ? $product->last_woo_sync_at->diffForHumans() : 'never' }})">
+                                                <span class="badge bg-warning text-dark" title="Linked to WooCommerce product #{{ $product->woo_product_id }} but needs syncing (last synced: {{ $product->last_woo_sync_at && method_exists($product->last_woo_sync_at, 'diffForHumans') ? $product->last_woo_sync_at->diffForHumans() : 'never' }})">
                                                     <i class="fas fa-exclamation-triangle"></i> Needs Sync
                                                 </span>
                                             @else
-                                                <span class="badge bg-success" title="Linked to WooCommerce product #{{ $product->woo_product_id }} (last synced: {{ $product->last_woo_sync_at->diffForHumans() }})">
+                                                <span class="badge bg-success" title="Linked to WooCommerce product #{{ $product->woo_product_id }} (last synced: {{ $product->last_woo_sync_at && method_exists($product->last_woo_sync_at, 'diffForHumans') ? $product->last_woo_sync_at->diffForHumans() : 'unknown' }})">
                                                     <i class="fab fa-wordpress"></i> Linked
                                                 </span>
                                             @endif

@@ -773,6 +773,11 @@
         color: #6c757d;
     }
 
+    .variety-info-section {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
     .tab-button.overdue {
         background: rgba(220, 53, 69, 0.1);
         color: #dc3545;
@@ -1654,24 +1659,7 @@
                             <label for="varietySelect" class="form-label">Variety</label>
                             <select class="form-select" id="varietySelect" name="varietySelect">
                                 <option value="">Select crop first...</option>
-                                {{-- DEBUG: Check if varieties exist --}}
-                                @php
-                                    \Log::info('Blade rendering varieties', [
-                                        'isset' => isset($cropData['varieties']),
-                                        'count' => isset($cropData['varieties']) ? count($cropData['varieties']) : 'N/A',
-                                        'first_3' => isset($cropData['varieties']) ? array_slice($cropData['varieties'], 0, 3) : []
-                                    ]);
-                                @endphp
-                                @if(isset($cropData['varieties']) && count($cropData['varieties']) > 0)
-                                    @foreach($cropData['varieties'] as $variety)
-                                        <option value="{{ $variety['id'] }}" data-crop="{{ $variety['parent_id'] ?? '' }}" data-name="{{ $variety['name'] }}" style="display: none;">
-                                            {{ $variety['name'] }}
-                                        </option>
-                                    @endforeach
-                                @else
-                                    {{-- DEBUG: Show why varieties aren't rendering --}}
-                                    <option value="">DEBUG: Varieties not found in cropData</option>
-                                @endif
+                                {{-- Varieties loaded via AJAX when crop is selected --}}
                             </select>
                         </div>
                     </div>
@@ -2191,7 +2179,7 @@
                                 <button type="button" class="btn btn-sm btn-outline-primary" id="prevVarietyBtn">
                                     <i class="fas fa-chevron-left"></i> <span id="prevVarietyLabel">Prev</span>
                                 </button>
-                                <div class="text-center flex-grow-1 mx-3">
+                                <div class="text-center mx-3">
                                     <span class="badge bg-success" id="currentVarietyBadge">Early Variety (1/3)</span>
                                 </div>
                                 <button type="button" class="btn btn-sm btn-outline-primary" id="nextVarietyBtn">
@@ -2321,9 +2309,6 @@
 
                     <div class="mt-3">
                         <div class="d-grid gap-2 mb-2">
-                            <button class="btn btn-outline-primary btn-sm" onclick="syncVarietiesFromFarmOS()" title="Sync latest variety data from FarmOS">
-                                <i class="fas fa-sync"></i> Sync Varieties from FarmOS
-                            </button>
                             <button class="btn btn-outline-danger btn-sm" onclick="clearAllAllocations()" title="Clear all bed allocations to start fresh">
                                 <i class="fas fa-trash"></i> Clear All Allocations
                             </button>
@@ -2513,15 +2498,10 @@
     }
 
     try {
-        cropVarieties = @json($cropData['varieties'] ?? []);
+        cropVarieties = []; // Loaded via AJAX when crop selected
     } catch (e) {
-        console.warn('Failed to parse cropVarieties JSON, using fallback:', e);
-        cropVarieties = [
-            {id: 'carrot_nantes', name: 'Nantes', parent_id: 'carrot', crop_type: 'carrot'},
-            {id: 'carrot_chantenay', name: 'Chantenay', parent_id: 'carrot', crop_type: 'carrot'},
-            {id: 'lettuce_buttercrunch', name: 'Buttercrunch', parent_id: 'lettuce', crop_type: 'lettuce'},
-            {id: 'lettuce_romaine', name: 'Romaine', parent_id: 'lettuce', crop_type: 'lettuce'}
-        ];
+        console.warn('Failed to initialize cropVarieties, using empty array:', e);
+        cropVarieties = [];
     }
 
     try {
@@ -2801,7 +2781,9 @@
             document.getElementById('maturityDaysContainer').style.display = 'block';
             hasSpecificDetails = true;
         } else {
-            document.getElementById('maturityDaysContainer').style.display = 'none';
+            document.getElementById('maturityDays').textContent = 'Not specified';
+            document.getElementById('maturityDaysContainer').style.display = 'block';
+            hasSpecificDetails = true;
         }
 
         // Propagation/Transplant Days
@@ -2814,7 +2796,9 @@
             document.getElementById('propagationDaysContainer').style.display = 'block';
             hasSpecificDetails = true;
         } else {
-            document.getElementById('propagationDaysContainer').style.display = 'none';
+            document.getElementById('propagationDays').textContent = 'Not specified';
+            document.getElementById('propagationDaysContainer').style.display = 'block';
+            hasSpecificDetails = true;
         }
 
         // Harvest Window
@@ -2823,7 +2807,9 @@
             document.getElementById('harvestWindowContainer').style.display = 'block';
             hasSpecificDetails = true;
         } else {
-            document.getElementById('harvestWindowContainer').style.display = 'none';
+            document.getElementById('harvestWindowDays').textContent = 'Not specified';
+            document.getElementById('harvestWindowContainer').style.display = 'block';
+            hasSpecificDetails = true;
         }
 
         // Season Type
@@ -2833,7 +2819,9 @@
             document.getElementById('seasonTypeContainer').style.display = 'block';
             hasSpecificDetails = true;
         } else {
-            document.getElementById('seasonTypeContainer').style.display = 'none';
+            document.getElementById('seasonType').textContent = 'Not specified';
+            document.getElementById('seasonTypeContainer').style.display = 'block';
+            hasSpecificDetails = true;
         }
 
         // Spacing (combined in-row and between-row on one line)
@@ -2856,7 +2844,10 @@
             document.getElementById('spacingContainer').style.display = 'block';
             hasSpecificDetails = true;
         } else {
-            document.getElementById('spacingContainer').style.display = 'none';
+            document.getElementById('inRowSpacingDisplay').textContent = 'Not specified';
+            document.getElementById('betweenRowSpacingDisplay').textContent = 'Not specified';
+            document.getElementById('spacingContainer').style.display = 'block';
+            hasSpecificDetails = true;
         }
 
         // Frost Tolerance
@@ -2865,7 +2856,9 @@
             document.getElementById('frostToleranceContainer').style.display = 'block';
             hasSpecificDetails = true;
         } else {
-            document.getElementById('frostToleranceContainer').style.display = 'none';
+            document.getElementById('frostTolerance').textContent = 'Not specified';
+            document.getElementById('frostToleranceContainer').style.display = 'block';
+            hasSpecificDetails = true;
         }
 
         // Planting Method
@@ -2875,7 +2868,9 @@
             document.getElementById('plantingMethodContainer').style.display = 'block';
             hasSpecificDetails = true;
         } else {
-            document.getElementById('plantingMethodContainer').style.display = 'none';
+            document.getElementById('plantingMethodDisplay').textContent = 'Not specified';
+            document.getElementById('plantingMethodContainer').style.display = 'block';
+            hasSpecificDetails = true;
         }
 
         // Show/hide the crop specifics section based on whether we have any details
@@ -3120,11 +3115,24 @@
                 // console.log('✅ Displaying variety data');
                 displayVarietyInfo(varietyData);
                 
-                // Show varietal succession option if variety has season_type
+                // Show varietal succession option if crop supports it
                 const varietalSection = document.getElementById('varietalSuccessionSection');
-                if (varietyData.season_type && varietalSection) {
+                const cropName = document.getElementById('cropSelect')?.options[document.getElementById('cropSelect').selectedIndex]?.text?.toLowerCase() || '';
+                const cropsWithVarietalSuccession = [
+                    'brussels sprouts', 'brussels sprout', 'brussel sprouts', 'brussel sprout',
+                    'cabbage', 'cauliflower', 'broccoli', 'kale', 'lettuce', 'spinach',
+                    'beets', 'beetroot', 'carrots', 'carrot', 'radish', 'radishes'
+                ];
+                
+                if (cropsWithVarietalSuccession.some(crop => cropName.includes(crop)) && varietalSection) {
                     varietalSection.style.display = 'block';
-                    console.log('🌱 Varietal succession option shown for', varietyData.season_type, 'variety');
+                    console.log('🌱 Varietal succession option shown for crop:', cropName);
+                }
+                
+                // Populate varietal succession dropdowns if the section is visible
+                if (varietalSection && varietalSection.style.display !== 'none') {
+                    populateVarietalSuccessionDropdowns();
+                    console.log('🌱 Varietal succession dropdowns populated for selected variety');
                 }
                 
                 // 🤖 AI AUTO-CALCULATION ENABLED 🤖
@@ -3273,84 +3281,176 @@
     }
     
     async function populateVarietalSuccessionDropdowns() {
+        console.log('🚀 populateVarietalSuccessionDropdowns called');
         const cropSelect = document.getElementById('cropSelect');
         const varietySelect = document.getElementById('varietySelect');
         const currentVarietyId = varietySelect.value;
+        
+        console.log('📊 cropSelect.value:', cropSelect.value);
+        console.log('📊 varietySelect.value:', currentVarietyId);
+        console.log('📊 cropVarieties:', cropVarieties);
         
         if (!cropSelect.value) {
             console.warn('⚠️ No crop selected');
             return;
         }
         
-        console.log('🌱 Populating varietal succession dropdowns for crop:', cropSelect.value);
-        console.log('🔍 Current variety ID:', currentVarietyId);
-        
+        if (!cropVarieties || cropVarieties.length === 0) {
+            console.warn('⚠️ No crop varieties available - will retry when loaded');
+            // Don't return, try to populate anyway in case data is loaded
+        }
+
         try {
-            // Get current variety to find crop family
-            const currentVariety = cropVarieties.find(v => v.id === cropSelect.value);
-            if (!currentVariety) {
-                console.warn('⚠️ Current crop not found');
-                return;
-            }
+            // All varieties in cropVarieties belong to the selected crop
+            const targetPlantTypeId = cropSelect.value; // This is the crop ID
             
-            console.log('📦 Current crop:', currentVariety);
-            
-            // Get all varieties that share the same plant_type as the selected variety
-            const selectedVariety = cropVarieties.find(v => v.id === currentVarietyId);
-            if (!selectedVariety || !selectedVariety.plant_type_id) {
-                console.warn('⚠️ Selected variety or plant_type_id not found');
-                return;
-            }
-            
-            console.log('📦 Selected variety:', selectedVariety);
-            console.log('🔍 Looking for siblings with plant_type_id:', selectedVariety.plant_type_id);
+            console.log('🎯 Target plant_type_id:', targetPlantTypeId);
             
             const relatedVarieties = cropVarieties.filter(v => 
-                v.plant_type_id === selectedVariety.plant_type_id && 
-                v.season_type
+                v.plant_type_id === targetPlantTypeId
             );
             
-            console.log(`📦 Found ${relatedVarieties.length} related varieties with season_type`);
+            console.log(`📦 Found ${relatedVarieties.length} related varieties with plant_type_id: ${targetPlantTypeId}`);
+            console.log('📦 Related varieties:', relatedVarieties.map(v => ({id: v.id, name: v.name, plant_type_id: v.plant_type_id})));
             
-            // Group by season_type
-            const early = relatedVarieties
-                .filter(v => v.season_type === 'early')
-                .map(v => ({
-                    id: v.id,
-                    name: v.name,
-                    season_type: v.season_type,
-                    maturity_days: v.maturity_days,
-                    harvest_window_days: v.harvest_window_days
-                }))
-                .sort((a, b) => (a.maturity_days || 0) - (b.maturity_days || 0));
+            let early = [], mid = [], late = [];
             
-            const mid = relatedVarieties
-                .filter(v => v.season_type === 'mid')
-                .map(v => ({
-                    id: v.id,
-                    name: v.name,
-                    season_type: v.season_type,
-                    maturity_days: v.maturity_days,
-                    harvest_window_days: v.harvest_window_days
-                }))
-                .sort((a, b) => (a.maturity_days || 0) - (b.maturity_days || 0));
+            // Check if any varieties have season_type data
+            const hasSeasonTypes = relatedVarieties.some(v => v.season_type);
             
-            const late = relatedVarieties
-                .filter(v => v.season_type === 'late')
-                .map(v => ({
-                    id: v.id,
-                    name: v.name,
-                    season_type: v.season_type,
-                    maturity_days: v.maturity_days,
-                    harvest_window_days: v.harvest_window_days
-                }))
-                .sort((a, b) => (a.maturity_days || 0) - (b.maturity_days || 0));
+            if (hasSeasonTypes) {
+                // Use season_type data if available
+                console.log('🌱 Using season_type data for categorization');
+                early = relatedVarieties
+                    .filter(v => v.season_type === 'early')
+                    .map(v => ({
+                        id: v.id,
+                        name: v.name,
+                        season_type: v.season_type,
+                        maturity_days: v.maturity_days,
+                        harvest_window_days: v.harvest_window_days
+                    }))
+                    .sort((a, b) => (a.maturity_days || 0) - (b.maturity_days || 0));
+                
+                mid = relatedVarieties
+                    .filter(v => v.season_type === 'mid')
+                    .map(v => ({
+                        id: v.id,
+                        name: v.name,
+                        season_type: v.season_type,
+                        maturity_days: v.maturity_days,
+                        harvest_window_days: v.harvest_window_days
+                    }))
+                    .sort((a, b) => (a.maturity_days || 0) - (b.maturity_days || 0));
+                
+                late = relatedVarieties
+                    .filter(v => v.season_type === 'late')
+                    .map(v => ({
+                        id: v.id,
+                        name: v.name,
+                        season_type: v.season_type,
+                        maturity_days: v.maturity_days,
+                        harvest_window_days: v.harvest_window_days
+                    }))
+                    .sort((a, b) => (a.maturity_days || 0) - (b.maturity_days || 0));
+            } else {
+                // Fallback: categorize varieties by name patterns and distribute remaining evenly
+                console.log('🌱 No season_type data, categorizing by name patterns and maturity');
+                
+                const namePatterns = {
+                    early: ['early', 'quick', 'fast', 'spring', 'f1'], // F1 varieties are often early
+                    late: ['late', 'winter', 'autumn', 'doric', 'bosworth', 'brechin'], // Known late varieties
+                    mid: [] // Everything else goes here
+                };
+                
+                const categorized = { early: [], mid: [], late: [] };
+                
+                relatedVarieties.forEach(variety => {
+                    const name = variety.name.toLowerCase();
+                    let assigned = false;
+                    
+                    console.log(`🎯 Categorizing variety: "${variety.name}" (lowercase: "${name}")`);
+                    
+                    // Check for late patterns first (highest priority)
+                    for (const pattern of namePatterns.late) {
+                        if (name.includes(pattern)) {
+                            categorized.late.push(variety);
+                            console.log(`  ✅ Assigned to LATE (matched "${pattern}")`);
+                            assigned = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!assigned) {
+                        // Check for early patterns
+                        for (const pattern of namePatterns.early) {
+                            if (name.includes(pattern)) {
+                                categorized.early.push(variety);
+                                console.log(`  ✅ Assigned to EARLY (matched "${pattern}")`);
+                                assigned = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (!assigned) {
+                        // Default to mid
+                        categorized.mid.push(variety);
+                        console.log(`  ✅ Assigned to MID (default)`);
+                    }
+                });
+                
+                // Sort each category by maturity_days (nulls last)
+                const sortByMaturity = (a, b) => {
+                    const aDays = a.maturity_days || 999;
+                    const bDays = b.maturity_days || 999;
+                    return aDays - bDays;
+                };
+                
+                early = categorized.early.sort(sortByMaturity);
+                mid = categorized.mid.sort(sortByMaturity);  
+                late = categorized.late.sort(sortByMaturity);
+                
+                // Fallback: if no varieties were categorized, put all in mid
+                if (early.length === 0 && mid.length === 0 && late.length === 0 && relatedVarieties.length > 0) {
+                    console.log('🌱 No varieties matched name patterns, putting all in mid season');
+                    mid = relatedVarieties.map(v => ({
+                        id: v.id,
+                        name: v.name,
+                        maturity_days: v.maturity_days,
+                        harvest_window_days: v.harvest_window_days
+                    })).sort(sortByMaturity);
+                }
+                
+                // Assign season_type for consistency
+                early.forEach(v => v.season_type = 'early');
+                mid.forEach(v => v.season_type = 'mid');
+                late.forEach(v => v.season_type = 'late');
+            }
             
-            console.log(`📊 Found varieties - Early: ${early.length}, Mid: ${mid.length}, Late: ${late.length}`);
+            console.log(`📊 Categorized varieties - Early: ${early.length}, Mid: ${mid.length}, Late: ${late.length}`);
             
-            // Get current variety's season_type
-            const currentVarietyData = cropVarieties.find(v => v.id === currentVarietyId);
-            const currentSeasonType = currentVarietyData?.season_type;
+            // Find which category the current variety belongs to
+            let currentSeasonType = null;
+            if (currentVarietyId) {
+                console.log('🔍 Looking for current variety:', currentVarietyId, 'in categorized varieties');
+                
+                const allCategorized = [...early, ...mid, ...late];
+                console.log('🔍 Searching in categorized varieties:', allCategorized.map(v => ({id: v.id, name: v.name, season_type: v.season_type})));
+                
+                const found = allCategorized.find(v => v.id == currentVarietyId); // Use == for type coercion
+                if (found) {
+                    currentSeasonType = found.season_type;
+                    console.log('✅ Found current variety in category:', currentSeasonType, found.name);
+                } else {
+                    console.warn('❌ Current variety not found in any category');
+                    // Default to mid
+                    currentSeasonType = 'mid';
+                }
+                console.log(`🎯 Current variety "${found ? found.name : 'unknown'}" assigned to ${currentSeasonType} season`);
+            } else {
+                console.log('ℹ️ No variety selected yet, no pre-selection needed');
+            }
             
             // Populate each dropdown
             populateSeasonDropdown('earlyVarietySelect', early, currentSeasonType === 'early' ? currentVarietyId : null);
@@ -3589,7 +3689,7 @@
     }
 
     function populateSeasonDropdown(selectId, varieties, preselectedId = null) {
-        console.log(`📋 Populating ${selectId} with ${varieties?.length || 0} varieties`);
+        console.log(`📋 populateSeasonDropdown called for ${selectId} with ${varieties?.length || 0} varieties`);
         
         const select = document.getElementById(selectId);
         if (!select) {
@@ -3600,18 +3700,22 @@
         select.innerHTML = '<option value="">Select variety...</option>';
         
         if (!varieties || varieties.length === 0) {
-            console.warn(`⚠️ No varieties provided for ${selectId}`);
+            console.warn(`⚠️ No varieties provided for ${selectId}, leaving default option`);
             return;
         }
         
         varieties.forEach(variety => {
             const option = document.createElement('option');
             option.value = variety.id;
-            option.textContent = `${variety.name} (${variety.maturity_days} days)`;
-            option.dataset.maturityDays = variety.maturity_days;
+            
+            // Handle null/undefined maturity days
+            const maturityText = variety.maturity_days ? `${variety.maturity_days} days` : 'Not specified';
+            option.textContent = `${variety.name} (${maturityText})`;
+            
+            option.dataset.maturityDays = variety.maturity_days || 0;
             option.dataset.harvestWindowDays = variety.harvest_window_days || 30;
             
-            if (preselectedId && variety.id === preselectedId) {
+            if (preselectedId && variety.id == preselectedId) {
                 option.selected = true;
                 console.log(`✓ Pre-selected ${variety.name} in ${selectId}`);
             }
@@ -4107,34 +4211,83 @@
 
     function filterVarietiesByCrop(cropTypeId) {
         const varietySelect = document.getElementById('varietySelect');
-        const options = varietySelect.querySelectorAll('option');
 
-        console.log(`🔍 Filtering varieties for crop type ID: "${cropTypeId}"`);
-        console.log(`📊 Total variety options: ${options.length}`);
+        console.log(`🔍 Loading varieties for crop type ID: "${cropTypeId}"`);
 
-        let visibleCount = 0;
-        options.forEach(option => {
-            if (!option.value) {
-                // Keep the "Select a variety..." option
-                option.style.display = 'block';
-                return;
+        if (!cropTypeId) {
+            varietySelect.innerHTML = '<option value="">Select crop first...</option>';
+            return;
+        }
+
+        // Show loading state
+        varietySelect.innerHTML = '<option value="">Loading varieties...</option>';
+        varietySelect.disabled = true;
+
+        // Load varieties via AJAX
+        fetch(`/admin/farmos/succession-planning/varieties-by-season/${cropTypeId}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success && data.varieties) {
+                console.log(`✅ Loaded ${data.varieties.length} varieties for crop ${cropTypeId}`);
 
-            const optionCropType = option.getAttribute('data-crop');
-            const optionName = option.getAttribute('data-name');
-            const match = !cropTypeId || optionCropType === cropTypeId;
-            
-            console.log(`  Option: "${optionName}" (value: ${option.value}) - data-crop: "${optionCropType}" - Match: ${match}`);
-            
-            if (match) {
-                option.style.display = 'block';
-                visibleCount++;
+                // Update the varieties dropdown
+                varietySelect.innerHTML = '<option value="">Select variety...</option>' +
+                    data.varieties.map(v => `<option value="${v.id}" data-crop="${v.parent_id}" data-name="${v.name}" data-season-type="${v.season_type || ''}">${v.name}</option>`).join('');
+
+                // Store varieties globally for varietal succession
+                cropVarieties = data.varieties;
+                console.log('💾 Stored varieties globally:', cropVarieties.length);
+
+                // Check if any varieties support varietal succession
+                const hasSeasonTypes = data.varieties.some(v => v.season_type);
+                const cropName = document.getElementById('cropSelect')?.options[document.getElementById('cropSelect').selectedIndex]?.text?.toLowerCase() || '';
+                
+                // Enable varietal succession for crops that benefit from it, even without season_type data
+                const cropsWithVarietalSuccession = [
+                    'brussels sprouts', 'brussels sprout', 'brussel sprouts', 'brussel sprout',
+                    'cabbage', 'cauliflower', 'broccoli', 'kale', 'lettuce', 'spinach',
+                    'beets', 'beetroot', 'carrots', 'carrot', 'radish', 'radishes'
+                ];
+                
+                const shouldEnableVarietalSuccession = hasSeasonTypes || cropsWithVarietalSuccession.some(crop => cropName.includes(crop));
+                
+                if (shouldEnableVarietalSuccession) {
+                    console.log('🌱 Varietal succession enabled for:', cropName, hasSeasonTypes ? '(has season_type)' : '(crop type default)');
+                    // Enable varietal succession UI if available
+                    const varietalSection = document.getElementById('varietalSuccessionSection');
+                    if (varietalSection) {
+                        varietalSection.style.display = 'block';
+                    }
+                    
+                    // Populate varietal succession dropdowns with available varieties
+                    populateVarietalSuccessionDropdowns();
+                } else {
+                    console.log('🌱 Varietal succession not available for:', cropName);
+                }
             } else {
-                option.style.display = 'none';
+                console.warn('⚠️ No varieties returned from API');
+                varietySelect.innerHTML = '<option value="">No varieties available</option>';
             }
+        })
+        .catch(error => {
+            console.error('❌ Error loading varieties:', error);
+            varietySelect.innerHTML = '<option value="">Error loading varieties</option>';
+        })
+        .finally(() => {
+            varietySelect.disabled = false;
         });
-
-        console.log(`✅ Filtered varieties for crop type: ${cropTypeId}, visible varieties: ${visibleCount}`);
     }
 
     function handleMouseDown(e) {
@@ -5875,8 +6028,8 @@ Calculate for ${contextPayload.planning_year}.`;
                 
                 if (earlyVarietyId && midVarietyId) {
                     // Get variety details from cropVarieties
-                    const earlyVariety = cropVarieties.find(v => v.id === earlyVarietyId);
-                    const midVariety = cropVarieties.find(v => v.id === midVarietyId);
+                    const earlyVariety = cropVarieties.find(v => v.id == earlyVarietyId);
+                    const midVariety = cropVarieties.find(v => v.id == midVarietyId);
                     
                     console.log('🔍 Found varieties:', {
                         early: earlyVariety?.name,
@@ -5916,9 +6069,9 @@ Calculate for ${contextPayload.planning_year}.`;
                 
                 if (earlyVarietyId && midVarietyId && lateVarietyId) {
                     // Get variety details from cropVarieties
-                    const earlyVariety = cropVarieties.find(v => v.id === earlyVarietyId);
-                    const midVariety = cropVarieties.find(v => v.id === midVarietyId);
-                    const lateVariety = cropVarieties.find(v => v.id === lateVarietyId);
+                    const earlyVariety = cropVarieties.find(v => v.id == earlyVarietyId);
+                    const midVariety = cropVarieties.find(v => v.id == midVarietyId);
+                    const lateVariety = cropVarieties.find(v => v.id == lateVarietyId);
                     
                     console.log('🔍 Found varieties:', {
                         early: earlyVariety?.name,
@@ -10217,17 +10370,21 @@ Plantings:`;
         }
 
         // Create SuccessionPlanner instance with configuration
-        const successionPlanner = new SuccessionPlanner({
-            cropTypes: @json($cropData['types'] ?? []),
-            cropVarieties: @json($cropData['varieties'] ?? []),
-            availableBeds: @json($availableBeds ?? []),
-            farmosBase: '{{ config("services.farmos.url") }}'
-        });
+        if (typeof SuccessionPlanner !== 'undefined') {
+            const successionPlanner = new SuccessionPlanner({
+                cropTypes: @json($cropData['types'] ?? []),
+                cropVarieties: @json($cropData['varieties'] ?? []),
+                availableBeds: @json($availableBeds ?? []),
+                farmosBase: '{{ config("services.farmos.url") }}'
+            });
 
-        // Initialize the planner
-        successionPlanner.initialize().catch(error => {
-            console.error('❌ Failed to initialize Succession Planner:', error);
-        });
+            // Initialize the planner
+            successionPlanner.initialize().catch(error => {
+                console.error('❌ Failed to initialize Succession Planner:', error);
+            });
+        } else {
+            console.error('❌ SuccessionPlanner class not loaded');
+        }
 
         // Initialize the new harvest window selector
         initializeHarvestWindowSelector();

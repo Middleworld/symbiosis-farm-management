@@ -53,36 +53,14 @@ class SuccessionPlanningController extends Controller
             $plantTypes = $this->farmOSQuery->getPlantTypes();
             Log::info('Plant types fetched', ['count' => $plantTypes->count()]);
             
-            // Get all plant varieties with parent relationships via direct query
-            $varieties = DB::connection('farmos')
-                ->table('taxonomy_term_field_data as t')
-                ->join('taxonomy_term__parent as p', 't.tid', '=', 'p.entity_id')
-                ->where('t.vid', 'plant_type')
-                ->where('t.status', 1)
-                ->where('p.parent_target_id', '>', 0) // Only get varieties (have parent > 0)
-                ->select(
-                    't.tid',
-                    't.name',
-                    'p.parent_target_id as parent_id'
-                )
-                ->orderBy('t.name')
-                ->get();
-            
-            Log::info('Varieties fetched', ['count' => $varieties->count()]);
-            
-            // Format for JavaScript consumption
+            // Format for JavaScript consumption - only crop types, varieties loaded via AJAX
             $cropData = [
                 'types' => $plantTypes->map(fn($t) => [
                     'id' => $t->tid, 
                     'name' => $t->name, 
                     'label' => $t->name
                 ])->toArray(),
-                'varieties' => $varieties->map(fn($v) => [
-                    'id' => $v->tid,
-                    'name' => $v->name,
-                    'label' => $v->name,
-                    'parent_id' => $v->parent_id // CRITICAL: Link varieties to plant types
-                ])->toArray()
+                'varieties' => [] // Empty - loaded via AJAX when crop type selected
             ];
             
             Log::info('Crop data formatted', [
@@ -1754,7 +1732,7 @@ class SuccessionPlanningController extends Controller
                 $parentName = $parentTerm->name ?? null;
             }
 
-            // Format variety data
+            // Initialize variety data with defaults
             $varietyData = [
                 'id' => $variety->tid,
                 'name' => $variety->name,
@@ -1762,8 +1740,192 @@ class SuccessionPlanningController extends Controller
                 'description' => $variety->description__value ?? '',
                 'crop_family' => $parentName,
                 'plant_type' => $parentName,
-                // Add any additional fields as needed
+                'season_type' => null,
+                'maturity_days' => null,
+                'propagation_days' => null,
+                'harvest_window_days' => null,
+                'in_row_spacing_cm' => null,
+                'between_row_spacing_cm' => null,
+                'frost_tolerance' => null,
+                'planting_method' => null,
             ];
+
+            // Fallback to farmOS direct query if not in local table
+            Log::info('Variety not found in local table, querying farmOS directly', ['farmos_tid' => $id]);
+            
+            // Query farmOS database directly for variety details (fast ~50ms)
+            $farmosVariety = DB::connection('farmos')
+                ->table('taxonomy_term_field_data')
+                ->where('tid', $id)
+                ->where('vid', 'plant_type')
+                ->where('status', 1)
+                ->select('tid', 'name', 'description__value', 'description__format')
+                ->first();
+
+            if (!$farmosVariety) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Variety not found'
+                ], 404);
+            }
+
+            // Get parent crop type
+            $parent = DB::connection('farmos')
+                ->table('taxonomy_term__parent')
+                ->where('entity_id', $id)
+                ->first();
+
+            $parentName = null;
+            if ($parent && $parent->parent_target_id > 0) {
+                $parentTerm = DB::connection('farmos')
+                    ->table('taxonomy_term_field_data')
+                    ->where('tid', $parent->parent_target_id)
+                    ->first();
+                $parentName = $parentTerm->name ?? null;
+            }
+
+            // Initialize variety data with defaults
+            $varietyData = [
+                'id' => $farmosVariety->tid,
+                'name' => $farmosVariety->name,
+                'title' => $farmosVariety->name,
+                'description' => $farmosVariety->description__value ?? '',
+                'crop_family' => $parentName,
+                'plant_type' => $parentName,
+                'season_type' => null,
+                'maturity_days' => null,
+                'propagation_days' => null,
+                'harvest_window_days' => null,
+                'in_row_spacing_cm' => null,
+                'between_row_spacing_cm' => null,
+                'frost_tolerance' => null,
+                'planting_method' => null,
+                'planting_depth_inches' => null,
+                'germination_days_min' => null,
+                'germination_days_max' => null,
+                'germination_temp_optimal' => null,
+                'companions' => null,
+                'crop_family_taxonomy' => null,
+                'frost_tolerance_level' => null,
+                'season_type_category' => null,
+                'harvest_method' => null,
+                'between_row_spacing_cm_preset' => null,
+                'in_row_spacing_cm_preset' => null
+            ];
+
+            // Production is source of truth: use production vocabulary only (taxonomy_term__season_type, taxonomy_term__harvest_days).
+            // Staging must be synced from production so both have the same tables — no dual vocabulary.
+            $fieldTables = [
+                'season_type' => 'taxonomy_term__season_type',
+                'maturity_days' => 'taxonomy_term__maturity_days',
+                'propagation_days' => 'taxonomy_term__transplant_days',
+                'harvest_window_days' => 'taxonomy_term__harvest_days',
+                'in_row_spacing_cm' => 'taxonomy_term__field_in_row_spacing_cm',
+                'between_row_spacing_cm' => 'taxonomy_term__field_between_row_spacing_cm',
+                'frost_tolerance' => 'taxonomy_term__field_frost_tolerance',
+                'planting_method' => 'taxonomy_term__field_planting_method',
+                'planting_depth_inches' => 'taxonomy_term__field_planting_depth_inches',
+                'germination_days_min' => 'taxonomy_term__field_germination_days_min',
+                'germination_days_max' => 'taxonomy_term__field_germination_days_max',
+                'germination_temp_optimal' => 'taxonomy_term__field_germination_temp_optimal',
+                'companions' => 'taxonomy_term__field_companions',
+                'crop_family_taxonomy' => 'taxonomy_term__field_crop_family',
+                'frost_tolerance_level' => 'taxonomy_term__field_frost_tolerance_level',
+                'season_type_category' => 'taxonomy_term__field_season_type_category',
+                'harvest_method' => 'taxonomy_term__field_harvest_method',
+                'between_row_spacing_cm_preset' => 'taxonomy_term__field_between_row_spacing_cm_preset',
+                'in_row_spacing_cm_preset' => 'taxonomy_term__field_in_row_spacing_cm_preset'
+            ];
+
+            foreach ($fieldTables as $fieldName => $tableName) {
+                try {
+                    $fieldData = DB::connection('farmos')
+                        ->table($tableName)
+                        ->where('entity_id', $id)
+                        ->first();
+                    
+                    if ($fieldData) {
+                        $fieldValue = null;
+                        // Drupal field tables: table taxonomy_term__harvest_days has column harvest_days_value
+                        // (suffix after __ + '_value'). Our key may differ (e.g. harvest_window_days).
+                        $tableSuffix = substr($tableName, strrpos($tableName, '__') + 2);
+                        $possibleColumns = [
+                            'field_' . $fieldName . '_value',
+                            $fieldName . '_value',
+                            $tableSuffix . '_value',  // e.g. harvest_days_value for taxonomy_term__harvest_days
+                            'value'
+                        ];
+                        
+                        foreach ($possibleColumns as $column) {
+                            if (property_exists($fieldData, $column)) {
+                                $fieldValue = $fieldData->$column;
+                                break;
+                            }
+                        }
+                        
+                        $varietyData[$fieldName] = $fieldValue;
+                        Log::debug("Fetched {$fieldName} for variety {$id}: " . $fieldValue);
+                    }
+                } catch (\Exception $e) {
+                    // Field table doesn't exist or query failed - skip silently
+                    Log::debug("Field {$fieldName} not available for variety {$id}: " . $e->getMessage());
+                }
+            }
+
+            // Harvest window: FarmOS may use taxonomy_term__harvest_window_days (harvest_window_days_value)
+            // or taxonomy_term__harvest_days (harvest_days_value). If we still don't have a value, try the other table.
+            if (($varietyData['harvest_window_days'] ?? null) === null) {
+                try {
+                    if (\Schema::connection('farmos')->hasTable('taxonomy_term__harvest_window_days')) {
+                        $row = DB::connection('farmos')->table('taxonomy_term__harvest_window_days')
+                            ->where('entity_id', $id)->first();
+                        if ($row && property_exists($row, 'harvest_window_days_value')) {
+                            $varietyData['harvest_window_days'] = $row->harvest_window_days_value;
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::debug('harvest_window_days fallback: ' . $e->getMessage());
+                }
+            }
+
+            // Season type: FarmOS may use taxonomy_term__field_season_type (custom) or taxonomy_term__season_type (core-style).
+            // Varieties list uses both; sidebar must check both so it matches varietal succession categorization.
+            if (($varietyData['season_type'] ?? null) === null) {
+                try {
+                    if (\Schema::connection('farmos')->hasTable('taxonomy_term__field_season_type')) {
+                        $row = DB::connection('farmos')->table('taxonomy_term__field_season_type')
+                            ->where('entity_id', $id)->first();
+                        if ($row && property_exists($row, 'field_season_type_value')) {
+                            $varietyData['season_type'] = $row->field_season_type_value;
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::debug('Season type (field_season_type): ' . $e->getMessage());
+                }
+            }
+            if (($varietyData['season_type'] ?? null) === null) {
+                try {
+                    if (\Schema::connection('farmos')->hasTable('taxonomy_term__season_type')) {
+                        $row = DB::connection('farmos')->table('taxonomy_term__season_type')
+                            ->where('entity_id', $id)->first();
+                        if ($row && property_exists($row, 'season_type_value')) {
+                            $varietyData['season_type'] = $row->season_type_value;
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::debug('Season type (season_type): ' . $e->getMessage());
+                }
+            }
+
+            Log::info('Variety details fetched', [
+                'id' => $id,
+                'name' => $variety->name,
+                'has_maturity_days' => $varietyData['maturity_days'] !== null,
+                'maturity_days' => $varietyData['maturity_days']
+            ]);
+
+// Populate missing fields with crop-specific defaults
+                $this->populateMissingFieldDefaults($varietyData);
 
             return response()->json([
                 'success' => true,
@@ -1778,6 +1940,244 @@ class SuccessionPlanningController extends Controller
                 'message' => 'Unable to load variety details',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Get varieties for a specific crop type (lazy loading)
+     */
+    public function varietiesBySeason(Request $request, string $cropId): JsonResponse
+    {
+        try {
+            // Get the crop type name from the TID
+            $cropType = DB::connection('farmos')
+                ->table('taxonomy_term_field_data')
+                ->where('tid', $cropId)
+                ->where('vid', 'plant_type')
+                ->first();
+
+            if (!$cropType) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Crop type not found'
+                ], 404);
+            }
+
+            $cropTypeName = $cropType->name;
+
+            // Query farmOS database directly for varieties of this crop type (fast ~50ms)
+            // Varieties are identified by having the crop type name as a prefix followed by a space
+            $varieties = DB::connection('farmos')
+                ->table('taxonomy_term_field_data')
+                ->where('vid', 'plant_type')
+                ->where('status', 1)
+                ->where('name', 'like', $cropTypeName . ' %') // Varieties start with crop type name + space
+                ->where('name', '!=', $cropTypeName) // Exclude the crop type itself
+                ->select('tid', 'name', 'description__value as description')
+                ->orderBy('name')
+                ->get();
+
+            // Format for JavaScript consumption
+            $formattedVarieties = $varieties->map(function($v) use ($cropId, $cropTypeName) {
+                $varietyData = [
+                    'id' => $v->tid,
+                    'name' => $v->name,
+                    'label' => $v->name,
+                    'parent_id' => $cropId,
+                    'plant_type' => $cropTypeName,
+                    'plant_type_id' => $cropId,
+                    'season_type' => null,
+                    'maturity_days' => null,
+                    'propagation_days' => null,
+                    'harvest_window_days' => null,
+                    'in_row_spacing_cm' => null,
+                    'between_row_spacing_cm' => null,
+                    'frost_tolerance' => null,
+                    'planting_method' => null,
+                    'planting_depth_inches' => null,
+                    'germination_days_min' => null,
+                    'germination_days_max' => null,
+                    'germination_temp_optimal' => null,
+                    'companions' => null,
+                    'crop_family_taxonomy' => null,
+                    'frost_tolerance_level' => null,
+                    'season_type_category' => null,
+                    'harvest_method' => null,
+                    'between_row_spacing_cm_preset' => null,
+                    'in_row_spacing_cm_preset' => null
+                ];
+
+                // Try to fetch additional fields for this variety
+                // Note: Only fields that actually exist in farmOS taxonomy are queried
+                $fieldTables = [
+                    'maturity_days' => 'taxonomy_term__maturity_days',
+                    'propagation_days' => 'taxonomy_term__propagation_days',
+                    'harvest_window_days' => 'taxonomy_term__harvest_days',
+                    'season_type' => 'taxonomy_term__season_type',
+                    'companions' => 'taxonomy_term__companions',
+                    'crop_family_taxonomy' => 'taxonomy_term__crop_family',
+                    'harvest_method' => 'taxonomy_term__harvest_method',
+                    'harvest_start_month' => 'taxonomy_term__harvest_start_month',
+                    'harvest_end_month' => 'taxonomy_term__harvest_end_month',
+                    // Note: Custom spacing/frost/planting fields don't exist in farmOS yet
+                    // These will be populated with defaults below
+                ];
+
+                foreach ($fieldTables as $fieldName => $tableName) {
+                    try {
+                        $fieldData = DB::connection('farmos')
+                            ->table($tableName)
+                            ->where('entity_id', $v->tid)
+                            ->first();
+
+                        if ($fieldData) {
+                            $fieldValue = null;
+                            $tableSuffix = substr($tableName, strrpos($tableName, '__') + 2);
+                            $possibleColumns = [
+                                'field_' . $fieldName . '_value',
+                                $fieldName . '_value',
+                                $tableSuffix . '_value',
+                                'value'
+                            ];
+
+                            foreach ($possibleColumns as $column) {
+                                if (property_exists($fieldData, $column)) {
+                                    $fieldValue = $fieldData->$column;
+                                    break;
+                                }
+                            }
+
+                            $varietyData[$fieldName] = $fieldValue;
+                        }
+                    } catch (\Exception $e) {
+                        // Field table doesn't exist or field not available - skip
+                    }
+                }
+
+                // Single vocabulary: harvest from taxonomy_term__harvest_days, season from taxonomy_term__season_type only.
+
+                // Populate missing fields with crop-specific defaults
+                // These fields don't exist in farmOS taxonomy yet, so we provide defaults
+                $this->populateMissingFieldDefaults($varietyData);
+                return $varietyData;
+            })->toArray();
+
+            Log::info('Varieties fetched for crop type', [
+                'crop_type_id' => $cropId,
+                'count' => count($formattedVarieties),
+                'has_maturity_data' => !empty(array_filter($formattedVarieties, fn($v) => $v['maturity_days'] !== null)),
+                'maturity_values' => array_map(fn($v) => $v['maturity_days'], array_filter($formattedVarieties, fn($v) => $v['maturity_days'] !== null)),
+                'sample_variety' => $formattedVarieties[0] ?? null
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'varieties' => $formattedVarieties
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch varieties for crop type: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to load varieties for this crop type',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+    /**
+     * Populate missing field defaults for fields that don't exist in farmOS taxonomy yet
+     * These fields need to be added to farmOS as custom taxonomy fields in the future
+     */
+    private function populateMissingFieldDefaults(array &$varietyData): void
+    {
+        $cropName = strtolower($varietyData['plant_type'] ?? '');
+        $varietyName = strtolower($varietyData['name'] ?? '');
+
+        // Default spacing values based on crop type
+        $spacingDefaults = [
+            'leek' => ['in_row' => 15, 'between_row' => 30, 'planting_method' => 'transplant'],
+            'lettuce' => ['in_row' => 25, 'between_row' => 30, 'planting_method' => 'direct'],
+            'carrot' => ['in_row' => 5, 'between_row' => 30, 'planting_method' => 'direct'],
+            'beetroot' => ['in_row' => 10, 'between_row' => 30, 'planting_method' => 'direct'],
+            'spinach' => ['in_row' => 15, 'between_row' => 30, 'planting_method' => 'direct'],
+            'kale' => ['in_row' => 30, 'between_row' => 45, 'planting_method' => 'transplant'],
+            'broccoli' => ['in_row' => 45, 'between_row' => 60, 'planting_method' => 'transplant'],
+            'cabbage' => ['in_row' => 45, 'between_row' => 60, 'planting_method' => 'transplant'],
+            'cauliflower' => ['in_row' => 50, 'between_row' => 60, 'planting_method' => 'transplant'],
+            'brussels sprouts' => ['in_row' => 60, 'between_row' => 60, 'planting_method' => 'transplant'],
+            'asparagus' => ['in_row' => 30, 'between_row' => 120, 'planting_method' => 'transplant'],
+            'celery' => ['in_row' => 20, 'between_row' => 45, 'planting_method' => 'transplant'],
+            'fennel' => ['in_row' => 30, 'between_row' => 45, 'planting_method' => 'transplant'],
+            'chives' => ['in_row' => 15, 'between_row' => 30, 'planting_method' => 'transplant'],
+            'default' => ['in_row' => 30, 'between_row' => 45, 'planting_method' => 'direct']
+        ];
+
+        $defaults = $spacingDefaults[$cropName] ?? $spacingDefaults['default'];
+
+        // Populate missing spacing fields
+        if ($varietyData['in_row_spacing_cm'] === null) {
+            $varietyData['in_row_spacing_cm'] = $defaults['in_row'];
+        }
+        if ($varietyData['between_row_spacing_cm'] === null) {
+            $varietyData['between_row_spacing_cm'] = $defaults['between_row'];
+        }
+        if ($varietyData['planting_method'] === null) {
+            $varietyData['planting_method'] = $defaults['planting_method'];
+        }
+
+        // Default frost tolerance based on crop type
+        if ($varietyData['frost_tolerance'] === null) {
+            $frostTolerantCrops = ['brussels sprouts', 'leek', 'kale', 'cabbage', 'broccoli', 'cauliflower'];
+            $varietyData['frost_tolerance'] = in_array($cropName, $frostTolerantCrops) ? 'Hardy' : 'Tender';
+        }
+
+        // Default planting depth (most seeds are 1/4 to 1/2 inch)
+        if ($varietyData['planting_depth_inches'] === null) {
+            $varietyData['planting_depth_inches'] = $varietyData['planting_method'] === 'direct' ? 0.25 : 0.5;
+        }
+
+        // Default germination days (most seeds germinate in 7-14 days)
+        if ($varietyData['germination_days_min'] === null) {
+            $varietyData['germination_days_min'] = 7;
+        }
+        if ($varietyData['germination_days_max'] === null) {
+            $varietyData['germination_days_max'] = 14;
+        }
+        if ($varietyData['germination_temp_optimal'] === null) {
+            $varietyData['germination_temp_optimal'] = 70; // 70°F optimal for most crops
+        }
+
+        // Default propagation days for transplants (weeks from seed to transplant)
+        // Only apply if propagation_days is still null (database didn't provide a value)
+        if ($varietyData['propagation_days'] === null && $varietyData['planting_method'] === 'transplant') {
+            $transplantCrops = [
+                'leek' => 70,      // 10 weeks
+                'broccoli' => 35,  // 5 weeks
+                'cabbage' => 35,   // 5 weeks
+                'cauliflower' => 35, // 5 weeks
+                'brussels sprouts' => 42, // 6 weeks
+                'kale' => 28,      // 4 weeks
+                'celery' => 56,    // 8 weeks
+                'default' => 35    // 5 weeks default
+            ];
+            $varietyData['propagation_days'] = $transplantCrops[$cropName] ?? $transplantCrops['default'];
+        }
+
+        // Set remaining null fields to appropriate defaults
+        $remainingDefaults = [
+            'frost_tolerance_level' => 'Medium',
+            'season_type_category' => 'Cool Season',
+            'between_row_spacing_cm_preset' => $varietyData['between_row_spacing_cm'],
+            'in_row_spacing_cm_preset' => $varietyData['in_row_spacing_cm']
+        ];
+
+        foreach ($remainingDefaults as $field => $default) {
+            if ($varietyData[$field] === null) {
+                $varietyData[$field] = $default;
+            }
         }
     }
 }

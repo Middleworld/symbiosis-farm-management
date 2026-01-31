@@ -36,6 +36,7 @@ class Product extends Model
         'unit',
         'supplier_id',
         'woo_product_id',
+        'last_woo_sync_at',
         'reviews_enabled',
         'upsell_ids',
         'crosssell_ids',
@@ -59,6 +60,7 @@ class Product extends Model
         'gallery_images' => 'array',
         'product_categories' => 'array',
         'product_tags' => 'array',
+        'last_woo_sync_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime'

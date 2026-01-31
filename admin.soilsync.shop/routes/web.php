@@ -714,19 +714,14 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         // Data sync routes
         Route::post('/sync-harvests', [App\Http\Controllers\Admin\FarmOSDataController::class, 'syncHarvests'])->name('sync-harvests');
         Route::post('/sync-to-stock', [App\Http\Controllers\Admin\FarmOSDataController::class, 'syncToStock'])->name('sync-to-stock');
-        Route::post('/sync-varieties', [App\Http\Controllers\Admin\FarmOSDataController::class, 'syncVarieties'])->name('sync-varieties');
         Route::delete('/clear-test-data', [App\Http\Controllers\Admin\FarmOSDataController::class, 'clearTestData'])->name('clear-test-data');
         
-        // Succession Planning routes - AI-powered succession planting
+        // Succession Planning routes - Manual succession planting
         Route::get('/succession-planning', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'index'])->name('succession-planning');
         Route::post('/succession-planning/calculate', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'calculate'])->name('succession-planning.calculate');
         Route::post('/succession-planning/generate', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'generate'])->name('succession-planning.generate');
         Route::post('/succession-planning/create-logs', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'createLogs'])->name('succession-planning.create-logs');
         Route::post('/succession-planning/create-single-log', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'createSingleLog'])->name('succession-planning.create-single-log');
-        Route::post('/succession-planning/harvest-window', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'getOptimalHarvestWindow'])->name('succession-planning.harvest-window');
-        Route::post('/succession-planning/seeding-transplant', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'getSeedingTransplantData'])->name('succession-planning.seeding-transplant');
-        Route::post('/succession-planning/chat', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'chat'])->name('succession-planning.chat');
-        Route::post('/succession-planning/analyze-cash-crops', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'analyzeCashCrops'])->name('succession-planning.analyze-cash-crops');
         
         // API log submission for Quick Forms
         Route::post('/succession-planning/submit-log', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'submitLog'])->name('succession-planning.submit-log');
@@ -739,10 +734,16 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         Route::post('/succession-planning/generate-quick-form-urls', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'generateQuickFormUrls'])->name('succession-planning.generate-quick-form-urls');
         
         // Varieties by season type for varietal succession
-        Route::get('/succession-planning/varieties-by-season/{cropId}', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'getVarietiesBySeason'])->name('succession-planning.varieties-by-season');
+        Route::get('/succession-planning/varieties-by-season/{cropId}', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'varietiesBySeason'])->name('succession-planning.varieties-by-season');
         
         // Bed occupancy data for timeline visualization
         Route::get('/succession-planning/bed-occupancy', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'getBedOccupancy'])->name('succession-planning.bed-occupancy');
+        
+        // AI status for succession planning
+        Route::get('/succession-planning/ai-status', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'getAIStatus'])->name('succession-planning.ai-status');
+        
+        // AI chat for succession planning
+        Route::post('/succession-planning/chat', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'chat'])->name('succession-planning.chat');
         
         // Crop plans for dropdown population
         Route::get('/succession-planning/crop-plans', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'getCropPlans'])->name('succession-planning.crop-plans');
@@ -751,10 +752,6 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
         Route::get('/crop-plans/timeline/{type}', [App\Http\Controllers\Admin\CropPlanController::class, 'renderTimeline'])->name('crop-plans.timeline');
         Route::get('/crop-plans/timeline-chart/{planId?}', [App\Http\Controllers\Admin\CropPlanController::class, 'renderTimelineChart'])->name('crop-plans.timeline-chart');
 
-        
-        // AI service management routes
-        Route::get('/succession-planning/ai-status', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'getAIStatus'])->name('succession-planning.ai-status');
-        Route::post('/succession-planning/wake-ai', [App\Http\Controllers\Admin\SuccessionPlanningController::class, 'wakeUpAI'])->name('succession-planning.wake-ai');
         
         // Crop Plan Management - redirect to working planting-chart page
         Route::get('/crop-plans', function () {

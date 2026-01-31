@@ -18,6 +18,10 @@ Laravel 12 (PHP 8.2+) application for Community Supported Agriculture (CSA) deli
 - **CPU-ONLY SERVER**: No GPU access - all AI processing on CPU requires 60-90s timeouts minimum
 - **ALL FILE CHANGES ARE IMMEDIATELY LIVE**: Test carefully before editing
 
+## Determining which database a site uses
+**ALWAYS check the app’s `.env` (and `settings.php` if present) first.**  
+The database name, user, and host are defined there (e.g. `FARMOS_DB_DATABASE`, `DB_DATABASE`). Do not assume or guess; read the env for the app you’re working on (e.g. `admin.soilsync.shop/.env` for the admin app, `farmos.soilsync.shop/.env` for FarmOS staging).
+
 ## Development Workflow
 
 ### Git Branch Architecture (December 2025)

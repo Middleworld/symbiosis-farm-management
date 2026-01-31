@@ -71,8 +71,6 @@
                     </div>
                 </div>
 
-                <div class="alert alert-warning mt-3">
-                    <small><i class="fas fa-exclamation-triangle"></i> Use artisan commands to sync data: <code>php artisan farmos:sync-varieties</code></small>
                 </div>
             </div>
         </div>

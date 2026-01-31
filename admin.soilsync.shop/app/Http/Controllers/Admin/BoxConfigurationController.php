@@ -106,20 +106,36 @@ class BoxConfigurationController extends Controller
             $plan = VegboxPlan::findOrFail($validated['plan_id']);
             \Log::info('Found plan', ['plan_id' => $plan->id, 'plan_name' => $plan->name]);
             
-            $configuration = BoxConfiguration::create([
-                'week_starting' => Carbon::parse($validated['week_starting'])->startOfWeek(),
-                'plan_id' => $validated['plan_id'],
-                'admin_notes' => $validated['admin_notes'] ?? null,
-                'is_active' => true,
-            ]);
+            // Check if configuration already exists for this week and plan
+            $existingConfig = BoxConfiguration::where('week_starting', Carbon::parse($validated['week_starting'])->startOfWeek())
+                ->where('plan_id', $validated['plan_id'])
+                ->first();
             
-            \Log::info('Configuration created', ['config_id' => $configuration->id]);
+            if ($existingConfig) {
+                \Log::info('Configuration already exists, updating instead', ['existing_id' => $existingConfig->id]);
+                $configuration = $existingConfig;
+                $configuration->update([
+                    'admin_notes' => $validated['admin_notes'] ?? null,
+                    'is_active' => true,
+                ]);
+                // Delete existing items to replace with new ones
+                $configuration->items()->delete();
+            } else {
+                $configuration = BoxConfiguration::create([
+                    'week_starting' => Carbon::parse($validated['week_starting'])->startOfWeek(),
+                    'plan_id' => $validated['plan_id'],
+                    'admin_notes' => $validated['admin_notes'] ?? null,
+                    'is_active' => true,
+                ]);
+            }
+            
+            \Log::info('Configuration ready', ['config_id' => $configuration->id]);
 
             // Add products to configuration
             if (!empty($validated['items'])) {
                 \Log::info('Adding items', ['items_count' => count($validated['items'])]);
                 
-                foreach ($validated['items'] as $itemData) {
+                foreach ($validated['items'] as $index => $itemData) {
                     $product = \App\Models\Product::find($itemData['product_id']);
                     \Log::info('Adding product', ['product_id' => $product->id, 'name' => $product->name]);
                     
@@ -147,8 +163,10 @@ class BoxConfigurationController extends Controller
 
             $planName = is_array($plan->name) ? ($plan->name['en'] ?? 'Box') : $plan->name;
 
+            $action = $existingConfig ? 'updated' : 'created';
+
             return redirect()->route('admin.box-configurations.index')
-                           ->with('success', "Box configuration for {$planName} created successfully for week starting " . 
+                           ->with('success', "Box configuration for {$planName} {$action} successfully for week starting " . 
                                   Carbon::parse($validated['week_starting'])->format('M d, Y'));
 
         } catch (\Exception $e) {
@@ -209,6 +227,7 @@ class BoxConfigurationController extends Controller
             'items.*.id' => 'nullable|exists:box_configuration_items,id',
             'items.*.product_id' => 'nullable|exists:products,id',
             'items.*.item_name' => 'required|string',
+            'items.*.quantity' => 'required|integer|min:1',
             'items.*.quantity_available' => 'nullable|integer|min:0',
             'items.*.unit' => 'nullable|string',
             'items.*.plant_variety_id' => 'nullable|exists:plant_varieties,id',
@@ -238,6 +257,7 @@ class BoxConfigurationController extends Controller
                         \Log::info('Updating existing item', ['id' => $itemData['id'], 'item_exists' => $item ? true : false]);
                         $item->update([
                             'item_name' => $itemData['item_name'],
+                            'quantity' => $itemData['quantity'],
                             'quantity_available' => $itemData['quantity_available'] ?? null,
                             'unit' => $itemData['unit'] ?? 'item',
                             'plant_variety_id' => $itemData['plant_variety_id'] ?? null,
@@ -251,6 +271,7 @@ class BoxConfigurationController extends Controller
                         $item = $configuration->items()->create([
                             'product_id' => $itemData['product_id'] ?? null,
                             'item_name' => $itemData['item_name'],
+                            'quantity' => $itemData['quantity'],
                             'quantity_available' => $itemData['quantity_available'] ?? null,
                             'unit' => $itemData['unit'] ?? 'item',
                             'plant_variety_id' => $itemData['plant_variety_id'] ?? null,

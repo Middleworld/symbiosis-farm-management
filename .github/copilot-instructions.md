@@ -38,6 +38,26 @@ Laravel 12 (PHP 8.2+) application for Community Supported Agriculture (CSA) deli
 - **Routes**: `/plan/add/crop`, `/plan/{id}/timeline/crop/plant_type`, `/plan/{id}/timeline/crop/location`
 - **Integration**: Succession planner now supports `?plan={id}` parameter for automatic crop planting record creation
 
+### Route Consistency Critical Warning
+- **Issue**: JavaScript fetch requests failing due to missing Laravel routes
+- **Root Cause**: `checkAIStatus()` function in succession planner fetched `/admin/farmos/succession-planning/ai-status` but route was missing from `routes/web.php`
+- **Impact**: 404 errors → JavaScript execution failures → "Illegal return statement" errors → broken UI functionality
+- **Solution**: Always verify JavaScript fetch endpoints exist as routes before committing changes
+- **Prevention**: 
+  ```bash
+  # Check for fetch calls in Blade templates
+  grep -r "fetch.*admin/farmos" resources/views/
+  
+  # Verify routes exist
+  php artisan route:list | grep "succession-planning"
+  ```
+- **Critical Routes to Verify**:
+  - `/admin/farmos/succession-planning/ai-status`
+  - `/admin/farmos/succession-planning/crop-plans`
+  - `/admin/farmos/succession-planning/varieties/{id}`
+  - `/admin/farmos/succession-planning/bed-occupancy`
+- **Pattern**: JavaScript fetch URLs must exactly match Laravel route definitions. Missing routes cause 404s → JavaScript failures → broken UI functionality.
+
 ## Development Workflow
 
 ### Staging Environment Setup (December 2025)

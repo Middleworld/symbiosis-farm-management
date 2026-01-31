@@ -105,7 +105,7 @@ class FarmOSDataController extends Controller
             
             // Fallback to local database if farmOS fails
             $hasTestData = HarvestLog::where('crop_name', 'LIKE', 'TEST -%')->exists() ||
-                          StockItem::where('crop_name', 'LIKE', 'TEST -%')->exists() ||
+                          StockItem::where('name', 'LIKE', 'TEST -%')->exists() ||
                           CropPlan::where('crop_name', 'LIKE', 'TEST -%')->exists();
 
             $stats = [
@@ -692,32 +692,7 @@ class FarmOSDataController extends Controller
     }
 
     /**
-     * Sync plant varieties from FarmOS
-     */
-    public function syncVarieties(): JsonResponse
-    {
-        try {
-            // Run the artisan command to sync varieties
-            \Artisan::call('farmos:sync-varieties', ['--force' => true]);
-            
-            $output = \Artisan::output();
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Plant varieties synced successfully from FarmOS',
-                'output' => $output
-            ]);
 
-        } catch (\Exception $e) {
-            Log::error('Failed to sync varieties: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to sync varieties: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
      * Process a single harvest log from FarmOS
      */
     private function processHarvestLog($harvestData)

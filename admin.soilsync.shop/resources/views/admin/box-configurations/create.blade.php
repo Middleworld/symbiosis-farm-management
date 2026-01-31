@@ -20,30 +20,21 @@
     <div class="card mb-4">
         <div class="card-body">
             <div class="row align-items-end">
-                <div class="col-md-2">
-                    <label for="global_week_starting" class="form-label">Week Starting (Monday) <span class="text-danger">*</span></label>
-                    <input type="date" 
-                           class="form-control" 
-                           id="global_week_starting" 
-                           value="{{ $weekStart->format('Y-m-d') }}"
-                           onchange="updateAllWeekFields(this.value)">
-                    <small class="text-muted">This week applies to all box configurations below</small>
-                </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label for="year_select" class="form-label">Year</label>
                     <select class="form-select" id="year_select" onchange="updateWeekOptions()">
                         @php
                             $currentYear = \Carbon\Carbon::now()->year;
-                            for ($year = $currentYear; $year <= $currentYear + 2; $year++) {
+                            for ($year = $currentYear; $year <= 2035; $year++) {
                                 $selected = ($year == $weekStart->year) ? 'selected' : '';
                                 echo "<option value='{$year}' {$selected}>{$year}</option>";
                             }
                         @endphp
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-6">
                     <label for="week_number_select" class="form-label">Week Number</label>
-                    <select class="form-select" id="week_number_select" onchange="updateDateFromWeekSelection()">
+                    <select class="form-select" id="week_number_select" onchange="updateWeekSelection()">
                         <option value="">Select Week</option>
                         @php
                             $selectedYear = $weekStart->year;
@@ -63,7 +54,7 @@
                         @endphp
                     </select>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-3">
                     <div class="alert alert-info mb-0">
                         <i class="fas fa-info-circle"></i> Configure products for each box size. Use the tabs below to switch between plans.
                     </div>
@@ -209,13 +200,6 @@ let boxItems = {};
     boxItems[{{ $plan->id }}] = [];
 @endforeach
 
-// Update all week fields when global week changes
-function updateAllWeekFields(weekValue) {
-    document.querySelectorAll('.week-starting-field').forEach(field => {
-        field.value = weekValue;
-    });
-}
-
 // Add product to box
 function addProductToBox(planId, productId, productName, price, unit) {
     console.log('Adding product:', {planId, productId, productName, price, unit});
@@ -272,7 +256,7 @@ function renderBoxContents(planId) {
     let totalValue = 0;
     let html = '<div class="list-group">';
     
-    boxItems[planId].forEach(item => {
+    boxItems[planId].forEach((item, index) => {
         const itemTotal = item.price * item.quantity;
         totalValue += itemTotal;
         
@@ -295,9 +279,9 @@ function renderBoxContents(planId) {
                     </div>
                     <span class="badge bg-success">£${itemTotal.toFixed(2)}</span>
                 </div>
-                <input type="hidden" name="items[${item.productId}][product_id]" value="${item.productId}">
-                <input type="hidden" name="items[${item.productId}][quantity]" value="${item.quantity}">
-                <input type="hidden" name="items[${item.productId}][price]" value="${item.price}">
+                <input type="hidden" name="items[${index}][product_id]" value="${item.productId}">
+                <input type="hidden" name="items[${index}][quantity]" value="${item.quantity}">
+                <input type="hidden" name="items[${index}][price]" value="${item.price}">
             </div>
         `;
     });
@@ -336,21 +320,16 @@ function validateForm(planId) {
     return true;
 }
 
-// Update date field when week number is selected
-function updateDateFromWeekSelection() {
-    const weekSelect = document.getElementById('week_number_select');
-    const selectedDate = weekSelect.value;
-    if (selectedDate) {
-        document.getElementById('global_week_starting').value = selectedDate;
-        updateAllWeekFields(selectedDate);
-    }
-}
-
 // Update week options when year is changed
 function updateWeekOptions() {
     const yearSelect = document.getElementById('year_select');
-    const weekSelect = document.getElementById('week_number_select');
     const selectedYear = yearSelect.value;
+    updateWeekOptionsForYear(selectedYear);
+}
+
+// Update week options for a specific year
+function updateWeekOptionsForYear(selectedYear) {
+    const weekSelect = document.getElementById('week_number_select');
     
     // Clear current options
     weekSelect.innerHTML = '<option value="">Select Week</option>';
@@ -368,14 +347,28 @@ function updateWeekOptions() {
     
     while (currentDate <= yearEnd) {
         const monday = new Date(currentDate);
+        const dateValue = monday.toISOString().split('T')[0];
         const option = document.createElement('option');
-        option.value = monday.toISOString().split('T')[0];
+        option.value = dateValue;
         option.textContent = `Week ${weekNum} (${monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})`;
         weekSelect.appendChild(option);
         
         // Move to next Monday
         currentDate.setDate(currentDate.getDate() + 7);
         weekNum++;
+    }
+}
+
+// Update week selection - sets the hidden week_starting field
+function updateWeekSelection() {
+    const weekSelect = document.getElementById('week_number_select');
+    const selectedDate = weekSelect.value;
+    if (selectedDate) {
+        // Update the hidden week_starting field
+        const hiddenFields = document.querySelectorAll('input[name="week_starting"]');
+        hiddenFields.forEach(field => {
+            field.value = selectedDate;
+        });
     }
 }
 </script>
