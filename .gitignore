@@ -68,6 +68,10 @@ httpdocs/force-*.php
 # OAuth credentials (sensitive)
 farmos.soilsync.shop/oauth-credentials-*.txt
 
+# Sensitive account files (never commit)
+httpdocs/accounts*.zip
+**/accounts*.zip
+
 # FieldKit (separate installation)
 
 # WordPress additional themes/templates (not custom)
